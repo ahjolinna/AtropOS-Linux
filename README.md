@@ -4,13 +4,13 @@
 
 **Powered by openSUSE • Sealed by AtropOS**
 
+![AtropOS desktop](screenshots/desktop.png)
+
 <p align="center">
   <a href="https://download.opensuse.org/repositories/home:/ahjolinna:/images/images/iso/AtropOS_Desktop.x86_64-Online.iso">
     <img alt="Download the AtropOS ISO" src="https://img.shields.io/badge/Download%20the%20ISO-AtropOS-c7080b?style=for-the-badge&logo=linux&logoColor=white">
   </a>
 </p>
-
-![AtropOS desktop](screenshots/desktop.png)
 
 The fresh software of a rolling openSUSE, on the calm of a long-term kernel, sealed so an update cannot take the desktop with it. AtropOS is that combination, tuned until it feels like the machine you sit down at every day.
 
