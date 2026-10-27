@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AtropOS</title>
+  <meta name="description" content="Powered by openSUSE. Sealed by AtropOS. A calm, current desktop you sit down at every day.">
+  <link rel="icon" href="https://raw.githubusercontent.com/ahjolinna/AtropOS-Linux/main/products/AtropOS.svg">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1016;
+      --ink: #f4efe8;
+      --muted: #c8bfb4;
+      --rose: #c7080b;
+      --line: rgba(244, 239, 232, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(900px 420px at 50% -10%, rgba(91, 44, 140, 0.35), transparent 60%),
+        var(--bg);
+      color: var(--ink);
+      font: 1.125rem/1.6 Georgia, "Source Serif Pro", serif;
+    }
+    main {
+      width: min(920px, calc(100% - 2.5rem));
+      margin: 0 auto;
+      padding: 3.5rem 0 5rem;
+    }
+    .mark {
+      width: 4.5rem;
+      height: auto;
+      display: block;
+      margin: 0 auto 1.25rem;
+    }
+    h1, h2, p { text-align: center; }
+    h1 {
+      margin: 0;
+      font-weight: 500;
+      font-size: clamp(3rem, 8vw, 5rem);
+      letter-spacing: 0.04em;
+    }
+    .tagline {
+      margin: 0.4rem 0 2rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .shot {
+      width: 100%;
+      border-radius: 1rem;
+      display: block;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    }
+    .download {
+      display: inline-block;
+      margin: 1.75rem 0 0.4rem;
+      padding: 0.9rem 1.6rem;
+      background: var(--rose);
+      color: white;
+      text-decoration: none;
+      font: 600 1rem/1 ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      border-radius: 999px;
+    }
+    .download:hover { filter: brightness(1.08); }
+    .lead {
+      margin: 2.5rem auto 0;
+      max-width: 38rem;
+      font-size: 1.35rem;
+      line-height: 1.45;
+    }
+    section {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--line);
+    }
+    h2 {
+      margin: 0 0 0.8rem;
+      font-weight: 500;
+      font-size: 1.6rem;
+    }
+    section p {
+      margin: 0.8rem auto 0;
+      max-width: 38rem;
+      color: var(--muted);
+    }
+    .cta { text-align: center; }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="mark" src="https://raw.githubusercontent.com/ahjolinna/AtropOS-Linux/main/products/AtropOS.svg" alt="">
+    <h1>AtropOS</h1>
+    <p class="tagline">Powered by openSUSE • Sealed by AtropOS</p>
+    <img class="shot" src="https://raw.githubusercontent.com/ahjolinna/AtropOS-Linux/main/screenshots/desktop.png" alt="The AtropOS desktop">
+    <p class="cta">
+      <a class="download" href="https://download.opensuse.org/repositories/home:/ahjolinna:/images/images/iso/AtropOS_Desktop.x86_64-Online.iso">Download the ISO</a>
+    </p>
+    <p class="lead">The fresh software of a rolling openSUSE, on the calm of a long-term kernel, sealed so an update cannot take the desktop with it. AtropOS is that combination, tuned until it feels like the machine you sit down at every day.</p>
+
+    <section>
+      <h2>Best of both worlds</h2>
+      <p>Slowroll keeps the desktop current. The LTS kernel keeps the foundation steady. The system itself is immutable: the base updates as one snapshot, and your applications live in Flatpak. You get new software without living on the edge, and a system that comes back if an update goes wrong.</p>
+    </section>
+    <section>
+      <h2>Tuned for the person using it</h2>
+      <p>Sit down and it is already yours. Dark. Quiet. Quick. The evening can be work, or it can be play, and the machine simply keeps up.</p>
+      <p>The first hello is finished before you touch a setting. Aether Dark is waiting, the splash has already played, and Firefox is there with the rest of the day. On battery the machine softens. At the desk it comes alive. Close the lid, walk away, and your place is still there when you come back.</p>
+    </section>
+    <section>
+      <h2>Ready when you play</h2>
+      <p>Pick up a controller and go. The games you already own feel at home, including the Windows ones. The lights on your desk can match your mood. Choose NVIDIA and the picture is ready, resting when you are, awake when the game is.</p>
+    </section>
+    <section>
+      <h2>Updates, from the desktop</h2>
+      <p>Discover on AtropOS can see the system update and apply it as one snapshot. This is a proof of concept: one system update, applied cleanly, with the restart left to you. Flatpak applications keep updating on their own.</p>
+      <p>The version you were using stays. If the new one is not the one you want, start the previous version and the desktop is as you left it.</p>
+    </section>
+    <section>
+      <h2>A quiet checkup</h2>
+      <p>Each boot, AtropOS looks the system over and sets right the settings that have drifted. Your files stay yours, and the version you are running stays the one you chose.</p>
+    </section>
+    <section>
+      <h2>A way back</h2>
+      <p>Atychia is there when Plasma sticks. One chord opens a recovery screen and can return you to the session you were in.</p>
+    </section>
+  </main>
+</body>
+</html>
