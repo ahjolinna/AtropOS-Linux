@@ -4,47 +4,28 @@
 
 **Powered by openSUSE • Sealed by AtropOS**
 
-A rolling immutable KDE Plasma desktop. The system updates in one snapshot. Applications come from Flatpak.
+The fresh software of a rolling openSUSE, on the calm of a long-term kernel, sealed so an update cannot take the desktop with it. AtropOS is that combination, tuned until it feels like the machine you sit down at every day.
 
-## The desktop
+## Best of both worlds
 
-- Aether Dark, Kora icons, the Adobe Source fonts, and the AtropOS splash
-- AtropOS wallpapers, with AtropOS 02 on the desktop and a silent looping video
-- Cover Switch, a quiet boot, and the AtropOS Plymouth theme
-- Firefox and the daily KDE applications, installed from Flathub on first boot
+Slowroll keeps the desktop current. The LTS kernel keeps the foundation steady. The system itself is immutable: the base updates as one snapshot, and your applications live in Flatpak. You get new software without living on the edge, and a system that comes back if an update goes wrong.
 
-## The system
+## Tuned for the person using it
 
-- openSUSE Slowroll, `kernel-longterm`, and systemd-boot
-- A read-only Btrfs root, snapshots, and `transactional-update`
-- SELinux enforcing, measured boot, and TPM disk unlock
-- An Agama installer, online or with the packages carried on the disc
-- An optional open NVIDIA driver for the longterm kernel
+AtropOS ships with the small choices already made.
 
-## Source
+- Memory stays compressed, so everyday work keeps its snap
+- The desktop watches memory pressure and stays responsive
+- Power saving runs, and the keyboard and mouse stay awake
+- Boot is quiet and opens straight on the desktop
+- The network is set for a responsive session, not a server
+- A new account arrives on Aether Dark, with the AtropOS splash, wallpapers, and fonts already in place
+- The first login brings Firefox and the daily applications from Flathub
 
-[github.com/ahjolinna/AtropOS-Linux](https://github.com/ahjolinna/AtropOS-Linux)
+## Updates, from the desktop
 
-Each directory is one package on the Open Build Service, project `home:ahjolinna`.
+Discover on AtropOS can see the system update and apply it as one snapshot. This is a proof of concept: one system update, applied cleanly, with the restart left to you. Flatpak applications keep updating on their own.
 
-```sh
-osc build
-```
+## A way back
 
-The live image is `installer/`.
-
-## Packages
-
-| Directory | Package | Role |
-| --- | --- | --- |
-| `products/` | `agama-products-atropos` | Agama product definition |
-| `patterns/` | `patterns-atropos` | Base desktop, and optional NVIDIA |
-| `release/` | `AtropOS-release` | `os-release` and the operating-system metadata |
-| `aether/` | `plasma6-theme-aether-dark` | Aether Dark |
-| `wallpapers/` | `atropos-wallpapers` | Still wallpapers and the video wallpaper |
-| `splash/` | `plasma6-lookandfeel-atropos` | Login splash |
-| `plymouth/` | `plymouth-theme-atropos` | Boot splash |
-| `grub/` | `grub2-branding-atropos` | Live ISO boot theme |
-| `performance/` | `atropos-performance` | Desktop defaults, silent boot, and the Flatpak seed |
-| `nvidia/` | `atropos-nvidia` | First-boot open driver |
-| `installer/` | `agama-installer-atropos` | Offline and Online live ISOs |
+Atychia is there when Plasma sticks. One chord opens a recovery screen and can return you to the session you were in.
