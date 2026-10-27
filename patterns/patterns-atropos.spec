@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        21
+Release:        22
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -356,12 +356,12 @@ Requires:       plasma6-desktop-emojier
 Requires:       plasma6-systemmonitor
 Requires:       plasma6-workspace-wallpapers
 Requires:       qt6-imageformats
-# plasma-login-manager replaces SDDM. Kalpa's display-manager.service
+# plasma6-login-manager replaces SDDM. Kalpa's display-manager.service
 # alias points at display-manager-legacy.service, and a preset cannot
 # retarget that symlink, so %post force-enables plasmalogin.service.
 # plasmalogin.service already waits on udevadm settle.
-Requires:       plasma-login-manager
-Requires:       plasma-login-manager-kcm
+Requires:       plasma6-login-manager
+Requires:       plasma6-login-manager-kcm
 # Ctrl+Alt+Shift+Esc session recovery. It returns to the previous TTY.
 Requires:       atychia
 Conflicts:      sddm-qt6

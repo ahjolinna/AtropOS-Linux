@@ -3,7 +3,7 @@
     Stay on Slowroll's Plasma 6.7 line. Change revision to Plasma/6.8
     when Slowroll's workspace moves. obs_scm runs on the server.
     The build workers have no network.
-    Refresh with: osc service remoterun home:ahjolinna plasma-login-manager
+    Refresh with: osc service remoterun home:ahjolinna plasma6-login-manager
   -->
   <service name="obs_scm">
     <param name="url">https://invent.kde.org/plasma/plasma-login-manager.git</param>

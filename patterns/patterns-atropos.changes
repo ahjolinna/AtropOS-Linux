@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Oct 27 23:50:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require plasma6-login-manager. That is the official package name.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.

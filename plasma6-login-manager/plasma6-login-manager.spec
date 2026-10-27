@@ -1,5 +1,5 @@
 #
-# spec file for package plasma-login-manager
+# spec file for package plasma6-login-manager
 #
 # Copyright (c) 2025 SUSE LLC and contributors
 #
@@ -17,8 +17,9 @@
 
 %define kf6_version 6.27.0
 %define qt6_version 6.11.2
+%define rname plasma-login-manager
 
-Name:           plasma-login-manager
+Name:           plasma6-login-manager
 # set_version rewrites this line from the Plasma/6.7 tag. A macro is left
 # in place, because that rewrite stops at '%'.
 Version:        6.7.5
@@ -26,7 +27,7 @@ Release:        0
 Summary:        QML based login manager for the Plasma Desktop
 License:        GPL-2.0-or-later AND GPL-3.0-or-later
 URL:            https://invent.kde.org/plasma/plasma-login-manager
-Source:         %{name}-%{version}.tar.xz
+Source:         %{rname}-%{version}.tar.xz
 Source2:        noqmlcache.conf
 #BuildRequires:  opus-devel
 BuildRequires:  cmake >= 3.22
@@ -74,6 +75,8 @@ Requires:       kf6-kauth
 Requires:       kf6-kimageformats
 Requires:       kwin6
 Requires:       (%{name}-kcm if systemsettings6)
+Provides:       plasma-login-manager = %{version}-%{release}
+Obsoletes:      plasma-login-manager
 
 
 %description
@@ -84,12 +87,14 @@ wallpaper plugin integration and a System Settings module (KCM).
 %package kcm
 Summary:        KDE KCM for %{name}
 Requires:       %{name} = %{version}-%{release}
+Provides:       plasma-login-manager-kcm = %{version}-%{release}
+Obsoletes:      plasma-login-manager-kcm
 
 %description kcm
 KCM for plasmalogin, for systemsettings integration
 
 %prep
-%autosetup -p1 -n %{name}-%{version}
+%autosetup -p1 -n %{rname}-%{version}
 
 %build
 LOGIN_DEFS_PATH="%{_sysconfdir}/login.defs"

@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Oct 27 23:50:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Rename the package to plasma6-login-manager, the name used for the
+  official package. The upstream archive remains plasma-login-manager.
+- Obsolete plasma-login-manager and plasma-login-manager-kcm.
+
+-------------------------------------------------------------------
 Tue Oct 27 16:24:46 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Follow the Plasma/6.7 branch for the package version.
