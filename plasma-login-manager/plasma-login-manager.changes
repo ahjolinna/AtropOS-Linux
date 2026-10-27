@@ -1,0 +1,81 @@
+-------------------------------------------------------------------
+Tue Oct 27 16:24:46 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Follow the Plasma/6.7 branch for the package version.
+- BuildRequire KF6CoreAddons, LibKLookAndFeel, and libXau.
+
+-------------------------------------------------------------------
+Tue Aug  4 12:00:00 UTC 2026 - stefan wannemacher <swannema@posteo.de>
+
+- Update to version 6.7.4
+
+-------------------------------------------------------------------
+Tue Jul 14 12:00:00 UTC 2026 - stefan wannemacher <swannema@posteo.de>
+
+- Update to version 6.7.3
+
+-------------------------------------------------------------------
+Wed Jul  1 12:00:00 UTC 2026 - stefan wannemacher <swannema@posteo.de>
+
+- Version 6.7.2
+
+-------------------------------------------------------------------
+Thu Jun 25 19:33:00 UTC 2026 - Ülo Parri <yltsparri@gmail.com>
+
+- Version 6.7.1
+
+-------------------------------------------------------------------
+Tue Jun 16 13:06:00 UTC 2026 - Ülo Parri <yltsparri@gmail.com>
+
+- Version 6.7.0
+
+-------------------------------------------------------------------
+Tue Apr 14 18:51:00 UTC 2026 - Ülo Parri <yltsparri@gmail.com>
+
+- version 6.6.4
+
+-------------------------------------------------------------------
+Sat Mar 21 12:00:00 UTC 2026 - Fabian Vogt <fabian@ritter-vogt.de>
+
+- Use /usr path for Xsession command where applicable
+- Don't move files from /usr/share/plasmalogin to /etc
+- Fix %pre scriptlet for plasmalogin.service
+- Drop 0001-set-environmentfile-in-plasmalogin-service.patch and
+  plasmalogin.sysconfig
+- Merge system-user-plasmalogin into the main package
+- Fix path for plasmalogin.service.d
+- Fix version of KF6Screen dependency
+- Drop unneeded BuildRequires on systemd and kf6-filesystem
+- Make it build for 15.6 as well
+- Fix dependency on the KCM subpackage
+- Drop unnecessary KCM subpackage dependencies
+- Omit fdupes, not necessary
+
+-------------------------------------------------------------------
+Sun Mar  1 09:46:00 UTC 2026 - Ülo Parri <yltsparri@gmail.com>
+
+- Version 6.6.0
+
+-------------------------------------------------------------------
+Tue Feb 17 12:00:00 UTC 2026 - Shawn Dunn <sfalken@opensuse.org>
+
+- Add 0001-set-environmentfile-in-plasmalogin-service.patch
+
+-------------------------------------------------------------------
+Sat Feb  7 12:00:00 UTC 2026 - Shawn Dunn <sfalken@opensuse.org>
+
+- Added noqmlcache.conf
+- Dropped Added 0001-set-environment-variable.patch
+- Added BuildRequire for kscreen6
+
+-------------------------------------------------------------------
+Sat Dec  6 12:00:00 UTC 2025 - Shawn Dunn <sfalken@opensuse.org>
+
+- Revisions to specfile
+- Dropped plasmalogin-environment_file.patch
+- Added 0001-set-environment-variable.patch
+
+-------------------------------------------------------------------
+Thu Dec  4 12:00:00 UTC 2025 - Shawn Dunn <sfalken@opensuse.org>
+
+- Initial Packaging of pre-release git pull
