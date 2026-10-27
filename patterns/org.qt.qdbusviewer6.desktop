@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Qt 6 D-Bus Viewer
+GenericName=D-Bus Debugger
+Comment=Introspect D-Bus objects and messages
+Exec=qdbusviewer6
+Icon=qdbusviewer6
+Terminal=false
+Categories=Qt;Development;Debugger;
+X-KDE-StartupNotify=true
+# Shadow qt6-tools-qdbus. qdbus stays on disk; plasma-workspace calls it.
+# Kickoff reads KService, which keeps the first desktop file of this id.
+NoDisplay=true
+Hidden=true

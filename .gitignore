@@ -1,0 +1,9 @@
+*.rpm
+*.cpio
+*.obscpio
+*.tar.xz
+# These two archives have no unpacked tree beside them.
+!installer/config-cdroot.tar.xz
+!installer/live-root.tar.xz
+*.tar.zst
+os-release

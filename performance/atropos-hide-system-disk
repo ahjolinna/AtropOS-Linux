@@ -1,0 +1,11 @@
+#!/bin/bash
+# Re-apply the system-disk hide after the LUKS mapping exists.
+# The partition's udev event often runs before cr_root has a holder.
+udevadm control --reload-rules
+if [[ -e /dev/mapper/cr_root ]]; then
+    udevadm trigger --action=change /dev/mapper/cr_root
+fi
+for slave in /sys/class/block/dm-0/slaves/*; do
+    [[ -e $slave ]] || continue
+    udevadm trigger --action=change "$slave"
+done

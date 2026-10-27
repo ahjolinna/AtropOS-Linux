@@ -1,0 +1,254 @@
+gdb plasma-discover
+GNU gdb (GDB; openSUSE Tumbleweed) 16.3
+Copyright (C) 2024 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-suse-linux".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://bugs.opensuse.org/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from plasma-discover...
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.opensuse.org/>
+Enable debuginfod for this session? (y or [n]) y
+Debuginfod has been enabled.
+To make this setting permanent, add 'set debuginfod enabled on' to .gdbinit.
+Reading symbols from /home/ahjolinna/.cache/debuginfod_client/dd5a38baccd7e9526a273b05b9243cb21f2ee9c1/debuginfo...
+(gdb) run
+Starting program: /usr/bin/plasma-discover
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib64/libthread_db.so.1".
+[New Thread 0x7fffef7ff6c0 (LWP 8845)]
+[New Thread 0x7fffeeba96c0 (LWP 8846)]
+[New Thread 0x7fffee3a86c0 (LWP 8847)]
+org.kde.plasma.libdiscover: OdrsReviewsBackend: Fetch ratings: true
+[New Thread 0x7fffec85c6c0 (LWP 8848)]
+[New Thread 0x7fffdffff6c0 (LWP 8849)]
+[New Thread 0x7fffdf7fe6c0 (LWP 8850)]
+[New Thread 0x7fffdeffd6c0 (LWP 8851)]
+[New Thread 0x7fffde72a6c0 (LWP 8852)]
+[New Thread 0x7fffddf296c0 (LWP 8853)]
+adding empty sources model QStandardItemModel(0x5555558aa680)
+[New Thread 0x7fffdd6156c0 (LWP 8854)]
+
+** (process:8840): WARNING **: 00:29:42.029: Found icon of unknown type 'unknown' in 'system/package/os/org.kde.mobile.plasmasettings/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.032: Found icon of unknown type 'unknown' in 'system/package/os/org.kde.komodo/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.056: Found icon of unknown type 'unknown' in 'system/package/os/armagetronad/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.084: Found icon of unknown type 'unknown' in 'system/package/os/org.kde.discover.flatpak/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.087: Found icon of unknown type 'unknown' in 'system/package/os/io.github.bit_team.back_in_time.gui/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.094: Found icon of unknown type 'unknown' in 'system/package/os/io.github.syllo.nvtop/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.097: Found icon of unknown type 'unknown' in 'system/package/os/org.naev.Naev/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.169: Found icon of unknown type 'unknown' in 'system/package/os/io.poez.Poezio/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.200: Found icon of unknown type 'unknown' in 'system/package/os/org.luanti.luanti/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.204: Found icon of unknown type 'unknown' in 'system/package/os/com.kdocker.KDocker.desktop/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.231: Found icon of unknown type 'unknown' in 'system/package/os/im.dino.Dino/*', skipping it.
+
+** (process:8840): WARNING **: 00:29:42.296: Found icon of unknown type 'unknown' in 'system/package/os/com.bhh32.gui-scale-applet/*', skipping it.
+[New Thread 0x7fffc3fff6c0 (LWP 8897)]
+[New Thread 0x7fffc33ff6c0 (LWP 8898)]
+[New Thread 0x7fffc2bfe6c0 (LWP 8899)]
+[New Thread 0x7fffc23fd6c0 (LWP 8900)]
+qrc:/qt/qml/org/kde/discover/qml/DiscoverWindow.qml:127:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 15. Use 'sequences: [ <key> ]' to bind to all of them.
+[New Thread 0x7fffc1bfc6c0 (LWP 8902)]
+[New Thread 0x7fffc13fb6c0 (LWP 8903)]
+[New Thread 0x7fffc0bfa6c0 (LWP 8904)]
+[New Thread 0x7fffc03f96c0 (LWP 8905)]
+qt.qml.propertyCache.append: Member focusPolicy of the object CarouselPageIndicator_QMLTYPE_315 overrides a member of the base object. Consider renaming it or adding final or override specifier
+[Detaching after fork from child process 8908]
+[New Thread 0x7fffbc9ff6c0 (LWP 8910)]
+[New Thread 0x7fff9cbff6c0 (LWP 8911)]
+[New Thread 0x7fff8e9ff6c0 (LWP 8912)]
+[New Thread 0x7fff8e1fe6c0 (LWP 8913)]
+[New Thread 0x7fff8d9fd6c0 (LWP 8914)]
+[New Thread 0x7fff8d1fc6c0 (LWP 8915)]
+[New Thread 0x7fff8c9fb6c0 (LWP 8916)]
+[Thread 0x7fff8c9fb6c0 (LWP 8916) exited]
+[Thread 0x7fff8d1fc6c0 (LWP 8915) exited]
+[Thread 0x7fff8d9fd6c0 (LWP 8914) exited]
+[Thread 0x7fff8e1fe6c0 (LWP 8913) exited]
+[Thread 0x7fff8e9ff6c0 (LWP 8912) exited]
+[Thread 0x7fff9cbff6c0 (LWP 8911) exited]
+[New Thread 0x7fff9cbff6c0 (LWP 8917)]
+[New Thread 0x7fff8e9ff6c0 (LWP 8918)]
+[New Thread 0x7fff8e1fe6c0 (LWP 8919)]
+[New Thread 0x7fff8d9fd6c0 (LWP 8920)]
+[New Thread 0x7fff8d1fc6c0 (LWP 8921)]
+[New Thread 0x7fff8c9fb6c0 (LWP 8922)]
+[New Thread 0x7fff8c1fa6c0 (LWP 8923)]
+[New Thread 0x7fff8b9f96c0 (LWP 8924)]
+[New Thread 0x7fff8b1f86c0 (LWP 8925)]
+[New Thread 0x7fff8a9f76c0 (LWP 8926)]
+[New Thread 0x7fff8a1f66c0 (LWP 8927)]
+[New Thread 0x7fff899f56c0 (LWP 8928)]
+[New Thread 0x7fff891f46c0 (LWP 8929)]
+[New Thread 0x7fff889f36c0 (LWP 8930)]
+[New Thread 0x7fff819ff6c0 (LWP 8931)]
+[New Thread 0x7fff811fe6c0 (LWP 8932)]
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+[New Thread 0x7fff809fd6c0 (LWP 8933)]
+[New Thread 0x7fff801fc6c0 (LWP 8934)]
+[New Thread 0x7fff7dcb86c0 (LWP 8935)]
+[New Thread 0x7fff7d4b76c0 (LWP 8938)]
+[New Thread 0x7fff7ccb66c0 (LWP 8939)]
+[New Thread 0x7fff7c4b56c0 (LWP 8940)]
+[Thread 0x7fff7c4b56c0 (LWP 8940) exited]
+[Thread 0x7fff7ccb66c0 (LWP 8939) exited]
+org.kde.plasma.discover: couldn't open file "/home/ahjolinna/.cache/discover/featured-5.9.json" "No such file or directory"
+[New Thread 0x7fff7b4b46c0 (LWP 8941)]
+[New Thread 0x7fff7acb36c0 (LWP 8942)]
+[Detaching after fork from child process 8943]
+[Detaching after fork from child process 8945]
+[New Thread 0x7fff7a4b26c0 (LWP 8946)]
+[Detaching after fork from child process 8950]
+[New Thread 0x7fff7993f6c0 (LWP 8977)]
+[Detaching after fork from child process 8976]
+[New Thread 0x7fff78e036c0 (LWP 8978)]
+[Thread 0x7fff78e036c0 (LWP 8978) exited]
+[Thread 0x7fff7993f6c0 (LWP 8977) exited]
+[Detaching after fork from child process 8980]
+[Detaching after fork from child process 8982]
+[Detaching after fork from child process 8984]
+[New Thread 0x7fff785fa6c0 (LWP 8986)]
+[New Thread 0x7fff7ccb66c0 (LWP 9002)]
+[New Thread 0x7fff7c4b56c0 (LWP 9003)]
+[New Thread 0x7fff7993f6c0 (LWP 9004)]
+Transaction error: "" PackageKit::Transaction(0x55555655b860)
+QIODevice::read (QSslSocket): device not open
+qrc:/qt/qml/org/kde/discover/qml/UpdatesPage.qml:40:5: QML OverlaySheet: Binding loop detected for property "y":
+qrc:/qt/qml/org/kde/kirigami/templates/OverlaySheet.qml:122:5
+[New Thread 0x7fff78e036c0 (LWP 9087)]
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+[New Thread 0x7fff76f9a6c0 (LWP 9088)]
+[New Thread 0x7fff767996c0 (LWP 9089)]
+[New Thread 0x7fff75f986c0 (LWP 9090)]
+[New Thread 0x7fff757976c0 (LWP 9091)]
+[Thread 0x7fff75f986c0 (LWP 9090) exited]
+[Thread 0x7fff757976c0 (LWP 9091) exited]
+[Detaching after fork from child process 9099]
+[New Thread 0x7fff747ff6c0 (LWP 9107)]
+[New Thread 0x7fff73ffe6c0 (LWP 9108)]
+[Thread 0x7fff73ffe6c0 (LWP 9108) exited]
+[Thread 0x7fff747ff6c0 (LWP 9107) exited]
+[New Thread 0x7fff73ffe6c0 (LWP 9109)]
+[New Thread 0x7fff747ff6c0 (LWP 9110)]
+[Detaching after fork from child process 9111]
+[Thread 0x7fff747ff6c0 (LWP 9110) exited]
+[Thread 0x7fff73ffe6c0 (LWP 9109) exited]
+[Detaching after fork from child process 9113]
+[Thread 0x7fff7a4b26c0 (LWP 8946) exited]
+[Thread 0x7fffdeffd6c0 (LWP 8851) exited]
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+[New Thread 0x7fffdeffd6c0 (LWP 9148)]
+[New Thread 0x7fff7a4b26c0 (LWP 9149)]
+[New Thread 0x7fff747ff6c0 (LWP 9150)]
+[New Thread 0x7fff73ffe6c0 (LWP 9151)]
+[New Thread 0x7fff735fd6c0 (LWP 9153)]
+[New Thread 0x7fff72dfc6c0 (LWP 9154)]
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+[Thread 0x7fff7a4b26c0 (LWP 9149) exited]
+[Thread 0x7fff747ff6c0 (LWP 9150) exited]
+[Thread 0x7fff72dfc6c0 (LWP 9154) exited]
+[Thread 0x7fff735fd6c0 (LWP 9153) exited]
+[New Thread 0x7fff747ff6c0 (LWP 9156)]
+[New Thread 0x7fff7a4b26c0 (LWP 9157)]
+[New Thread 0x7fff735fd6c0 (LWP 9158)]
+[Thread 0x7fff7a4b26c0 (LWP 9157) exited]
+[Thread 0x7fff735fd6c0 (LWP 9158) exited]
+[New Thread 0x7fff72dfc6c0 (LWP 9161)]
+[New Thread 0x7fff725fb6c0 (LWP 9162)]
+[Thread 0x7fff72dfc6c0 (LWP 9161) exited]
+[Thread 0x7fff725fb6c0 (LWP 9162) exited]
+[New Thread 0x7fff725fb6c0 (LWP 9179)]
+[New Thread 0x7fff72dfc6c0 (LWP 9180)]
+[Thread 0x7fff72dfc6c0 (LWP 9180) exited]
+[Thread 0x7fff725fb6c0 (LWP 9179) exited]
+[New Thread 0x7fff725fb6c0 (LWP 9181)]
+[New Thread 0x7fff72dfc6c0 (LWP 9182)]
+[Detaching after fork from child process 9183]
+[Thread 0x7fff72dfc6c0 (LWP 9182) exited]
+[Thread 0x7fff725fb6c0 (LWP 9181) exited]
+[Thread 0x7fff747ff6c0 (LWP 9156) exited]
+[New Thread 0x7fff747ff6c0 (LWP 9204)]
+[New Thread 0x7fff735fd6c0 (LWP 9205)]
+[Thread 0x7fff735fd6c0 (LWP 9205) exited]
+[Thread 0x7fff747ff6c0 (LWP 9204) exited]
+Transaction error: "" PackageKit::Transaction(0x555557e10160)
+[Thread 0x7fff891f46c0 (LWP 8929) exited]
+[Thread 0x7fff899f56c0 (LWP 8928) exited]
+[Thread 0x7fff8a1f66c0 (LWP 8927) exited]
+[Thread 0x7fff8a9f76c0 (LWP 8926) exited]
+[Thread 0x7fff8b1f86c0 (LWP 8925) exited]
+[Thread 0x7fff8b9f96c0 (LWP 8924) exited]
+[Thread 0x7fff9cbff6c0 (LWP 8917) exited]
+[Thread 0x7fff7ccb66c0 (LWP 9002) exited]
+[Thread 0x7fff7993f6c0 (LWP 9004) exited]
+[Thread 0x7fff7d4b76c0 (LWP 8938) exited]
+[Thread 0x7fff7c4b56c0 (LWP 9003) exited]
+[Thread 0x7fff7dcb86c0 (LWP 8935) exited]
+[Thread 0x7fff7acb36c0 (LWP 8942) exited]
+[Thread 0x7fff7b4b46c0 (LWP 8941) exited]
+[Thread 0x7fffc03f96c0 (LWP 8905) exited]
+[Thread 0x7fffc1bfc6c0 (LWP 8902) exited]
+[Thread 0x7fffc13fb6c0 (LWP 8903) exited]
+[Thread 0x7fffc0bfa6c0 (LWP 8904) exited]
+[Thread 0x7fffde72a6c0 (LWP 8852) exited]
+[Thread 0x7fff801fc6c0 (LWP 8934) exited]
+[Thread 0x7fff809fd6c0 (LWP 8933) exited]
+[Thread 0x7fff76f9a6c0 (LWP 9088) exited]
+[Thread 0x7fffbc9ff6c0 (LWP 8910) exited]
+[Thread 0x7fff8c1fa6c0 (LWP 8923) exited]
+[Thread 0x7fff8c9fb6c0 (LWP 8922) exited]
+[Thread 0x7fff8d1fc6c0 (LWP 8921) exited]
+[Thread 0x7fff8d9fd6c0 (LWP 8920) exited]
+[Thread 0x7fff8e1fe6c0 (LWP 8919) exited]
+[Thread 0x7fff8e9ff6c0 (LWP 8918) exited]
+[Thread 0x7fff819ff6c0 (LWP 8931) exited]
+[Thread 0x7fff889f36c0 (LWP 8930) exited]
+[Thread 0x7fffc2bfe6c0 (LWP 8899) exited]
+[Thread 0x7fffc23fd6c0 (LWP 8900) exited]
+[Thread 0x7fffc33ff6c0 (LWP 8898) exited]
+[Thread 0x7fffc3fff6c0 (LWP 8897) exited]
+[Thread 0x7fffeeba96c0 (LWP 8846) exited]
+[Thread 0x7fffee3a86c0 (LWP 8847) exited]
+[Thread 0x7fff785fa6c0 (LWP 8986) exited]
+[Thread 0x7fff767996c0 (LWP 9089) exited]
+[Thread 0x7fff811fe6c0 (LWP 8932) exited]
+[Thread 0x7fffef7ff6c0 (LWP 8845) exited]
+[Thread 0x7fffec85c6c0 (LWP 8848) exited]
+[Thread 0x7fff73ffe6c0 (LWP 9151) exited]
+[Thread 0x7fffdeffd6c0 (LWP 9148) exited]
+[Thread 0x7fffdd6156c0 (LWP 8854) exited]
+[Thread 0x7fffddf296c0 (LWP 8853) exited]
+[Thread 0x7fffdf7fe6c0 (LWP 8850) exited]
+[Thread 0x7fffdffff6c0 (LWP 8849) exited]
+[Thread 0x7fffefb00200 (LWP 8840) exited]
+[Thread 0x7fff78e036c0 (LWP 9087) exited]
+[New process 8840]
+[Inferior 1 (process 8840) exited normally]
+Missing separate debuginfos, use: zypper install libKF6DBusAddons6-debuginfo-6.30.0-1.1.x86_64 libKF6KIO6-debuginfo-6.30.0-1.1.x86_64 libKF6JobWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6StatusNotifierItem6-debuginfo-6.30.0-1.1.x86_64 libKF6I18n6-debuginfo-6.30.0-1.1.x86_64 libKF6WindowSystem6-debuginfo-6.30.0-1.1.x86_64 libKF6Crash6-debuginfo-6.30.0-1.1.x86_64 libKF6CoreAddons6-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigGui6-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigCore6-debuginfo-6.30.0-1.1.x86_64 libKF6Service6-debuginfo-6.30.0-1.1.x86_64 libKF6Solid6-debuginfo-6.30.0-1.1.x86_64 libKF6WidgetsAddons6-debuginfo-6.30.0-1.1.x86_64 libKF6Notifications6-debuginfo-6.30.0-1.1.x86_64 libKF6IconThemes6-debuginfo-6.30.0-1.1.x86_64 libKF6ColorScheme6-debuginfo-6.30.0-1.1.x86_64 libharfbuzz0-debuginfo-14.5.1-1.0.4.1.sr20261001.x86_64 libKF6Archive6-debuginfo-6.30.0-1.1.x86_64 libKF6BreezeIcons6-debuginfo-6.30.0-1.1.x86_64 libKF6GuiAddons6-debuginfo-6.30.0-1.1.x86_64 libcurl4-debuginfo-8.23.0-1.1.x86_64 libeconf0-debuginfo-0.8.4-1.2.x86_64 libKF6ItemViews6-debuginfo-6.30.0-1.1.x86_64 libKF6IconWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6BookmarksWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6Completion6-debuginfo-6.30.0-1.1.x86_64 libKF6Bookmarks6-debuginfo-6.30.0-1.1.x86_64 libKF6Codecs6-debuginfo-6.30.0-1.1.x86_64 libKF6Style6-debuginfo-6.30.0-1.1.x86_64 libKF6NewStuffCore6-debuginfo-6.30.0-1.1.x86_64 libKF6Attica6-debuginfo-6.30.0-1.1.x86_64 libKF6Syndication6-debuginfo-6.30.0-1.1.x86_64 libKF6Package6-debuginfo-6.30.0-1.1.x86_64 libfwupd3-debuginfo-2.1.8-2.1.x86_64 kf6-qqc2-desktop-style-debuginfo-6.30.0-1.1.x86_64 kf6-kirigami-imports-debuginfo-6.30.0-1.1.x86_64 libKirigamiPlatform6-debuginfo-6.30.0-1.1.x86_64 kf6-kconfig-imports-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigQml6-debuginfo-6.30.0-1.1.x86_64 kf6-sonnet-imports-debuginfo-6.30.0-1.1.x86_64 libKF6SonnetCore6-debuginfo-6.30.0-1.1.x86_64 kf6-kitemmodels-imports-debuginfo-6.30.0-1.1.x86_64 libKF6ItemModels6-debuginfo-6.30.0-1.1.x86_64 libelf1-debuginfo-0.194-1.4.x86_64 kf6-kuserfeedback-imports-debuginfo-6.30.0-1.1.x86_64 libKF6UserFeedbackCore6-debuginfo-6.30.0-1.1.x86_64 kf6-kcmutils-imports-debuginfo-6.30.0-1.1.x86_64 libKF6KCMUtilsQuick6-debuginfo-6.30.0-1.1.x86_64 libKF6KCMUtilsCore6-debuginfo-6.30.0-1.1.x86_64 kf6-purpose-debuginfo-6.30.0-1.1.x86_64 libKF6Purpose6-debuginfo-6.30.0-1.1.x86_64 kf6-kio-debuginfo-6.30.0-1.1.x86_64 kf6-kimageformats-debuginfo-6.30.0-1.1.x86_64 libKF6KCMUtils6-debuginfo-6.30.0-1.1.x86_64 libKF6XmlGui6-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6GlobalAccel6-debuginfo-6.30.0-1.1.x86_64
+(gdb)

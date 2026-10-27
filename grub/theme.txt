@@ -1,0 +1,67 @@
+# AtropOS live boot menu. The installed system uses systemd-boot.
+# The openSUSE GRUB theme has no background image. Its desktop color
+# stays. The green selection bar and scrollbar (#00a489) are rose
+# #c7080b. Those two pieces are adapted from that theme (CC-BY-SA-3.0).
+# Unifont Regular 16 is the name of GRUB's unicode.pf2.
+desktop-color: "#0D202F"
+
+title-text: ""
+title-color: "#c7080b"
+title-font: "Unifont Regular 16"
+
+terminal-font: "Unifont Regular 16"
+
++ image {
+  left = 20
+  top = 10
+  width = 96
+  height = 96
+  file = "logo.png"
+}
+
++ boot_menu {
+  left = 10%
+  width = 80%
+  top = 33%
+  height = 34%
+
+  item_font = "Unifont Regular 16"
+  item_color = "#ffffff"
+  item_height = 32
+  item_spacing = 2
+
+  selected_item_font = "Unifont Regular 16"
+  selected_item_color = "#ffffff"
+  selected_item_pixmap_style = "highlight_*.png"
+
+  icon_height = 0
+  icon_width = 0
+
+  scrollbar = true
+  scrollbar_width = 20
+  scrollbar_thumb = "slider_*.png"
+}
+
++ progress_bar {
+  id = "__timeout__"
+
+  left = 18%
+  width = 64%
+  top = 33%-32
+  height = 32
+
+  font = "Unifont Regular 16"
+
+  text_color = "#ffffff"
+  fg_color = "#0D202F"
+  bg_color = "#0D202F"
+  border_color = "#0D202F"
+
+  text = "@TIMEOUT_NOTIFICATION_SHORT@"
+}
+
++ hbox {
+  top = 100%-35
+  left = 20
+  + label {text = "C: Command Line     E: Edit Entry" font = "Unifont Regular 16" color = "#ffffff" align = "left"}
+}

@@ -1,0 +1,11 @@
+AtropOS.svg and AtropOS-dark.svg are the AtropOS crown: five spikes, the
+center one tallest, with three triangular cuts. There is no letter, ring,
+or wordmark.
+
+Both files use the same royal purple, #5B2C8C. The saved earlier artwork
+was gold and silver, so this purple is the royal purple for the icon.
+AtropOS-dark.svg is the same drawing. Agama still loads AtropOS.svg, and
+AtropOS-dark.svg on the dark scheme.
+
+The crown and the product definition are GPL-2.0-only. They are not
+derived from the openSUSE chameleon.

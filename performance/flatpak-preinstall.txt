@@ -1,0 +1,10 @@
+# Flathub applications seeded on first boot.
+# Photos is Koko (org.kde.koko). MPC-QT replaces Haruna.
+org.kde.koko
+org.kde.okular
+org.kde.kwrite
+io.github.mpc_qt.mpc-qt
+org.kde.kcalc
+org.kde.kolourpaint
+io.github.slgobinath.SafeEyes
+org.mozilla.firefox

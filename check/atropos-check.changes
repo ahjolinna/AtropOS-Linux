@@ -1,0 +1,33 @@
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Also enable tuned.service. tuned-ppd requires that daemon.
+- Accept a static enablement link as enabled.
+
+-------------------------------------------------------------------
+Fri Oct 23 01:20:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Report security=selinux and selinux=1, and an enforcing targeted config.
+- Do not rewrite the command line or call sdbootutil.
+
+-------------------------------------------------------------------
+Fri Oct 23 00:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Recognise systemd-boot from bootctl status and the UTF-16 LoaderInfo variable.
+- bootctl is-installed cannot see an ESP that is unmounted or mode 0700.
+
+-------------------------------------------------------------------
+Thu Oct 22 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Accept a systemd-boot ESP that is not listed in fstab.
+- Do not rewrite fstab.
+
+-------------------------------------------------------------------
+Thu Oct 22 23:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add atropos-check for an installed system.
+- The boot service repairs the update timer, tuned-ppd, Baloo's snapshot
+  exclude, Discover's offline-update flag, REBOOT_METHOD, and the
+  PackageKit backend drop-in. Repairs are written under /etc because the
+  running snapshot's /usr is read-only. It does not rewrite fstab, call
+  sdbootutil, or switch the display manager.

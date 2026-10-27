@@ -1,0 +1,149 @@
+-------------------------------------------------------------------
+Tue Oct 27 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require ark. Dolphin uses the RPM service menus. Ark is no longer
+  a seeded Flatpak.
+
+-------------------------------------------------------------------
+Tue Oct 27 03:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require plasma6-lookandfeel-atropos. The login splash is AtropOS.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The McFly hook runs only in an interactive shell. It creates a
+  missing history file and skips init when that file cannot be read.
+
+-------------------------------------------------------------------
+Mon Oct 26 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The global theme wallpaper is AtropOS 02. The still set is
+  AtropOS 01 through AtropOS 04. The silent video is unchanged.
+
+-------------------------------------------------------------------
+Fri Oct 23 10:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require plasma6-lookandfeel-fuuten. The login splash is Fuuten Nozomi.
+  Cover Switch comes from kdeplasma6-addons, which was already required.
+
+-------------------------------------------------------------------
+Fri Oct 23 09:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require atropos-wallpapers. The global theme wallpaper is AtropOS 03.
+  The other stills and the silent video ship in that package.
+
+-------------------------------------------------------------------
+Fri Oct 23 08:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require krfb, krdc, and khelpcenter.
+- Require kora-icon-theme and keep papirus-icon-theme.
+  The default icon theme is Kora. Papirus stays installed.
+- Keep distrobox and podman. Kapsule is not packaged here and needs Incus.
+
+-------------------------------------------------------------------
+Fri Oct 23 06:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require pam_u2f, libfido2-1, libfido2-udev, pcsc-ccid, and
+  pcsc-acsccid next to fprintd. A plugged-in reader or security key
+  works without a package install. No PAM line requires the key.
+
+-------------------------------------------------------------------
+Fri Oct 23 04:20:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require Kvantum (Qt6, Qt5, the manager, and the theme pack).
+  The default widget style stays Breeze.
+- Require sensors, libdisplay-info-tools, clinfo, inxi, conky,
+  android-udev-rules, android-tools, ufw, hunspell, kup-backup, unrar,
+  lrzip, orca, htop, git, yubikey-manager, flatpak-builder, mcfly,
+  and plocate. fastfetch was already required.
+- Hook mcfly into interactive bash. Leave ufw disabled.
+- Enable plocate-updatedb.timer. plocate ships no preset of its own.
+
+-------------------------------------------------------------------
+Fri Oct 23 03:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require the Aether Dark Plasma 6 theme and papirus-icon-theme.
+- The installed desktop uses those, plus the Adobe Source fonts already required here.
+
+-------------------------------------------------------------------
+Fri Oct 23 01:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require selinux-policy-targeted-gaming.
+- Flatpak Steam, Proton, and Wine do not pull that policy on their own.
+
+-------------------------------------------------------------------
+Fri Oct 23 01:20:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require selinux-autorelabel and request one relabel of a read-only root.
+- The targeted policy stays enforcing. That config comes from selinux-policy-targeted.
+
+-------------------------------------------------------------------
+Thu Oct 22 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require plasma6-welcome and atychia.
+- Add the unchecked atropos_debug pattern: gdb and the other debugging tools.
+
+-------------------------------------------------------------------
+Thu Oct 22 22:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require tuned-ppd and conflict with power-profiles-daemon.
+- powerdevil6 only recommends power-profiles-daemon, so tuned-ppd is the installed profile daemon.
+- Require atropos-check so the installed system can repair writable policy drift at boot.
+
+-------------------------------------------------------------------
+Thu Oct 22 00:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Use plasma-login-manager instead of SDDM.
+- Enable plasmalogin.service and disable display-manager-legacy.service.
+- Hide Qt D-Bus Viewer from the application menu. Leave qdbus installed.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:59:50 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require plymouth-theme-atropos so the installed system uses the AtropOS splash.
+- Keep plymouth-branding-openSUSE so bgrt remains the fallback.
+
+-------------------------------------------------------------------
+Wed Oct 21 22:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Let Discover stage system updates with transactional-update dup.
+- Leave the reboot to the user. Flatpak updates stay on their own backend.
+
+-------------------------------------------------------------------
+Wed Oct 21 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Drop phonon-vlc-qt6. PipeWire is the sound path, and Okular is the Flatpak.
+
+-------------------------------------------------------------------
+Wed Oct 21 00:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require Plymouth, plymouth-dracut, and the openSUSE Plymouth theme.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:50:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Drop kalpa-themes and the Kalpa branding packages.
+- Use openSUSE Plasma branding, MicroOS logos, and MicroOS presets.
+- Leave the desktop theme as vanilla Breeze Dark.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require dracut-pcr-signature next to the TPM 2.0 stack.
+- Add the optional atropos_nvidia pattern for the signed open G07 driver.
+- Require the Breeze icon theme used by the dark look-and-feel.
+
+-------------------------------------------------------------------
+Tue Oct 20 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require kernel-longterm, systemd-boot, and sdbootutil.
+- Drop the duplicate requirements and the grub2 stack.
+- Require atropos-performance and zram-generator.
+
+-------------------------------------------------------------------
+Tue Oct 20 19:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Start patterns-atropos from patterns-kalpa 6.1.1.
+- Provide atropos_base and require AtropOS-release.
+- Add CPU microcode. Leave sysextmgr out.

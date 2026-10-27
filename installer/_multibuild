@@ -1,0 +1,4 @@
+<multibuild>
+  <flavor>Online</flavor>
+  <flavor>Offline</flavor>
+</multibuild>

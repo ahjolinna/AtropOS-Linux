@@ -1,0 +1,21 @@
+-------------------------------------------------------------------
+Tue Oct 27 01:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add still wallpapers AtropOS 05, AtropOS 06, and AtropOS 07.
+- The global theme wallpaper stays AtropOS 02.
+
+-------------------------------------------------------------------
+Mon Oct 26 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Replace the ten stills with AtropOS 01 through AtropOS 04.
+- The global theme wallpaper is AtropOS 02.
+- The silent video is unchanged.
+
+-------------------------------------------------------------------
+Fri Oct 23 09:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship still wallpapers AtropOS 01 through AtropOS 10.
+- The global theme uses AtropOS 03, the rose image.
+- Ship a silent video and the org.atropos.video wallpaper plugin.
+  The plugin loops /usr/share/atropos/wallpaper-animated.webm with
+  Qt Multimedia.

@@ -1,0 +1,19 @@
+#!/bin/bash
+# Runs inside a transactional-update snapshot.
+# SDB:NVIDIA drivers, Leap and Tumbleweed: the open G07 driver is
+# nvidia-open-driver-G07-signed-kmp-meta. Slowroll uses the Tumbleweed
+# NVIDIA repository (openSUSE-repos-Slowroll-NVIDIA). The module has to
+# match kernel-longterm. Userspace is required explicitly because
+# zypp-no-recommends is installed and the meta package does not require it.
+set -euo pipefail
+
+zypper --non-interactive --gpg-auto-import-keys refresh
+zypper --non-interactive --gpg-auto-import-keys --auto-agree-with-licenses install \
+    nvidia-open-driver-G07-signed-kmp-meta \
+    nvidia-open-driver-G07-signed-kmp-longterm \
+    nvidia-userspace-meta-G07 \
+    nvidia-video-G07 \
+    nvidia-compute-utils-G07
+
+mkdir -p /var/lib/atropos
+touch /var/lib/atropos/nvidia-open-g07-installed

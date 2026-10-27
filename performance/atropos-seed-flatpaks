@@ -1,0 +1,22 @@
+#!/bin/bash
+# Install the KDE Linux application set from Flathub once.
+# The marker is written only after a successful install, so the next boot retries.
+set -eu
+
+marker=/var/lib/atropos/flatpaks-seeded
+list=/usr/share/atropos/flatpak-preinstall.txt
+
+if [[ -f $marker ]]; then
+    exit 0
+fi
+
+if ! flatpak remotes --system --columns=name | grep -qx flathub; then
+    flatpak remote-add --if-not-exists --system flathub \
+        https://dl.flathub.org/repo/flathub.flatpakrepo
+fi
+
+mapfile -t apps < <(grep -vE '^[[:space:]]*(#|$)' "$list")
+flatpak install -y --noninteractive --system flathub "${apps[@]}"
+
+install -d -m 0755 /var/lib/atropos
+touch "$marker"

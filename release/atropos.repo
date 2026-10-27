@@ -1,0 +1,8 @@
+[atropos]
+name=AtropOS (home:ahjolinna)
+enabled=1
+autorefresh=1
+baseurl=https://download.opensuse.org/repositories/home:/ahjolinna/openSUSE_Slowroll/
+type=rpm-md
+gpgcheck=1
+gpgkey=file:///usr/lib/rpm/gnupg/keys/gpg-pubkey-home-ahjolinna.asc

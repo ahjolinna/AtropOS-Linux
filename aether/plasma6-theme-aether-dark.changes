@@ -1,0 +1,51 @@
+-------------------------------------------------------------------
+Tue Oct 27 16:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The lock-screen text field is #1b1e20 and the focus ring is rose.
+  The field was #f5f4f4 against #fcfcfc text.
+- Icons-only task buttons use 4px content margins on the bottom, left,
+  and right edges. The south border art is unchanged.
+
+-------------------------------------------------------------------
+Tue Oct 27 03:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The global theme splash is AtropOS, org.atropos.desktop.
+- Require plasma6-lookandfeel-atropos.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Rebuild AetherDark from openSUSE Dark. Views stay dark. The accent
+  is rose 199,8,11, including the inactive header that was still blue.
+- The highlight glow used the breeze blue accent. It is rose again.
+  The Aether glow gradient is unchanged.
+
+-------------------------------------------------------------------
+Mon Oct 26 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The global theme wallpaper is AtropOS 02.
+
+-------------------------------------------------------------------
+Fri Oct 23 10:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The global theme splash is Fuuten Nozomi, org.me.Fuuten.desktop.
+- The task switcher is Cover Switch.
+- Require plasma6-lookandfeel-fuuten.
+
+-------------------------------------------------------------------
+Fri Oct 23 09:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The global theme wallpaper is AtropOS 03, the rose image.
+- Require atropos-wallpapers so that wallpaper is installed.
+
+-------------------------------------------------------------------
+Fri Oct 23 08:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The global theme selects the Kora icon theme.
+- Papirus stays a dependency so it can be selected later.
+
+-------------------------------------------------------------------
+Fri Oct 23 03:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Soft-fork Aether Dark 0.0.3a and ship it as a Plasma 6 theme.
+- The global theme selects that style, AetherDark colors, and Papirus.

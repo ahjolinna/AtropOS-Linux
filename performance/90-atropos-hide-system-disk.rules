@@ -1,0 +1,11 @@
+# Hide the AtropOS system disk from Dolphin and the device notifier.
+# cr_root is the opened LUKS volume ("Internal Drive"). The partition
+# that holds it is the "Encrypted Drive". Removable disks are not matched.
+# The ESP is already ignored by udisks.
+
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="dm-*", ENV{DM_NAME}=="cr_root", ENV{UDISKS_IGNORE}="1"
+
+# The partition event often runs before the mapping exists. Boot retriggers
+# the slave after cr_root is up; this rule then sees the holder.
+# $$ is one dollar sign. udev otherwise treats $1 as its own substitution.
+ACTION=="add|change", SUBSYSTEM=="block", ENV{ID_FS_TYPE}=="crypto_LUKS", PROGRAM=="/bin/sh -c 'grep -qx cr_root /sys/class/block/$$1/holders/*/dm/name' -- %k", ENV{UDISKS_IGNORE}="1"

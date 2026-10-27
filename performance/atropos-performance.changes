@@ -1,0 +1,130 @@
+-------------------------------------------------------------------
+Tue Oct 27 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Hide the systemd-boot menu after a normal shutdown, and show it for
+  7 seconds after a crash. Hold Space to open it. The timeout is the
+  EFI variable. loader.conf is not rewritten, and sdbootutil is not
+  called, because timeout 0 there means menu-disabled.
+- Stop seeding Ark. The pattern installs the Ark RPM so Dolphin can
+  use the system service menus.
+
+-------------------------------------------------------------------
+Tue Oct 27 16:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- New accounts use the AtropOS global theme, org.atropos.desktop, and
+  the brightness control treats that theme as dark.
+- Welcome Center shows a download animation while the Flatpaks install.
+- powertop is /usr/sbin/powertop. The unit was calling /usr/bin/powertop.
+- Relabel /var/log/tuned so tuned-ppd can create its log.
+- Hide the encrypted system disk from Dolphin. Removable disks stay.
+  The shell argument is written as $$ so udev does not eat $1.
+- Discover's About page says RPM. Kirigami's formcard module prefers
+  its built-in page, so the package bind-mounts a copy without that line.
+
+-------------------------------------------------------------------
+Tue Oct 27 03:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- New accounts use the AtropOS splash, org.atropos.desktop.
+
+-------------------------------------------------------------------
+Tue Oct 27 01:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require tuned and tuned-ppd, and build-require them too. The static
+  wants links otherwise fail brp-25-symlink because the unit files
+  are not in the build root.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Enable tuned.service and tuned-ppd.service with static symlinks.
+  tuned-ppd does not run when the daemon it requires is not started.
+- Select Cover Switch once when the account is still on thumbnail_grid.
+- Point plasmalogin at the AtropOS 02 wallpaper.
+- Welcome Center says the Flatpak applications are still downloading.
+
+-------------------------------------------------------------------
+Fri Oct 23 10:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- New accounts use the Fuuten Nozomi splash, org.me.Fuuten.desktop.
+- The task switcher is Cover Switch.
+
+-------------------------------------------------------------------
+Fri Oct 23 08:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- New accounts use the Kora icon theme. Papirus stays installed.
+- Seed Photos (org.kde.koko), MPC-QT, KolourPaint, and Safe Eyes.
+  Gwenview and Haruna are no longer seeded. KCalc stays.
+
+-------------------------------------------------------------------
+Fri Oct 23 03:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- New accounts use Aether Dark, Papirus, and the Adobe Source fonts.
+- Source Sans 3 is the interface font, Source Serif Pro the serif, and Source Code Pro the monospace.
+
+-------------------------------------------------------------------
+Fri Oct 23 02:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship OpenRGB's udev rules and the openrgb group.
+- The Flatpak does not install them, and OpenRGB-udev-rules requires the OpenRGB application.
+
+-------------------------------------------------------------------
+Fri Oct 23 01:20:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Enable SELinux with security=selinux selinux=1, the Aeon and MicroOS switch.
+- Leave lsm= unset. kernel-longterm otherwise boots AppArmor.
+
+-------------------------------------------------------------------
+Thu Oct 22 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Install the default Flatpaks while Agama installs this package.
+- Skip that download while Kiwi is building the live ISO. The boot service still retries.
+
+-------------------------------------------------------------------
+Thu Oct 22 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Put the Baloo snapshot exclude in /usr/etc/xdg/baloofilerc.
+- Leave plasma6-branding-openSUSE's /etc/xdg/baloofilerc in place. KConfig merges both.
+- Preset tuned-ppd.service on install and disable power-profiles-daemon.service.
+- Add psi=1 to the boot command line. kernel-longterm leaves pressure stall information off, so systemd-oomd never starts.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:59:30 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add the remaining KDE Linux desktop drop-ins in version 0.4.0.
+- Cover disks, USB, audio, the watchdog, PAM, logout, Baloo, Qt, SSH, Wi-Fi, network hardening, thermald, Geoclue, and the Firefox Flatpak.
+
+-------------------------------------------------------------------
+Wed Oct 21 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Disable transactional-update.timer from 80-atropos.preset.
+- Leave reboots to the user. transactional-update uses REBOOT_METHOD=notify.
+
+-------------------------------------------------------------------
+Wed Oct 21 00:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship the KDE Linux silent boot command line for systemd-boot.
+- Quiet the console with kernel.printk and turn the NMI watchdog off.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:59:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Own the systemd and zram drop-in directories.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:50:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Set the new-user desktop theme to vanilla Breeze Dark.
+- Override the openSUSE Plasma theme, decoration, cursors, and splash.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Enable systemd-oomd from systemd-experimental, with the KDE Linux limits.
+- Run powertop --auto-tune and keep USB input devices awake.
+- Ship Breeze Dark as the skel look and feel. Firefox stays the Flathub app.
+
+-------------------------------------------------------------------
+Tue Oct 20 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add KDE Linux zram, sysctl, journal, and service-timeout defaults.
+- Seed Gwenview, Okular, KWrite, Haruna, Ark, KCalc, and Firefox from Flathub.

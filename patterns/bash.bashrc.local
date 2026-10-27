@@ -1,0 +1,19 @@
+# McFly replaces Ctrl-R. The package ships only the binary.
+# MCFLY_DISABLE=1 skips the hook.
+# Sourced from /etc/bash.bashrc. A non-interactive shell returns here
+# so it does not create a history file.
+case $- in
+    *i*) ;;
+    *) return ;;
+esac
+if test -x /usr/bin/mcfly && test -z "${MCFLY_DISABLE:-}"; then
+    # mcfly prints an error on every prompt when HISTFILE is missing.
+    _atropos_hist="${HISTFILE:-${HOME:-}/.bash_history}"
+    if test -n "${HOME:-}" && test ! -e "$_atropos_hist"; then
+        : > "$_atropos_hist" 2>/dev/null || true
+    fi
+    if test -r "$_atropos_hist"; then
+        eval "$(/usr/bin/mcfly init bash)"
+    fi
+    unset _atropos_hist
+fi

@@ -1,0 +1,38 @@
+-------------------------------------------------------------------
+Tue Oct 27 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The splash background is the AtropOS 02 wallpaper, cropped to fill.
+  The gear and the slogan are unchanged. The package requires
+  atropos-wallpapers.
+
+-------------------------------------------------------------------
+Tue Oct 27 16:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Choosing the AtropOS global theme applies Aether Dark, Kora,
+  aetherdark, the AtropOS 02 wallpaper, and this splash. The package
+  used to fall back to Breeze Light.
+- The splash background is still the rose picture.
+
+-------------------------------------------------------------------
+Tue Oct 27 03:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Rename the look-and-feel from Fuuten to AtropOS. The id is
+  org.atropos.desktop. The gear and slogan artwork is unchanged.
+
+-------------------------------------------------------------------
+Mon Oct 26 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The splash background stays the rose picture. The global theme
+  wallpaper is AtropOS 02.
+
+-------------------------------------------------------------------
+Fri Oct 23 11:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Use the AtropOS 03 rose wallpaper as the splash background.
+  The gear and the slogan are unchanged.
+
+-------------------------------------------------------------------
+Fri Oct 23 10:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship Fuuten Nozomi 0.5 as the installed-desktop login splash.
+- The look-and-feel id is org.me.Fuuten.desktop. The art is unchanged.

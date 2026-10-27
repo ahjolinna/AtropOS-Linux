@@ -1,0 +1,127 @@
+id: AtropOS
+name: AtropOS Desktop
+description: "AtropOS is a rolling immutable Plasma desktop based on openSUSE
+  Slowroll. Applications come from Flatpak. The base system is read-only
+  and updates atomically."
+# Agama loads /usr/share/agama/web_ui/assets/logos/<icon>, and on the dark
+# scheme the same name with -dark before the extension. This package ships
+# both. Agama's web UI does not include them.
+icon: AtropOS.svg
+# Translations are omitted until this description is stable.
+# Agama otherwise keeps serving translated text for the previous wording.
+software:
+  installation_repositories:
+    - url: https://download.opensuse.org/slowroll/repo/oss/
+      archs: x86_64
+    - url: https://download.opensuse.org/slowroll/repo/non-oss/
+      archs: x86_64
+    - url: https://download.opensuse.org/update/slowroll/repo/oss/
+      archs: x86_64
+    # AtropOS-release and patterns-atropos-base are published here.
+    # Public Slowroll does not carry them. Agama removes this URL from the
+    # installed system; AtropOS-release keeps the same repository there.
+    - url: https://download.opensuse.org/repositories/home:/ahjolinna/openSUSE_Slowroll/
+      archs: x86_64
+  installation_labels:
+    - label: AtropOS-desktop-x86_64
+      archs: x86_64
+  mandatory_patterns:
+    - atropos_base
+  optional_patterns: []
+  user_patterns:
+    - container_runtime
+    # Unchecked. Selecting it installs atropos-nvidia, which applies the
+    # open signed G07 driver on first boot. The NVIDIA repository is not
+    # an installation repository: its hardware supplements would otherwise
+    # pull the proprietary driver during the solve.
+    - name: atropos_nvidia
+      selected: false
+    # Unchecked. gdb, strace, perf, valgrind, heaptrack, and the other
+    # tracers. Also enables the Slowroll debuginfo repository. It does
+    # not install every debuginfo package.
+    - name: atropos_debug
+      selected: false
+  mandatory_packages:
+    - NetworkManager
+    - openSUSE-repos-Slowroll
+    - sudo-policy-wheel-auth-self
+    # Agama 24 selects a selected package whose name ends in -release
+    # (bsc#1259311) and then does not look up a libzypp product. Slowroll
+    # has no product named AtropOS, so this package is what the solver selects.
+    - AtropOS-release
+  optional_packages: []
+  # Agama otherwise also selects kernel-default. The installed system uses longterm.
+  kernel: kernel-longterm
+  base_product: AtropOS
+# The live ISO may still boot with grub2. The installed system uses systemd-boot.
+boot:
+  default_efi_bootloader: systemd-boot
+security:
+  lsm: selinux
+  available_lsms:
+    selinux:
+      patterns: null
+    none:
+      patterns: null
+storage:
+  space_policy: delete
+  volumes:
+    - "/"
+  volume_templates:
+    - mount_path: "/"
+      filesystem: btrfs
+      # Added on top of the Kalpa mount. A Kalpa findmnt line also shows
+      # relatime, seclabel, ssd, and space_cache=v2. Those are the kernel
+      # default, SELinux, SSD detection, and the free-space tree. They are
+      # not fstab options. Forcing ssd would be wrong on a hard disk.
+      # compress=zstd:-4 is the fast zstd level (kernel 6.15 and later;
+      # kernel-longterm is 6.18). lazytime delays timestamp writes.
+      # read_only below still mounts / as ro. Do not copy KDE Linux rw,
+      # subvol=@system, or nodev. discard, noatime, autodefrag, and
+      # nodatacow are not set. A nodatacow mount option would turn
+      # compression off. /var stays NoCOW through copy_on_write: false.
+      mount_options:
+        - compress=zstd:-4
+        - lazytime
+      btrfs:
+        snapshots: true
+        read_only: true
+        default_subvolume: "@"
+        # One btrfs, same subvolumes as the Kalpa YaST role. Do not add a
+        # separate /var volume: Agama would then give it the rest of the disk.
+        # Snapshots make / the current @/.snapshots/N/snapshot. /etc inside
+        # that snapshot is mounted read-write. Old YaST wrote x-initrd.mount
+        # on /var and /root. Agama does not, and those subvolumes are still
+        # mounted read-write without it. /.snapshots is created because
+        # snapshots are on.
+        # /boot/efi (vfat) is the ESP Agama adds for EFI. Encryption is the
+        # installer's LUKS choice; the product file has no passphrase to set.
+        subvolumes:
+          - path: home
+          - path: opt
+          - path: root
+          - path: srv
+          - path: usr/local
+          - path: boot/writable
+          - path: boot/grub2/i386-pc
+            archs: x86_64
+          - path: boot/grub2/x86_64-efi
+            archs: x86_64
+          - path: boot/grub2/arm64-efi
+            archs: aarch64
+          - path: var
+            copy_on_write: false
+      size:
+        auto: true
+      outline:
+        required: true
+        snapshots_configurable: false
+        filesystems:
+          - btrfs
+        auto_size:
+          base_min: 10 GiB
+          # Agama 24 refuses to start without base_max. /var is not a separate
+          # volume, so the fallback lifts that cap and this btrfs uses the disk.
+          base_max: 25 GiB
+          max_fallback_for:
+            - "/var"

@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "vermette@gmail.com",
+                "Name": "Ken Vermette"
+            },
+            {
+                "Email": "ahjolinna@yahoo.com",
+                "Name": "ahjolinna"
+            }
+        ],
+        "Category": "Global Theme",
+        "Description": "Aether Dark plasma style, Aether Dark colors, Kora icons, and the AtropOS 02 wallpaper.",
+        "Id": "org.atropos.aether.desktop",
+        "License": "LGPLv2.1",
+        "Name": "Aether Dark",
+        "Website": "https://github.com/AtropOSLinux/"
+    }
+}

@@ -1,0 +1,13 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "ahjolinna@yahoo.com",
+                "Name": "ahjolinna"
+            }
+        ],
+        "Id": "atropos-01",
+        "License": "LicenseRef-Proprietary",
+        "Name": "AtropOS 01"
+    }
+}

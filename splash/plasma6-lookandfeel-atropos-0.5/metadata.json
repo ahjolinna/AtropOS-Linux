@@ -1,0 +1,25 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Michail Vourlakos"
+            },
+            {
+                "Email": "ahjolinna@yahoo.com",
+                "Name": "ahjolinna"
+            }
+        ],
+        "Category": "Global Theme",
+        "Description": "AtropOS dark desktop: Aether Dark colors, the aetherdark Plasma style, Kora icons, and the AtropOS 02 wallpaper.",
+        "Id": "org.atropos.desktop",
+        "License": "GPLv2+",
+        "Name": "AtropOS",
+        "Version": "0.5",
+        "Website": "https://github.com/AtropOSLinux/"
+    },
+    "Keywords": "Desktop;Workspace;Appearance;Look and Feel;Splash;AtropOS;",
+    "X-KDE-fallbackPackage": "org.kde.breeze.desktop",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-APIVersion": "2"
+}

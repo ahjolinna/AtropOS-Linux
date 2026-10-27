@@ -1,0 +1,46 @@
+-------------------------------------------------------------------
+Tue Oct 27 04:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Clamp source timestamps that are ahead of the build clock. Ninja
+  otherwise regenerates its manifest until the build fails.
+
+-------------------------------------------------------------------
+Tue Oct 27 04:20:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Start the recovery screen with sudo. Slowroll's polkit package does
+  not ship pkexec.
+- Deny the greeter the SecureAttentionKey signal so the chord does not
+  open the login screen.
+
+-------------------------------------------------------------------
+Tue Oct 27 04:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require kf6-kirigami, kf6-kirigami-imports, and kirigami-addons6.
+  Drop qt6qml(org.kde.kirigami) and
+  qt6qml(org.kde.kirigamiaddons.formcard). Slowroll does not provide
+  those names, so Agama could not solve atychia.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- atychiad.service did not run. systemctl --user on the absolute unit
+  path looks up usr-lib-systemd-user-atychiad.service.mount.
+- Enable the daemon by unit name with a static relative symlink in
+  default.target.wants. Keep the preset and the user scriptlets.
+
+-------------------------------------------------------------------
+Fri Oct 23 01:20:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Keep percent signs out of comments. RPM expanded the cmake macro and rejected the spec.
+
+-------------------------------------------------------------------
+Fri Oct 23 00:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Build with kf6-filesystem's cmake macros. Slowroll does not ship kf6-rpm-macros.
+
+-------------------------------------------------------------------
+Thu Oct 22 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Soft-fork invent.kde.org/tduck/atychia 0.19.
+- Keep the Secure Attention Key (Ctrl+Alt+Shift+Esc). Return to the previous TTY.
+- Enable the user daemon from 81-atychia.preset. Do not require SDDM.

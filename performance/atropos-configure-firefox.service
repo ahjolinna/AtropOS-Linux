@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
+# SPDX-FileCopyrightText: 2025 Thomas Duckworth <tduck@filotimoproject.org>
+
+[Unit]
+Description=Configure the Firefox flatpak
+# Ensures that if the path no longer exists, the service will be deactivated and then reactivated on reinstall.
+PartOf=atropos-configure-firefox.path
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/atropos-configure-firefox

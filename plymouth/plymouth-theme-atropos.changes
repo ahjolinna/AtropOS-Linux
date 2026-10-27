@@ -1,0 +1,20 @@
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Draw the disk passphrase in the middle of the screen when TPM unlock
+  does not run. An empty prompt shows "Disk passphrase" and a cursor,
+  including before the first keypress.
+- Do not rebuild the initrd from this package. The next initrd build
+  picks the theme up.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:59:20 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Select the atropos theme from /etc/plymouth/plymouthd.conf.
+- Leave bgrt in place as the fallback. Do not rebuild the initrd.
+- Own the Plymouth theme and license directories missing from the OBS build root.
+
+-------------------------------------------------------------------
+Wed Oct 21 01:26:45 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Package the AtropOS Plymouth theme.

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OBS-ExclusiveArch: aarch64 x86_64 -->
+<!-- OBS-Profiles: @BUILD_FLAVOR@ -->
+<!-- OBS-IgnorePackage: NetworkManager-branding-openSUSE -->
+
+<image schemaversion="7.5" name="AtropOS_Desktop">
+    <description type="system">
+        <author>Alexander W. Ahjolinna</author>
+        <contact>ahjolinna@yahoo.com</contact>
+        <specification>AtropOS Installer ISO</specification>
+    </description>
+    <profiles>
+        <!-- use at most 16 characters for the profile name, it is used in the ISO Volume ID -->
+        <!-- which is limited to max. 32 characters -->
+        <profile name="Offline" description="AtropOS Desktop offline installer (all packages embedded)" import="true"/>
+        <profile name="Online" description="AtropOS Desktop online installer (packages from network)" import="true"/>
+    </profiles>
+    <preferences>
+        <version>%OS_VERSION_ID%</version>
+        <packagemanager>zypper</packagemanager>
+        <locale>en_GB</locale>
+        <keytable>us</keytable>
+        <timezone>Europe/Helsinki</timezone>
+        <rpm-excludedocs>true</rpm-excludedocs>
+        <rpm-check-signatures>false</rpm-check-signatures>
+        <!-- config.sh selects this theme after package scriptlets. The
+             openSUSE branding default remains bgrt. -->
+        <bootsplash-theme>atropos</bootsplash-theme>
+        <!-- fix_bootconfig uses this name when themes/atropos is on the ISO.
+             grub2-branding-openSUSE conflicts with grub2-branding-atropos. -->
+        <bootloader-theme>atropos</bootloader-theme>
+    </preferences>
+    <!-- the ISO Volume ID is set by the fix_bootconfig script -->
+    <preferences arch="aarch64,x86_64" profiles="Offline,Online">
+        <type image="iso" flags="dmsquash" firmware="uefi" mediacheck="true" publisher="AtropOS" editbootconfig="fix_bootconfig">
+            <bootloader name="grub2" timeout="10"/>
+        </type>
+    </preferences>
+    <users>
+        <!-- the password is configured during boot -->
+        <user password="!*" home="/root" name="root" groups="root"/>
+    </users>
+    <repository type="rpm-md">
+        <source path="obsrepositories:/"/>
+    </repository>
+
+    <!-- Live ISO. The installed system uses kernel-longterm from patterns-atropos-base. -->
+    <packages type="image" patternType="onlyRequired">
+        <package name="avahi"/>
+        <package name="bind-utils"/>
+        <package name="systemd"/>
+        <package name="combustion"/>
+        <package name="procps"/>
+        <package name="iputils"/>
+        <package name="hyper-v" arch="aarch64,x86_64"/>
+        <package name="vim"/>
+        <package name="vim-data"/>
+        <package name="grub2"/>
+        <package name="grub2-arm64-efi" arch="aarch64"/>
+        <package name="grub2-x86_64-efi" arch="x86_64"/>
+        <package name="grub2-i386-pc" arch="x86_64"/>
+        <package name="syslinux" arch="x86_64"/>
+        <package name="openssh"/>
+        <package name="iproute2"/>
+        <package name="less"/>
+        <package name="bash-completion"/>
+        <package name="dhcp-client"/>
+        <package name="which"/>
+        <package name="kernel-default"/>
+        <!-- the firmware files not referenced by any kernel driver are removed from the image -->
+        <package name="kernel-firmware"/>
+        <package name="adaptec-firmware"/>
+        <package name="atmel-firmware"/>
+        <package name="ipw-firmware"/>
+        <package name="mpt-firmware"/>
+        <package name="zd1211-firmware"/>
+        <package name="iscsiuio"/>
+        <package name="systemd-zram-service"/> <!--- needed for zram -->
+        <package name="shim" arch="aarch64,x86_64"/>
+        <package name="timezone"/>
+        <package name="dracut-kiwi-live"/>
+        <package name="NetworkManager"/>
+        <package name="NetworkManager-tui"/>
+        <!-- Online initrd asks for Wi-Fi before Agama starts. -->
+        <package name="dialog"/>
+        <!-- Slowroll's openSUSE branding is pinned to NetworkManager 1.56.1. -->
+        <package name="NetworkManager-branding-upstream"/>
+        <package name="agama"/>
+        <package name="agama-yast"/>
+        <package name="agama-web-ui"/>
+        <package name="agama-cli"/>
+        <package name="agama-cli-bash-completion"/>
+        <package name="agama-autoinstall"/>
+        <package name="rubygem(agama-yast)"/>
+        <package name="rubygem(byebug)"/>
+        <package name="psmisc"/>
+        <package name="joe"/>
+        <package name="checkmedia"/>
+        <package name="libtss2-tcti-device0"/>
+        <package name="jq"/>
+        <package name="yast2-schema"/>
+        <package name="qrencode"/>
+        <package name="qemu-guest-agent" />
+        <package name="aaa_base-extras"/>
+        <!-- to work correctly with the fips=1 boot parameter -->
+        <package name="libopenssl-3-fips-provider"/>
+        <!-- it can be used by users in AutoYaST pre-scripts -->
+        <package name="perl-XML-Simple"/>
+        <archive name="live-root.tar.xz"/>
+        <!-- IPMI support -->
+        <package name="ipmitool" />
+        <!-- jsc#PED-13114 -->
+        <package name="tpm2.0-tools" />
+        <package name="image-janitor"/>
+        <!-- plymouth bsc#1248507 -->
+        <package name="plymouth" arch="aarch64,x86_64" />
+        <package name="plymouth-dracut" arch="aarch64,x86_64" />
+    </packages>
+    <packages type="delete">
+        <package name="health-checker"/>
+        <package name="createrepo_c"/>
+        <!-- Server NIC/HBA/embedded firmware not needed in the live installer.
+             The packages remain in /packages for the installed system (Offline). -->
+        <package name="kernel-firmware-bnx2"/>
+        <package name="kernel-firmware-chelsio"/>
+        <package name="kernel-firmware-dpaa2"/>
+        <package name="kernel-firmware-liquidio"/>
+        <package name="kernel-firmware-mellanox"/>
+        <package name="kernel-firmware-nfp"/>
+        <package name="kernel-firmware-prestera"/>
+        <package name="kernel-firmware-qlogic"/>
+        <package name="kernel-firmware-serial"/>
+        <package name="kernel-firmware-ueagle"/>
+        <package name="OpenPrintingPPDs"/>
+    </packages>
+
+    <!-- installer UI: Firefox/GNOME kiosk, both profiles -->
+    <packages type="image" profiles="Offline,Online">
+        <package name="bluez-firmware"/>
+        <!-- for openQA to run their puppeteer tests, just injecting a *.js file -->
+        <package name="nodejs(engine)"/>
+        <package name="fontconfig"/>
+        <package name="fonts-config"/>
+        <package name="xauth"/>
+        <package name="MozillaFirefox"/>
+        <package name="gdm-systemd"/>
+        <package name="gnome-shell"/>
+        <package name="gnome-session-wayland"/>
+        <package name="gnome-kiosk"/>
+        <package name="spice-vdagent"/>
+    </packages>
+
+    <packages type="image" profiles="Offline,Online">
+        <package name="agama-products-atropos"/>
+        <package name="chrony"/>
+        <package name="grub2-branding-atropos" arch="aarch64,x86_64"/>
+        <package name="MozillaFirefox-branding-openSUSE"/>
+        <package name="openSUSE-build-key"/>
+        <package name="staging-build-key"/>
+        <package name="plymouth-branding-openSUSE" arch="aarch64,x86_64" />
+        <package name="plymouth-theme-atropos" arch="aarch64,x86_64" />
+    </packages>
+
+    <!-- Offline embeds the image repository. patterns-atropos-base is solved
+         into the image and then removed from the live root by config.sh. -->
+    <packages type="image" profiles="Offline" patternType="onlyRequired">
+        <package name="patterns-atropos-base"/>
+        <package name="openSUSE-repos-Slowroll"/>
+        <package name="createrepo_c"/>
+        <package name="gpg2"/>
+    </packages>
+
+    <packages type="bootstrap">
+        <package name="udev"/>
+        <package name="filesystem"/>
+        <package name="glibc-locale"/>
+        <package name="ca-certificates"/>
+        <package name="ca-certificates-mozilla"/>
+    </packages>
+    <packages type="bootstrap" profiles="Offline,Online">
+        <package name="AtropOS-release"/>
+    </packages>
+</image>

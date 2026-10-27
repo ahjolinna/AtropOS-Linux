@@ -1,0 +1,18 @@
+-------------------------------------------------------------------
+Tue Oct 27 04:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Show the AtropOS crown in the corner. The menu no longer prints
+  the name AtropOS.
+
+-------------------------------------------------------------------
+Tue Oct 27 00:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- The openSUSE GRUB theme has no background image. Drop the AtropOS 02
+  picture. Keep the openSUSE desktop color and recolor the green
+  selection bar and scrollbar from #00a489 to rose #c7080b.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Live ISO GRUB theme. The background is AtropOS 02.
+- The installed system stays on systemd-boot.

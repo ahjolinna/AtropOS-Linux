@@ -1,0 +1,10 @@
+[atropos-oss-debug]
+name=Slowroll OSS debuginfo
+enabled=1
+autorefresh=1
+baseurl=https://download.opensuse.org/debug/slowroll/repo/oss/
+type=rpm-md
+# Higher than the oss repo (99) so debuginfo never replaces a real package.
+priority=200
+gpgcheck=1
+gpgkey=https://download.opensuse.org/debug/slowroll/repo/oss/repodata/repomd.xml.key

@@ -1,0 +1,275 @@
+# AtropOS boot splash.
+# Black screen, no vendor logo. The gear and the slogan keep the offset
+# from the Plasma splash (slogan cell is 300 by 163 design pixels from
+# the gear cell) and the pair is centered. The passphrase sits
+# in the middle of the screen. An empty cryptsetup prompt still draws
+# "Disk passphrase" and a cursor, so the field is visible before the
+# first keypress.
+#
+# 55 gear frames is 1.1 s at 50 Hz, then 45 slogan frames is 0.9 s.
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+gear_frames = 55;
+text_frames = 45;
+for (i = 0; i < gear_frames; i++)
+    gear_sheet[i] = Image("gear-" + i + ".png");
+for (i = 0; i < text_frames; i++)
+    text_sheet[i] = Image("text-" + i + ".png");
+
+gear_sprite = Sprite();
+text_sprite = Sprite();
+prompt_sprite = Sprite();
+entry_sprite = Sprite();
+gear_sprite.SetZ(0);
+text_sprite.SetZ(1);
+prompt_sprite.SetZ(20);
+entry_sprite.SetZ(21);
+prompt_sprite.SetOpacity(0);
+entry_sprite.SetOpacity(0);
+text_sprite.SetOpacity(0);
+
+dialog_mode = "none";
+dialog_prompt = "";
+dialog_extra = "";
+dialog_bullets = 0;
+prompt_image = 0;
+entry_image = 0;
+dialog_sig = "";
+prompt_visible = 0;
+entry_visible = 0;
+dialog_centered = 0;
+gear_key = -1;
+text_key = -1;
+tick = 0;
+scale = 1;
+sw = 0;
+sh = 0;
+gw = 1;
+gh = 1;
+tw = 1;
+th = 1;
+text_x = 0;
+text_y = 0;
+
+fun stars(count) {
+    local.s;
+    s = "";
+    if (count < 1)
+        return "";
+    for (n = 0; n < count; n++) {
+        if (s == "")
+            s = "*";
+        else
+            s = s + " *";
+    }
+    return s;
+}
+
+fun layout() {
+    sw = Window.GetWidth();
+    sh = Window.GetHeight();
+    scale = Math.Min(sw * 0.86 / 700, sh * 0.42 / 338);
+    if (scale < 0.05)
+        scale = 0.05;
+    gw = Math.Int(400 * scale);
+    gh = Math.Int(300 * scale);
+    tw = Math.Int(400 * scale);
+    th = Math.Int(175 * scale);
+    if (gw < 1) gw = 1;
+    if (gh < 1) gh = 1;
+    if (tw < 1) tw = 1;
+    if (th < 1) th = 1;
+    ox = (sw - (700 * scale)) / 2;
+    oy = (sh - (338 * scale)) / 2;
+    gear_sprite.SetX(ox);
+    gear_sprite.SetY(oy);
+    text_x = ox + (300 * scale);
+    text_y = oy + (163 * scale);
+    text_sprite.SetX(text_x);
+    text_sprite.SetY(text_y);
+    gear_key = -1;
+    text_key = -1;
+    dialog_sig = "";
+}
+
+fun show_gear(index) {
+    local.key;
+    key = index * 100000 + gw;
+    if (key == gear_key)
+        return;
+    gear_sprite.SetImage(gear_sheet[index].Scale(gw, gh));
+    gear_key = key;
+}
+
+fun show_text(index, visible) {
+    local.key;
+    if (!visible) {
+        text_sprite.SetOpacity(0);
+        return;
+    }
+    text_sprite.SetOpacity(1);
+    key = index * 100000 + tw;
+    if (key == text_key)
+        return;
+    text_sprite.SetImage(text_sheet[index].Scale(tw, th));
+    text_key = key;
+}
+
+fun rebuild_dialog() {
+    local.font;
+    local.line;
+    local.show_prompt;
+    local.need_field;
+    font = "Sans " + Math.Clamp(Math.Int(22 * scale), 18, 56);
+    prompt_visible = 0;
+    entry_visible = 0;
+    if (dialog_mode == "none") {
+        dialog_centered = 0;
+        return;
+    }
+    need_field = 0;
+    if (dialog_mode == "password")
+        need_field = 1;
+    if (dialog_mode == "question")
+        need_field = 1;
+    show_prompt = dialog_prompt;
+    if (need_field && show_prompt == "")
+        show_prompt = "Disk passphrase";
+    if (show_prompt != "") {
+        prompt_image = Image.Text(show_prompt, 1, 1, 1, 1, font, "center");
+        prompt_sprite.SetImage(prompt_image);
+        prompt_visible = 1;
+    }
+    line = "";
+    if (dialog_mode == "password")
+        line = stars(dialog_bullets);
+    if (dialog_mode == "question")
+        line = dialog_extra;
+    if (need_field && line == "")
+        line = "_";
+    dialog_centered = need_field;
+    if (line != "") {
+        entry_image = Image.Text(line, 1, 1, 1, 1, font, "center");
+        entry_sprite.SetImage(entry_image);
+        entry_visible = 1;
+    }
+}
+
+fun place_dialog() {
+    local.center;
+    local.gap;
+    local.bottom;
+    local.ph;
+    local.eh;
+    local.top;
+    if (!prompt_visible && !entry_visible) {
+        prompt_sprite.SetOpacity(0);
+        entry_sprite.SetOpacity(0);
+        return;
+    }
+    ph = 0;
+    eh = 0;
+    gap = 0;
+    if (prompt_visible)
+        ph = prompt_image.GetHeight();
+    if (entry_visible)
+        eh = entry_image.GetHeight();
+    if (prompt_visible && entry_visible)
+        gap = 8 * scale;
+    if (dialog_centered) {
+        center = sw / 2;
+        top = (sh / 2) - ((ph + gap + eh) / 2);
+        if (top < 12)
+            top = 12;
+    } else {
+        bottom = text_y - (16 * scale);
+        top = bottom - ph - gap - eh;
+        if (top < 12)
+            top = 12;
+        center = text_x + (tw / 2);
+    }
+    if (prompt_visible) {
+        prompt_sprite.SetOpacity(1);
+        prompt_sprite.SetX(center - (prompt_image.GetWidth() / 2));
+        prompt_sprite.SetY(top);
+    } else {
+        prompt_sprite.SetOpacity(0);
+    }
+    if (entry_visible) {
+        entry_sprite.SetOpacity(1);
+        entry_sprite.SetX(center - (entry_image.GetWidth() / 2));
+        entry_sprite.SetY(top + ph + gap);
+    } else {
+        entry_sprite.SetOpacity(0);
+    }
+}
+
+fun refresh_callback() {
+    local.index;
+    local.sig;
+    if (Window.GetWidth() != sw || Window.GetHeight() != sh)
+        layout();
+    if (tick < gear_frames) {
+        show_gear(tick);
+        show_text(0, 0);
+    } else {
+        show_gear(gear_frames - 1);
+        index = tick - gear_frames;
+        if (index > text_frames - 1)
+            index = text_frames - 1;
+        show_text(index, 1);
+    }
+    sig = dialog_mode + "|" + dialog_prompt + "|" + dialog_extra + "|" + dialog_bullets + "|" + gw;
+    if (sig != dialog_sig) {
+        dialog_sig = sig;
+        rebuild_dialog();
+        place_dialog();
+    }
+    if (tick < gear_frames + text_frames)
+        tick = tick + 1;
+}
+
+fun password_callback(prompt, bullets) {
+    dialog_mode = "password";
+    dialog_prompt = prompt;
+    dialog_bullets = bullets;
+    dialog_extra = "";
+}
+
+fun question_callback(prompt, entry) {
+    dialog_mode = "question";
+    dialog_prompt = prompt;
+    dialog_extra = entry;
+    dialog_bullets = 0;
+}
+
+fun message_callback(text) {
+    dialog_mode = "message";
+    dialog_prompt = text;
+    dialog_extra = "";
+    dialog_bullets = 0;
+}
+
+fun hide_message_callback(text) {
+    if (dialog_mode == "message")
+        dialog_mode = "none";
+}
+
+fun normal_callback() {
+    dialog_mode = "none";
+    dialog_prompt = "";
+    dialog_extra = "";
+    dialog_bullets = 0;
+}
+
+Plymouth.SetRefreshRate(50);
+layout();
+Plymouth.SetDisplayPasswordFunction(password_callback);
+Plymouth.SetDisplayQuestionFunction(question_callback);
+Plymouth.SetDisplayMessageFunction(message_callback);
+Plymouth.SetHideMessageFunction(hide_message_callback);
+Plymouth.SetDisplayNormalFunction(normal_callback);
+Plymouth.SetRefreshFunction(refresh_callback);

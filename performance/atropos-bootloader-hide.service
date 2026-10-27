@@ -1,0 +1,12 @@
+[Unit]
+Description=Hide the systemd-boot menu after a normal desktop session
+After=graphical.target display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/touch /run/atropos-bootloader-reached
+ExecStop=/usr/libexec/atropos-bootloader hide
+
+[Install]
+WantedBy=graphical.target

@@ -1,0 +1,9 @@
+# AtropOS uses plasma-login-manager. systemd keeps the first match.
+# This file is read before the display-manager slot (85) and before
+# 87-default-MicroOS.preset. 95-default-SUSE.preset enables
+# display-manager-legacy.service, which is the Kalpa TTY boot.
+# A preset cannot retarget an existing display-manager.service symlink.
+# patterns-atropos %post still force-enables plasmalogin.service.
+disable display-manager-legacy.service
+disable sddm.service
+enable plasmalogin.service

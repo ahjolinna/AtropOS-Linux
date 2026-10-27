@@ -1,0 +1,11 @@
+-------------------------------------------------------------------
+Wed Oct 21 23:59:40 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Let the GPU sleep, and keep the session unfrozen on suspend while nvidia is loaded.
+- Skip the NVIDIA system-memory wipe.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Install the signed open G07 driver for kernel-longterm on first boot.
+- Follow the Leap and Tumbleweed package set from SDB:NVIDIA drivers.

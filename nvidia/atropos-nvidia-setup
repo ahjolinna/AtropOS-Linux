@@ -1,0 +1,10 @@
+#!/bin/bash
+# Install the open signed G07 driver into the next snapshot.
+set -euo pipefail
+
+marker=/var/lib/atropos/nvidia-open-g07-installed
+if [[ -e $marker ]]; then
+    exit 0
+fi
+
+exec transactional-update --non-interactive run /usr/libexec/atropos-nvidia-apply

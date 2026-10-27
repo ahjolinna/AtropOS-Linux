@@ -1,0 +1,5 @@
+# Atychia's user daemon starts this helper. The helper only execs
+# /usr/bin/atychia-launch. Any local account can run it, because the
+# first user is not always in wheel. Polkit's pkexec is not installed.
+Defaults!/usr/libexec/atychia-as-root !requiretty
+ALL ALL=(root) NOPASSWD: /usr/libexec/atychia-as-root

@@ -1,0 +1,33 @@
+-------------------------------------------------------------------
+Tue Oct 27 02:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Point the live GRUB menu at themes/atropos. The boot script was
+  still selecting openSUSE, so the theme never loaded.
+- Drop grub2-branding-openSUSE. It conflicts with grub2-branding.
+- On the Online menu, ask for the network in the initrd before Agama.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Select the atropos GRUB theme for the live ISO.
+- Keep grub2-branding-openSUSE installed. The installed system stays
+  on systemd-boot. No image was built for this change.
+
+-------------------------------------------------------------------
+Fri Oct 23 02:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Select the atropos Plymouth theme after the Offline pattern removal.
+- Open the Agama kiosk in the dark high-contrast scheme.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:59:55 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Use the atropos Plymouth theme for the live ISO splash.
+- Install plymouth-theme-atropos in the Offline and Online images.
+
+-------------------------------------------------------------------
+Wed Oct 21 00:50:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add Offline and Online Agama live images for AtropOS.
+- Boot the live ISO with Plymouth and the silent kernel command line.
+- Ignore NetworkManager-branding-openSUSE and install the upstream branding.

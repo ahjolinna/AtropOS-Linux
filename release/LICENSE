@@ -1,0 +1,12 @@
+AtropOS packaging license
+
+The AtropOS-specific packages in this project (the product definition,
+the patterns, and this release package) are licensed under the GNU
+General Public License, version 2 or later.
+
+AtropOS installs openSUSE Tumbleweed and Kalpa components. Each of
+those components keeps the license named in its own package. This
+file does not grant any right to the openSUSE or SUSE trademarks.
+
+A copy of the GNU General Public License version 2 is published at
+https://www.gnu.org/licenses/old-licenses/gpl-2.0.html

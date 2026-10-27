@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
+# SPDX-FileCopyrightText: none
+
+# Use BFQ I/O scheduler for spinning disks, as it offers much better latency in
+# exchange for only a modest reduction in throughput, and only for some workflows
+ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"

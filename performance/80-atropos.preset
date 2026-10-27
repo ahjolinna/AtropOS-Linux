@@ -1,0 +1,26 @@
+# AtropOS defaults. zram0 is created by zram-generator from 00-atropos-zram.conf.
+# systemd reads presets in ascending order and keeps the first match.
+# 80-atropos.preset is read before 87-default-MicroOS.preset, so this
+# disable wins without changing systemd-presets-branding-MicroOS.
+# The unit stays installed so Discover can start transactional-update.
+disable transactional-update.timer
+enable systemd-zram-setup@zram0.service
+enable dbus-broker.service
+# tuned-ppd replaces power-profiles-daemon. Disable the other unit first
+# so a leftover install cannot own the power-profiles bus name.
+disable power-profiles-daemon.service
+# tuned-ppd Requires tuned.service. Enable the daemon itself. KDE Linux
+# ships both running. A preset that names only tuned-ppd leaves tuned
+# disabled when the scriptlet does not run.
+enable tuned.service
+enable tuned-ppd.service
+enable systemd-oomd.service
+enable atropos-powertop.service
+enable atropos-seed-flatpaks.service
+enable thermald.service
+enable atropos-iw-set-regdomain.path
+enable atropos-configure-firefox.path
+enable atropos-hide-system-disk.service
+enable atropos-formcard-overlay.service
+enable atropos-bootloader-show.service
+enable atropos-bootloader-hide.service

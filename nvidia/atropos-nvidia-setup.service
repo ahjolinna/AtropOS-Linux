@@ -1,0 +1,13 @@
+[Unit]
+Description=Install the open NVIDIA G07 driver for kernel-longterm
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/atropos/nvidia-open-g07-installed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/atropos-nvidia-setup
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target

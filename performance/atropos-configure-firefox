@@ -1,0 +1,40 @@
+#!/usr/bin/bash
+# SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
+# SPDX-FileCopyrightText: 2025 Thomas Duckworth <tduck@filotimoproject.org>
+
+set -eu
+
+if ! flatpak info org.mozilla.firefox >/dev/null 2>&1; then
+  echo "The Firefox flatpak is not installed. Exiting." >&2
+  exit 1
+fi
+
+# Ensure accent colors are correctly applied to Firefox.
+# Also ensure Firefox has access to the speech-dispatcher socket.
+flatpak override --system org.mozilla.firefox \
+  --filesystem=xdg-config/gtk-3.0:ro \
+  --filesystem=xdg-run/speech-dispatcher:ro
+
+# Get the architecture from the runtime.
+RUNTIME_REF="$(flatpak info org.mozilla.firefox 2>/dev/null | grep -E 'Runtime:' | awk '{print $2}')"
+RUNTIME_ARCH="$(echo "$RUNTIME_REF" | cut -d'/' -f2)"
+
+# Install the KDE Linux default Firefox config into the Firefox flatpak system config extension.
+# This enables hardware acceleration on NVIDIA but can break it on other cards,
+# so this should only be done conditionally.
+if nvidia-smi > /dev/null 2>&1; then
+  mkdir -p "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/"
+  cp -rf "/usr/share/atropos/firefox-config/01-atropos-nvidia-hw-decode.js" "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/01-atropos-nvidia-hw-decode.js"
+else
+  rm -rf "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/01-atropos-nvidia-hw-decode.js"
+fi
+# This, currently, gets speech-dispatcher to work in Firefox.
+mkdir -p "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/"
+cp -rf "/usr/share/atropos/firefox-config/00-atropos-default.js" "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/00-atropos-default.js"
+
+# Install the KDE Linux default Firefox policy into the Firefox flatpak system config extension.
+# This installs the Plasma Browser Integration extension.
+# This, however, has the unfortunate side effect of causing Firefox to show a "Your browser is being managed by your organization" message in the settings.
+# See https://support.mozilla.org/en-US/kb/customizing-firefox-using-policiesjson
+mkdir -p "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/policies/"
+cp -rf "/usr/share/atropos/firefox-config/policies.json" "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/policies/policies.json"

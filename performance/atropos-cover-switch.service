@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+[Unit]
+Description=Select Cover Switch when the task switcher is still the default
+Before=plasma-kwin_wayland.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/atropos-cover-switch
+
+[Install]
+WantedBy=default.target

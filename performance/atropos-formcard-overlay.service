@@ -1,0 +1,13 @@
+[Unit]
+Description=Show RPM as the Discover distribution method
+After=local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/atropos-formcard-overlay
+ExecStop=/usr/libexec/atropos-formcard-overlay stop
+
+[Install]
+WantedBy=multi-user.target

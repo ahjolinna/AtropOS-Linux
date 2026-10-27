@@ -1,0 +1,6 @@
+[org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+
+[TabBox]
+LayoutName=coverswitch

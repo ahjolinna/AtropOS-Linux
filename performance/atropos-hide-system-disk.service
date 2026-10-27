@@ -1,0 +1,12 @@
+[Unit]
+Description=Hide the AtropOS system disk from Dolphin
+After=systemd-udevd.service local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/atropos-hide-system-disk
+
+[Install]
+WantedBy=multi-user.target

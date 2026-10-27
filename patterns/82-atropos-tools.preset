@@ -1,0 +1,3 @@
+# plocate ships no preset, so its updatedb timer stays off unless a
+# preset enables it. This file sorts before 87-default-MicroOS.preset.
+enable plocate-updatedb.timer

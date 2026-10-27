@@ -1,0 +1,41 @@
+-------------------------------------------------------------------
+Tue Oct 27 16:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Discover shows one System updates row and the zypper download size.
+- Pass -y and --auto-agree-with-licenses after the zypper subcommand.
+  Slowroll has no delta RPMs.
+- Set PATH before transactional-update. packagekitd clears the
+  environment, and the helper needs /usr/sbin for btrfs and tukit.
+- dup still stages a new snapshot and does not reboot.
+
+-------------------------------------------------------------------
+Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Never report a blank PackageKit error. An empty zypper failure now
+  says the command produced no output and includes the exit code.
+- Leave the offline-update stub. PreparedUpgrade invalidation is
+  packagekit-qt after packagekitd drops off the bus.
+
+-------------------------------------------------------------------
+Thu Oct 22 00:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Answer PackageKit Resolve from the installed RPM database and the
+  update cache. Unknown names are not an error, so Discover stops
+  reporting "Resolve not supported by backend".
+
+-------------------------------------------------------------------
+Wed Oct 21 23:59:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Map zypper exit codes onto PackageKit errors.
+- Drop the update cache when zypp or transactional-update changes.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Remove a partial updates.tsv.tmp when the cache write does not finish.
+
+-------------------------------------------------------------------
+Wed Oct 21 22:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Stage Slowroll updates with transactional-update dup.
+- Leave the reboot to the user.

@@ -1,0 +1,14 @@
+[Unit]
+Description=AtropOS configuration check
+After=local-fs.target dbus.service
+Before=display-manager.service
+ConditionPathExists=/usr/sbin/atropos-check
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/atropos-check --boot
+RemainAfterExit=yes
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,92 @@
+#!/bin/bash
+# Show or hide the systemd-boot menu the way KDE Linux does, without
+# touching loader.conf. That file is measured for TPM unlock, and its
+# timeout line is commented out. sdbootutil set-timeout 0 stores
+# menu-disabled, which ignores the Space key, and it may rewrite
+# loader.conf. This script calls bootctl, which writes only the EFI
+# LoaderConfigTimeout variable.
+#
+# show runs at the start of every boot and arms a 7 second menu for the
+# next boot. hide runs on shutdown after the desktop was reached and sets
+# 0, which hides the menu while Space still opens it. A crash never runs
+# hide, so the next boot shows the menu. An uncommented timeout in
+# loader.conf is left alone. Another installed OS is left alone.
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+set -u
+
+bootctl=/usr/bin/bootctl
+if [[ ! -x $bootctl ]]; then
+    bootctl=/usr/sbin/bootctl
+fi
+
+loader_has_timeout() {
+    local f
+    for f in /boot/loader/loader.conf /boot/efi/loader/loader.conf /efi/loader/loader.conf; do
+        [[ -r $f ]] || continue
+        if grep -Eq '^[[:space:]]*timeout[[:space:]]+' "$f"; then
+            return 0
+        fi
+        return 1
+    done
+    return 1
+}
+
+# Prints another OS id, if one exists. Exit 0 means do not hide.
+# Exit 1 means only AtropOS entries were listed.
+other_os() {
+    local json
+    json=$("$bootctl" list --json=short 2>/dev/null) || return 0
+    [[ -n $json ]] || return 0
+    python3 -c '
+import json, sys
+own = {
+    "auto-efi-shell",
+    "auto-efi-default",
+    "auto-reboot-to-firmware-setup",
+}
+try:
+    rows = json.loads(sys.argv[1])
+except Exception:
+    sys.exit(0)
+for row in rows:
+    ident = row.get("id") or ""
+    if not ident or ident.startswith("atropos-") or ident in own:
+        continue
+    print(ident)
+    sys.exit(0)
+sys.exit(1)
+' "$json"
+    local rc=$?
+    # Exit 1 is the only "hide" result. A missing python3 or any other
+    # failure leaves the menu alone.
+    if [[ $rc -eq 1 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+case "${1:-}" in
+    show)
+        if loader_has_timeout; then
+            exit 0
+        fi
+        exec "$bootctl" set-timeout 7
+        ;;
+    hide)
+        if [[ ! -f /run/atropos-bootloader-reached ]]; then
+            exit 0
+        fi
+        if loader_has_timeout; then
+            exit 0
+        fi
+        if other_os; then
+            exit 0
+        fi
+        exec "$bootctl" set-timeout 0
+        ;;
+    *)
+        echo "usage: atropos-bootloader show|hide" >&2
+        exit 2
+        ;;
+esac

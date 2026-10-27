@@ -1,0 +1,551 @@
+gdb plasma-discover
+GNU gdb (GDB; openSUSE Tumbleweed) 16.3
+Copyright (C) 2024 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-suse-linux".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://bugs.opensuse.org/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from plasma-discover...
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.opensuse.org/>
+Enable debuginfod for this session? (y or [n]) y
+Debuginfod has been enabled.
+To make this setting permanent, add 'set debuginfod enabled on' to .gdbinit.
+Downloading 5.86 M separate debug info for /usr/bin/plasma-discover
+Reading symbols from /home/ahjolinna/.cache/debuginfod_client/dd5a38baccd7e9526a273b05b9243cb21f2ee9c1/debuginfo...
+Downloading 2.84 M separate debug info for /home/ahjolinna/.cache/debuginfod_client/dd5a38baccd7e9526a273b05b9243cb21f2ee9c1/debuginfo
+--Type <RET> for more, q to quit, c to continue without paging--c
+(gdb) run
+Starting program: /usr/bin/plasma-discover
+Downloading 829.23 K separate debug info for /lib64/ld-linux-x86-64.so.2
+Downloading 43.80 K separate debug info for system-supplied DSO at 0x7ffff7fbe000
+Downloading 353.11 K separate debug info for /lib64/libKirigamiApp.so.6
+Downloading 1.81 M separate debug info for /home/ahjolinna/.cache/debuginfod_client/d1ac43b55280e16de9a35ee1d84925eb3ab3ea52/debuginfo
+Downloading 12.41 M separate debug info for /usr/lib64/plasma-discover/libDiscoverCommon.so
+Downloading 1.03 M separate debug info for /lib64/libQt6WebView.so.6
+Downloading 714.58 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/38507b46a54aa5071ef2cc3e19bcf32612315a7f/debuginfo
+Downloading 88.64 M separate debug info for /lib64/libQt6Widgets.so.6
+Downloading 15.58 M separate debug info for /home/ahjolinna/.cache/debuginfod_client/4b1c063c0285d27a058b4473f42c0ac4df01ba2c/debuginfo
+Downloading 164.67 M separate debug info for /lib64/libQt6Quick.so.6
+Downloading 34.36 M separate debug info for /home/ahjolinna/.cache/debuginfod_client/e13f9bf48a74937bd064c0384f6187066c31eefc/debuginfo
+Downloading 162.48 M separate debug info for /lib64/libQt6Qml.so.6
+Downloading 136.65 M separate debug info for /lib64/libQt6Gui.so.6
+Downloading 11.47 M separate debug info for /lib64/libQt6DBus.so.6
+Downloading 69.53 M separate debug info for /lib64/libQt6Core.so.6
+Downloading 18.10 M separate debug info for /lib64/libstdc++.so.6
+Downloading 6.63 M separate debug info for /lib64/libc.so.6
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib64/libthread_db.so.1".
+Downloading 233.33 K separate debug info for /lib64/libQt6Concurrent.so.6
+Downloading 29.53 M separate debug info for /lib64/libQt6Network.so.6
+Downloading 2.03 M separate debug info for /lib64/libQt6QuickControls2.so.6
+Downloading 7.08 M separate debug info for /lib64/libAppStreamQt.so.3
+Downloading 2.04 M separate debug info for /lib64/libQCoro6Core.so.0
+Downloading 668.36 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/198452938650a7a4b07e8a6e515f334e6e6683e9/debuginfo
+Downloading 3.15 M separate debug info for /lib64/libm.so.6
+Downloading 657.17 K separate debug info for /lib64/libgcc_s.so.1
+Downloading 2.71 M separate debug info for /lib64/libX11.so.6
+Downloading 459.52 K separate debug info for /lib64/libxcb.so.1
+Downloading 28.97 K separate debug info for /lib64/libxcb-res.so.0
+Downloading 77.18 K separate debug info for /lib64/libXfixes.so.3
+Downloading 18.80 K separate debug info for /lib64/libxcb-keysyms.so.1
+Downloading 3.50 M separate debug info for /lib64/libQt6QmlMeta.so.6
+Downloading 19.89 M separate debug info for /lib64/libQt6QmlModels.so.6
+Downloading 8.46 M separate debug info for /lib64/libQt6OpenGL.so.6
+Downloading 134.01 K separate debug info for /lib64/libacl.so.1
+Downloading 1.18 M separate debug info for /lib64/libmount.so.1
+Downloading 1.58 M separate debug info for /lib64/libQt6Xml.so.6
+Downloading 1.53 M separate debug info for /lib64/libudev.so.1
+Downloading 213.09 K separate debug info for /lib64/libEGL.so.1
+Downloading 1.38 M separate debug info for /lib64/libfontconfig.so.1
+Downloading 3.83 M separate debug info for /lib64/libglib-2.0.so.0
+Downloading 887.12 K separate debug info for /lib64/libxkbcommon.so.0
+Downloading 451.36 K separate debug info for /lib64/libGLX.so.0
+Downloading 67.43 K separate debug info for /lib64/libOpenGL.so.0
+Downloading 902.57 K separate debug info for /lib64/libpng16.so.16
+Downloading 161.73 K separate debug info for /lib64/libmd4c.so.0
+Downloading 6.54 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/6d48c75354c1e790e342dedbe567e0000c8f2752/debuginfo
+Downloading 2.55 M separate debug info for /lib64/libfreetype.so.6
+Downloading 706.83 K separate debug info for /usr/lib64/zlib-ng-compat/libz.so.1
+Downloading 1.02 M separate debug info for /lib64/libdbus-1.so.3
+Downloading 17.41 M separate debug info for /lib64/libicui18n.so.78
+Downloading 7.36 M separate debug info for /lib64/libicuuc.so.78
+Downloading 4.51 M separate debug info for /lib64/libsystemd.so.0
+Downloading 308.41 K separate debug info for /lib64/libdouble-conversion.so.3
+Downloading 114.75 K separate debug info for /lib64/libb2.so.1
+Downloading 1.81 M separate debug info for /lib64/libpcre2-16.so.0
+Downloading 5.74 M separate debug info for /lib64/libzstd.so.1
+Downloading 746.26 K separate debug info for /lib64/libimobiledevice-1.0.so.6
+Downloading 308.76 K separate debug info for /lib64/libplist-2.0.so.4
+Downloading 1.24 M separate debug info for /lib64/libgssapi_krb5.so.2
+Downloading 212.19 K separate debug info for /lib64/libbrotlidec.so.1
+Downloading 11.18 K separate debug info for /lib64/libproxy.so.1
+Downloading 11.48 M separate debug info for /lib64/libcrypto.so.3
+Downloading 154.14 K separate debug info for /lib64/libcanberra.so.0
+Downloading 90.37 M separate debug info for /lib64/libQt6QuickTemplates2.so.6
+Downloading 2.12 M separate debug info for /lib64/libappstream.so.5
+Downloading 81.55 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/eeacfc2714a0aad9b5e02fca35abf58a087e70d3/debuginfo
+Downloading 1.22 M separate debug info for /lib64/libgobject-2.0.so.0
+Downloading 6.71 M separate debug info for /lib64/libgio-2.0.so.0
+Downloading 28.52 K separate debug info for /lib64/libXau.so.6
+Downloading 2.21 M separate debug info for /lib64/libQt6QmlWorkerScript.so.6
+Downloading 1006.54 K separate debug info for /lib64/libblkid.so.1
+Downloading 614.17 K separate debug info for /lib64/libselinux.so.1
+Downloading 366.23 K separate debug info for /lib64/libGLdispatch.so.0
+Downloading 474.15 K separate debug info for /lib64/libexpat.so.1
+Downloading 1.93 M separate debug info for /lib64/libpcre2-8.so.0
+Downloading 872.51 K separate debug info for /lib64/libgraphite2.so.3
+Downloading 173.80 K separate debug info for /lib64/libbz2.so.1
+Downloading 10.45 K separate debug info for /lib64/libicudata.so.78
+Downloading 1.11 M separate debug info for /lib64/libgomp.so.1
+Downloading 2.93 M separate debug info for /lib64/libssl.so.3
+Downloading 76.91 K separate debug info for /lib64/libusbmuxd-2.0.so.7
+Downloading 168.34 K separate debug info for /lib64/libimobiledevice-glue-1.0.so.0
+Downloading 2.13 M separate debug info for /lib64/libkrb5.so.3
+Downloading 282.02 K separate debug info for /lib64/libk5crypto.so.3
+Downloading 25.73 K separate debug info for /lib64/libcom_err.so.2
+Downloading 146.58 K separate debug info for /lib64/libkrb5support.so.0
+Downloading 19.16 K separate debug info for /lib64/libbrotlicommon.so.1
+Downloading 147.08 K separate debug info for /usr/lib64/libproxy/libpxbackend-1.0.so
+Downloading 43.49 K separate debug info for /lib64/libjitterentropy.so.3
+Downloading 74.16 K separate debug info for /lib64/libvorbisfile.so.3
+Downloading 96.21 K separate debug info for /lib64/libltdl.so.7
+Downloading 870.55 K separate debug info for /lib64/liblzma.so.5
+Downloading 13.53 M separate debug info for /lib64/libQt6WaylandClient.so.6
+Downloading 146.77 K separate debug info for /lib64/libwayland-client.so.0
+Downloading 41.80 K separate debug info for /lib64/libgmodule-2.0.so.0
+Downloading 719.59 K separate debug info for /lib64/libxmlb.so.2
+Downloading 3.10 M separate debug info for /lib64/libxml2.so.16
+Downloading 4.35 M separate debug info for /lib64/libfyaml.so.0
+Downloading 122.45 K separate debug info for /lib64/libffi.so.8
+Downloading 34.25 K separate debug info for /lib64/libkeyutils.so.1
+Downloading 182.89 K separate debug info for /lib64/libresolv.so.2
+Downloading 1.19 M separate debug info for /lib64/libduktape.so.207
+Downloading 322.45 K separate debug info for /lib64/libvorbis.so.0
+Downloading 47.37 K separate debug info for /lib64/libogg.so.0
+Downloading 47.48 K separate debug info for /lib64/libwayland-cursor.so.0
+Downloading 475.33 K separate debug info for /lib64/libnghttp3.so.9
+Downloading 125.20 K separate debug info for /lib64/libngtcp2_crypto_ossl.so.0
+Downloading 1.93 M separate debug info for /lib64/libngtcp2.so.16
+Downloading 532.26 K separate debug info for /lib64/libnghttp2.so.14
+Downloading 98.87 K separate debug info for /lib64/libidn2.so.0
+Downloading 1019.83 K separate debug info for /lib64/libldap.so.2
+Downloading 143.30 K separate debug info for /lib64/liblber.so.2
+Downloading 1.50 M separate debug info for /lib64/libssh.so.4
+Downloading 59.08 K separate debug info for /lib64/libpsl.so.5
+Downloading 1.66 M separate debug info for /lib64/libstemmer.so.0d
+Downloading 1.35 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/7d22da23df47fd26a31e7b719f432a0a15548e46/debuginfo
+Downloading 1.11 M separate debug info for /lib64/libmvec.so.1
+Downloading 1.32 M separate debug info for /lib64/libunistring.so.5
+Downloading 314.20 K separate debug info for /lib64/libsasl2.so.3
+Downloading 107.21 K separate debug info for /usr/lib64/qt6/plugins/platforms/libqwayland.so
+[New Thread 0x7fffef7ff6c0 (LWP 7107)]
+Downloading 1.61 M separate debug info for /usr/lib64/qt6/plugins/wayland-shell-integration/libxdg-shell.so
+Downloading 7.22 M separate debug info for /usr/lib64/qt6/plugins/platformthemes/KDEPlasmaPlatformTheme6.so
+Downloading 602.04 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/fb4291bfc170697e150067dac763105c76209145/debuginfo
+Downloading 135.52 K separate debug info for /lib64/libXcursor.so.1
+Downloading 135.66 K separate debug info for /lib64/libXrender.so.1
+[New Thread 0x7fffeeba96c0 (LWP 7110)]
+[New Thread 0x7fffee3a86c0 (LWP 7111)]
+Downloading 11.95 M separate debug info for /usr/lib64/qt6/plugins/styles/breeze6.so
+Downloading 1.70 M separate debug info for /home/ahjolinna/.cache/debuginfod_client/12e1c591ab75483dd67efcecd07a83de643b977e/debuginfo
+Downloading 2.65 M separate debug info for /usr/lib64/qt6/plugins/discover/kns-backend.so
+Downloading 8.49 M separate debug info for /usr/lib64/qt6/plugins/discover/flatpak-backend.so
+Downloading 3.21 M separate debug info for /lib64/libflatpak.so.0
+Downloading 687.04 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/acf011b10b4d1d6139ec8dc5549745623807d562/debuginfo
+Downloading 166.11 K separate debug info for /lib64/libdconf.so.1
+Downloading 62.23 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/65abaceb9fd6ca27ae985f96f8d0fba874f90578/debuginfo
+Downloading 1.10 M separate debug info for /lib64/libgpgme.so.45
+Downloading 512.29 K separate debug info for /lib64/libjson-glib-1.0.so.0
+Downloading 2.87 M separate debug info for /lib64/libarchive.so.13
+Downloading 3.35 M separate debug info for /lib64/libostree-1.so.1
+Downloading 105.99 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/551ee69aa04b09f258bb1833efba3684af136621/debuginfo
+Downloading 298.35 K separate debug info for /lib64/libseccomp.so.2
+Downloading 370.09 K separate debug info for /lib64/libpolkit-gobject-1.so.0
+Downloading 266.45 K separate debug info for /lib64/libassuan.so.9
+Downloading 533.17 K separate debug info for /lib64/libgpg-error.so.0
+Downloading 1.06 M separate debug info for /lib64/liblz4.so.1
+Downloading 182.18 K separate debug info for /lib64/libcomposefs.so.1
+Downloading 21.33 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/21c713b037118636c8f5b1bef01a71e2787f7ee3/debuginfo
+org.kde.plasma.libdiscover: OdrsReviewsBackend: Fetch ratings: true
+Downloading 690.06 K separate debug info for /usr/lib64/gio/modules/libgvfsdbus.so
+Downloading 718.42 K separate debug info for /usr/lib64/gvfs/libgvfscommon.so
+[New Thread 0x7fffec85c6c0 (LWP 7304)]
+[New Thread 0x7fffdffff6c0 (LWP 7305)]
+[New Thread 0x7fffdf7fe6c0 (LWP 7306)]
+[New Thread 0x7fffdeffd6c0 (LWP 7307)]
+Downloading 1.69 M separate debug info for /usr/lib64/qt6/plugins/discover/fwupd-backend.so
+Downloading 29.08 K separate debug info for /usr/lib64/gio/modules/libgiolibproxy.so
+Downloading 38.93 K separate debug info for /usr/lib64/gio/modules/libgiognomeproxy.so
+[New Thread 0x7fffdcd7a6c0 (LWP 7308)]
+Downloading 7.27 M separate debug info for /usr/lib64/qt6/plugins/discover/packagekit-backend.so
+Downloading 5.19 M separate debug info for /lib64/libpackagekitqt6.so.2
+Downloading 218.27 K separate debug info for /lib64/libmarkdown.so.3
+adding empty sources model QStandardItemModel(0x5555558aaf10)
+[New Thread 0x7fffcffff6c0 (LWP 7309)]
+Downloading 25.25 K separate debug info for /usr/lib64/qt6/qml/QtNetwork/libqmlnetworkplugin.so
+Downloading 2.24 M separate debug info for /lib64/libQt6QmlNetwork.so.6
+Downloading 450.02 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Controls/libqtquickcontrols2plugin.so
+Downloading 86.54 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Controls/Basic/libqtquickcontrols2basicstyleplugin.so
+Downloading 539.65 K separate debug info for /lib64/libQt6QuickControls2Basic.so.6
+Downloading 25.62 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Layouts/libqquicklayoutsplugin.so
+Downloading 6.41 M separate debug info for /lib64/libQt6QuickLayouts.so.6
+[Thread 0x7fffdcd7a6c0 (LWP 7308) exited]
+[Thread 0x7fffdeffd6c0 (LWP 7307) exited]
+Downloading 227.91 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Templates/libqtquicktemplates2plugin.so
+Downloading 30.23 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Window/libquickwindowplugin.so
+Downloading 26.07 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Controls/impl/libqtquickcontrols2implplugin.so
+Downloading 7.69 M separate debug info for /lib64/libQt6QuickControls2Impl.so.6
+Downloading 895.52 K separate debug info for /usr/lib64/qt6/plugins/wayland-graphics-integration-client/libqt-plugin-wayland-egl.so
+Downloading 8.50 K separate debug info for /usr/lib64/qt6/plugins/wayland-graphics-integration-client/../../../libwayland-egl.so.1
+Downloading 3.94 M separate debug info for /lib64/libEGL_mesa.so.0
+Downloading 192.73 M separate debug info for /lib64/libgallium-26.2.4.so
+Downloading 575.93 K separate debug info for /lib64/libgbm.so.1
+Downloading 32.30 K separate debug info for /lib64/libX11-xcb.so.1
+Downloading 150.89 K separate debug info for /lib64/libxcb-randr.so.0
+Downloading 69.97 K separate debug info for /lib64/libxcb-xfixes.so.0
+Downloading 24.29 K separate debug info for /lib64/libxcb-shm.so.0
+Downloading 232.45 K separate debug info for /lib64/libdrm.so.2
+Downloading 38.15 K separate debug info for /lib64/libxcb-dri3.so.0
+Downloading 25.41 K separate debug info for /lib64/libxcb-present.so.0
+Downloading 1.09 G separate debug info for /lib64/libLLVM.so.23.1
+Downloading 24.75 M separate debug info for /lib64/libSPIRV-Tools-2026.4~rc2.so
+Downloading 55.45 K separate debug info for /lib64/libxcb-sync.so.1
+Downloading 12.33 K separate debug info for /lib64/libxshmfence.so.1
+Downloading 138.00 K separate debug info for /lib64/libdrm_amdgpu.so.1
+Downloading 323.36 K separate debug info for /lib64/libdrm_intel.so.1
+Downloading 505.29 K separate debug info for /lib64/libedit.so.0
+Downloading 101.39 K separate debug info for /lib64/libpciaccess.so.0
+Downloading 561.30 K separate debug info for /lib64/libtinfo.so.6
+[New Thread 0x7fffdeffd6c0 (LWP 7861)]
+[New Thread 0x7fffce3ff6c0 (LWP 7862)]
+[New Thread 0x7fffcdbfe6c0 (LWP 7863)]
+[New Thread 0x7fffcd3fd6c0 (LWP 7864)]
+qrc:/qt/qml/org/kde/discover/qml/DiscoverWindow.qml:127:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 15. Use 'sequences: [ <key> ]' to bind to all of them.
+Downloading 481.13 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqsvg.so
+Downloading 831.45 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/7456f66cdf961c2d2171455f678a61f1ab66f3b4/debuginfo
+Downloading 10.50 M separate debug info for /lib64/libQt6Svg.so.6
+[New Thread 0x7fffcc8f06c0 (LWP 7867)]
+[New Thread 0x7fffc4fff6c0 (LWP 7868)]
+[New Thread 0x7fffc47fe6c0 (LWP 7869)]
+[New Thread 0x7fffc3ffd6c0 (LWP 7870)]
+Downloading 1014.37 K separate debug info for /usr/lib64/qt6/plugins/networkinformation/libqconnman.so
+Downloading 258.75 K separate debug info for /usr/lib64/qt6/plugins/networkinformation/libqglib.so
+Downloading 880.96 K separate debug info for /usr/lib64/qt6/plugins/networkinformation/libqnetworkmanager.so
+Downloading 227.92 K separate debug info for /usr/lib64/qt6/qml/QtQuick/Shapes/libqmlshapesplugin.so
+Downloading 6.13 M separate debug info for /lib64/libQt6QuickShapes.so.6
+Downloading 4.19 M separate debug info for /usr/lib64/qt6/qml/org/kde/kirigamiaddons/components/libcomponentsplugin.so
+Downloading 405.33 K separate debug info for /lib64/libKirigamiAddonsComponents.so.6
+Downloading 4.73 M separate debug info for /usr/lib64/qt6/qml/Qt5Compat/GraphicalEffects/libqtgraphicaleffectsplugin.so
+Downloading 539.85 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/b2515d8f5d89c75abb5cd46130129a91bd8f9198/debuginfo
+[Thread 0x7fffc3ffd6c0 (LWP 7870) exited]
+[Thread 0x7fffc47fe6c0 (LWP 7869) exited]
+[Thread 0x7fffc4fff6c0 (LWP 7868) exited]
+[Thread 0x7fffcc8f06c0 (LWP 7867) exited]
+Downloading 5.86 M separate debug info for /usr/lib64/qt6/qml/Qt5Compat/GraphicalEffects/private/libqtgraphicaleffectsprivateplugin.so
+Downloading 57.60 M separate debug info for /lib64/libQt6ShaderTools.so.6
+Downloading 662.23 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/35279efeaebfdfea65625ced58cc8e469c7a2dd9/debuginfo
+qt.qml.propertyCache.append: Member focusPolicy of the object CarouselPageIndicator_QMLTYPE_275 overrides a member of the base object. Consider renaming it or adding final or override specifier
+invalid kns backend! "/usr/share/knsrcfiles/aurorae.knsrc" because: "Backend Aurorae Window Decorations took too long to initialise"
+Invalidated backend, deactivating "aurorae.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "aurorae.knsrc"
+Invalidated backend, deactivating "aurorae.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/systemmonitor-faces.knsrc" because: "Backend System monitor Sensor Display Styles took too long to initialise"
+Invalidated backend, deactivating "systemmonitor-faces.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "systemmonitor-faces.knsrc"
+Invalidated backend, deactivating "systemmonitor-faces.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/systemmonitor-presets.knsrc" because: "Backend System monitor Sensor Presets took too long to initialise"
+Invalidated backend, deactivating "systemmonitor-presets.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "systemmonitor-presets.knsrc"
+Invalidated backend, deactivating "systemmonitor-presets.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/plasma-systemmonitor.knsrc" because: "Backend Pages took too long to initialise"
+Invalidated backend, deactivating "plasma-systemmonitor.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "plasma-systemmonitor.knsrc"
+Invalidated backend, deactivating "plasma-systemmonitor.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/servicemenu.knsrc" because: "Backend Servicemenu took too long to initialise"
+Invalidated backend, deactivating "servicemenu.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "servicemenu.knsrc"
+Invalidated backend, deactivating "servicemenu.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/kwineffect.knsrc" because: "Backend Desktop Effects took too long to initialise"
+Invalidated backend, deactivating "kwineffect.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "kwineffect.knsrc"
+Invalidated backend, deactivating "kwineffect.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/kwinscripts.knsrc" because: "Backend Window Manager Scripts took too long to initialise"
+Invalidated backend, deactivating "kwinscripts.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "kwinscripts.knsrc"
+Invalidated backend, deactivating "kwinscripts.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/kwinswitcher.knsrc" because: "Backend Task Switcher Styles took too long to initialise"
+Invalidated backend, deactivating "kwinswitcher.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "kwinswitcher.knsrc"
+Invalidated backend, deactivating "kwinswitcher.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/window-decorations.knsrc" because: "Backend Window Decorations took too long to initialise"
+Invalidated backend, deactivating "window-decorations.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "window-decorations.knsrc"
+Invalidated backend, deactivating "window-decorations.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/colorschemes.knsrc" because: "Backend Colour Schemes took too long to initialise"
+Invalidated backend, deactivating "colorschemes.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "colorschemes.knsrc"
+Invalidated backend, deactivating "colorschemes.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/gtk_themes.knsrc" because: "Backend GNOME/GTK Application Styles took too long to initialise"
+Invalidated backend, deactivating "gtk_themes.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "gtk_themes.knsrc"
+Invalidated backend, deactivating "gtk_themes.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/icons.knsrc" because: "Backend Icons took too long to initialise"
+Invalidated backend, deactivating "icons.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "icons.knsrc"
+Invalidated backend, deactivating "icons.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/kfontinst.knsrc" because: "Backend Fonts took too long to initialise"
+Invalidated backend, deactivating "kfontinst.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "kfontinst.knsrc"
+Invalidated backend, deactivating "kfontinst.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/lookandfeel.knsrc" because: "Backend Global Themes took too long to initialise"
+Invalidated backend, deactivating "lookandfeel.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "lookandfeel.knsrc"
+Invalidated backend, deactivating "lookandfeel.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/plasma-themes.knsrc" because: "Backend Plasma Styles took too long to initialise"
+Invalidated backend, deactivating "plasma-themes.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "plasma-themes.knsrc"
+Invalidated backend, deactivating "plasma-themes.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/plasmoids.knsrc" because: "Backend Plasma Widgets took too long to initialise"
+Invalidated backend, deactivating "plasmoids.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "plasmoids.knsrc"
+Invalidated backend, deactivating "plasmoids.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/wallpaper-mobile.knsrc" because: "Backend Wallpapers took too long to initialise"
+Invalidated backend, deactivating "wallpaper-mobile.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "wallpaper-mobile.knsrc"
+Invalidated backend, deactivating "wallpaper-mobile.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/wallpaper.knsrc" because: "Backend Wallpapers took too long to initialise"
+Invalidated backend, deactivating "wallpaper.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "wallpaper.knsrc"
+Invalidated backend, deactivating "wallpaper.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/wallpaperplugin.knsrc" because: "Backend Wallpaper Plugins took too long to initialise"
+Invalidated backend, deactivating "wallpaperplugin.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "wallpaperplugin.knsrc"
+Invalidated backend, deactivating "wallpaperplugin.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/xcursor.knsrc" because: "Backend Pointers took too long to initialise"
+Invalidated backend, deactivating "xcursor.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "xcursor.knsrc"
+Invalidated backend, deactivating "xcursor.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/comic.knsrc" because: "Backend Comics took too long to initialise"
+Invalidated backend, deactivating "comic.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "comic.knsrc"
+Invalidated backend, deactivating "comic.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/krunner.knsrc" because: "Backend Krunner took too long to initialise"
+Invalidated backend, deactivating "krunner.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "krunner.knsrc"
+Invalidated backend, deactivating "krunner.knsrc"
+invalid kns backend! "/usr/share/knsrcfiles/ksplash.knsrc" because: "Backend Splash Screens took too long to initialise"
+Invalidated backend, deactivating "ksplash.knsrc"
+org.kde.plasma.libdiscover: Discarding invalid backend "ksplash.knsrc"
+Invalidated backend, deactivating "ksplash.knsrc"
+[Detaching after fork from child process 7880]
+[New Thread 0x7fffc27ff6c0 (LWP 7886)]
+[New Thread 0x7fffc1bfe6c0 (LWP 7887)]
+[New Thread 0x7fffc13fd6c0 (LWP 7888)]
+[New Thread 0x7fffc0bfc6c0 (LWP 7889)]
+[New Thread 0x7fffa29ff6c0 (LWP 7890)]
+[New Thread 0x7fffa21fe6c0 (LWP 7891)]
+[New Thread 0x7fffa19fd6c0 (LWP 7892)]
+[Thread 0x7fffa19fd6c0 (LWP 7892) exited]
+[Thread 0x7fffa21fe6c0 (LWP 7891) exited]
+[Thread 0x7fffa29ff6c0 (LWP 7890) exited]
+[Thread 0x7fffc0bfc6c0 (LWP 7889) exited]
+[Thread 0x7fffc13fd6c0 (LWP 7888) exited]
+[Thread 0x7fffc1bfe6c0 (LWP 7887) exited]
+[New Thread 0x7fffc1bfe6c0 (LWP 7893)]
+[New Thread 0x7fffc13fd6c0 (LWP 7894)]
+[New Thread 0x7fffc0bfc6c0 (LWP 7895)]
+[New Thread 0x7fffc3ffd6c0 (LWP 7897)]
+[New Thread 0x7fffa29ff6c0 (LWP 7898)]
+[New Thread 0x7fffcc8f06c0 (LWP 7899)]
+[New Thread 0x7fffa21fe6c0 (LWP 7900)]
+[New Thread 0x7fffa19fd6c0 (LWP 7901)]
+[New Thread 0x7fffa11fc6c0 (LWP 7902)]
+[New Thread 0x7fffa09fb6c0 (LWP 7903)]
+[New Thread 0x7fffa01fa6c0 (LWP 7904)]
+[New Thread 0x7fff9f9f96c0 (LWP 7905)]
+[New Thread 0x7fff9f1f86c0 (LWP 7906)]
+[New Thread 0x7fff9e9f76c0 (LWP 7907)]
+[New Thread 0x7fff9e1f66c0 (LWP 7908)]
+[New Thread 0x7fff9d9f56c0 (LWP 7909)]
+[New Thread 0x7fff9abf46c0 (LWP 7911)]
+Downloading 1.39 M separate debug info for /usr/lib64/qt6/plugins/tls/libqcertonlybackend.so
+Downloading 4.21 M separate debug info for /usr/lib64/qt6/plugins/tls/libqopensslbackend.so
+[New Thread 0x7fff9a3f36c0 (LWP 7957)]
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+[New Thread 0x7fff99bf26c0 (LWP 7958)]
+Downloading 340.74 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqgif.so
+Downloading 356.40 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqico.so
+[New Thread 0x7fff993f16c0 (LWP 7959)]
+Downloading 46.40 K separate debug info for /lib64/libnss_mdns_minimal.so.2
+Downloading 536.83 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqjpeg.so
+Downloading 1.91 M separate debug info for /usr/lib64/qt6/plugins/imageformats/../../../libjpeg.so.8
+Downloading 463.80 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqicns.so
+Downloading 690.92 K separate debug info for /home/ahjolinna/.cache/debuginfod_client/6a7ab75ec2a3958597cacee0d8695f898f6195dd/debuginfo
+Downloading 261.81 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqjp2.so
+Downloading 1.04 M separate debug info for /lib64/libjasper.so.7
+Downloading 223.70 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqmng.so
+Downloading 1.05 M separate debug info for /lib64/libmng.so.2
+Downloading 1.15 M separate debug info for /lib64/liblcms2.so.2
+Downloading 339.90 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqtga.so
+Downloading 534.90 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqtiff.so
+Downloading 1.24 M separate debug info for /lib64/libtiff.so.6
+Downloading 82.39 K separate debug info for /lib64/libjbig.so.2
+Downloading 3.45 M separate debug info for /lib64/libLerc.so.4
+[Thread 0x7fffcc8f06c0 (LWP 7899) exited]
+[Thread 0x7fffc3ffd6c0 (LWP 7897) exited]
+Downloading 206.13 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqwbmp.so
+Downloading 499.28 K separate debug info for /usr/lib64/qt6/plugins/imageformats/libqwebp.so
+Downloading 61.88 K separate debug info for /lib64/libwebpdemux.so.2
+Downloading 158.34 K separate debug info for /lib64/libwebpmux.so.3
+Downloading 2.80 M separate debug info for /lib64/libwebp.so.7
+Downloading 81.56 K separate debug info for /usr/lib64/libsharpyuv.so.0
+[Thread 0x7fff99bf26c0 (LWP 7958) exited]
+[Thread 0x7fff993f16c0 (LWP 7959) exited]
+Downloading 905.09 K separate debug info for /lib64/libavif.so.16
+Downloading 1.79 M separate debug info for /lib64/libyuv.so.0
+Downloading 2.87 M separate debug info for /lib64/libdav1d.so.7
+Downloading 25.73 M separate debug info for /lib64/librav1e.so.0.8
+Downloading 37.27 M separate debug info for /lib64/libSvtAv1Enc.so.4
+Downloading 29.30 M separate debug info for /lib64/libaom.so.3
+Downloading 2.56 M separate debug info for /lib64/libvmaf.so.3
+Downloading 9.02 M separate debug info for /lib64/libOpenEXR-3_4.so.33
+Downloading 1.09 M separate debug info for /lib64/libIex-3_4.so.33
+Downloading 249.57 K separate debug info for /lib64/libImath-3_2.so.30
+Downloading 382.46 K separate debug info for /lib64/libIlmThread-3_4.so.33
+Downloading 1.43 M separate debug info for /lib64/libOpenEXRCore-3_4.so.33
+Downloading 477.59 K separate debug info for /lib64/libdeflate.so.0
+Downloading 1.98 M separate debug info for /lib64/libopenjph.so.0.32
+Downloading 35.63 M separate debug info for /lib64/libheif.so.1
+Downloading 2.20 M separate debug info for /lib64/libbrotlienc.so.1
+Downloading 1.27 M separate debug info for /lib64/libopenjp2.so.7
+Downloading 38.00 M separate debug info for /lib64/libjxl.so.0.12
+Downloading 184.16 K separate debug info for /lib64/libjxl_threads.so.0.12
+Downloading 1.26 M separate debug info for /lib64/libjxl_cms.so.0.12
+Downloading 631.24 K separate debug info for /lib64/libhwy.so.1
+Downloading 2.94 M separate debug info for /lib64/libraw.so.25
+PackageKit stopped running!
+kf.newstuff.core: "Operation canceled"
+kf.newstuff.core: "Operation canceled"
+[New Thread 0x7fff968b86c0 (LWP 7975)]
+[New Thread 0x7fff93fff6c0 (LWP 7978)]
+[New Thread 0x7fffc47fe6c0 (LWP 7979)]
+[New Thread 0x7fffc4fff6c0 (LWP 7980)]
+[New Thread 0x7fff937fe6c0 (LWP 7981)]
+[New Thread 0x7fff92ffd6c0 (LWP 7982)]
+[New Thread 0x7fff99bf26c0 (LWP 7983)]
+[Thread 0x7fff92ffd6c0 (LWP 7982) exited]
+[Thread 0x7fff937fe6c0 (LWP 7981) exited]
+org.kde.plasma.discover: couldn't open file "/home/ahjolinna/.cache/discover/featured-5.9.json" "No such file or directory"
+[Detaching after fork from child process 7985]
+[Detaching after fork from child process 7987]
+[Detaching after fork from child process 7989]
+[Detaching after fork from child process 7991]
+[Detaching after fork from child process 7993]
+[Detaching after fork from child process 7995]
+[Detaching after fork from child process 7998]
+[New Thread 0x7fff919ff6c0 (LWP 8001)]
+[New Thread 0x7fff911fe6c0 (LWP 8002)]
+[New Thread 0x7fff909fd6c0 (LWP 8003)]
+[New Thread 0x7fffcc8f06c0 (LWP 8004)]
+[New Thread 0x7fff901fc6c0 (LWP 8005)]
+[New Thread 0x7fff8f9fb6c0 (LWP 8006)]
+[Thread 0x7fff8f9fb6c0 (LWP 8006) exited]
+[Thread 0x7fff901fc6c0 (LWP 8005) exited]
+[New Thread 0x7fff8ebfa6c0 (LWP 8011)]
+[New Thread 0x7fff8e3f96c0 (LWP 8012)]
+[New Thread 0x7fffc3ffd6c0 (LWP 8015)]
+[New Thread 0x7fff92ffd6c0 (LWP 8040)]
+[New Thread 0x7fff937fe6c0 (LWP 8041)]
+[New Thread 0x7fffdcd7a6c0 (LWP 8076)]
+Transaction error: "" PackageKit::Transaction(0x7fffd4058900)
+[Thread 0x7fff911fe6c0 (LWP 8002) exited]
+[Thread 0x7fff909fd6c0 (LWP 8003) exited]
+[Thread 0x7fff919ff6c0 (LWP 8001) exited]
+[Thread 0x7fff99bf26c0 (LWP 7983) exited]
+[Thread 0x7fff92ffd6c0 (LWP 8040) exited]
+[Thread 0x7fff93fff6c0 (LWP 7978) exited]
+[Thread 0x7fff937fe6c0 (LWP 8041) exited]
+[Thread 0x7fffdcd7a6c0 (LWP 8076) exited]
+[Thread 0x7fff968b86c0 (LWP 7975) exited]
+[Thread 0x7fff8ebfa6c0 (LWP 8011) exited]
+[Thread 0x7fff8e3f96c0 (LWP 8012) exited]
+PackageKit stopped running!
+[Thread 0x7fffcc8f06c0 (LWP 8004) exited]
+[Thread 0x7fffc4fff6c0 (LWP 7980) exited]
+[Thread 0x7fffc3ffd6c0 (LWP 8015) exited]
+[Thread 0x7fffc47fe6c0 (LWP 7979) exited]
+[Thread 0x7fffc27ff6c0 (LWP 7886) exited]
+[New Thread 0x7fffcc8f06c0 (LWP 8178)]
+[New Thread 0x7fffc4fff6c0 (LWP 8179)]
+[New Thread 0x7fffc47fe6c0 (LWP 8185)]
+[New Thread 0x7fffc3ffd6c0 (LWP 8186)]
+[Thread 0x7fffc3ffd6c0 (LWP 8186) exited]
+[Thread 0x7fffc47fe6c0 (LWP 8185) exited]
+[Thread 0x7fffc4fff6c0 (LWP 8179) exited]
+[Thread 0x7fffcc8f06c0 (LWP 8178) exited]
+[New Thread 0x7fffc47fe6c0 (LWP 8198)]
+[New Thread 0x7fffc3ffd6c0 (LWP 8199)]
+[New Thread 0x7fffcc8f06c0 (LWP 8200)]
+[New Thread 0x7fffc4fff6c0 (LWP 8201)]
+qrc:/qt/qml/org/kde/discover/qml/UpdatesPage.qml:40:5: QML OverlaySheet: Binding loop detected for property "y":
+qrc:/qt/qml/org/kde/kirigami/templates/OverlaySheet.qml:122:5
+[New Thread 0x7fffc27ff6c0 (LWP 8257)]
+[New Thread 0x7fff993f16c0 (LWP 8258)]
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+packagekitqt.offline: Properties could not be invalidated "org.freedesktop.PackageKit.Offline" QList("PreparedUpgrade")
+[New Thread 0x7fff919ff6c0 (LWP 8259)]
+[New Thread 0x7fff909fd6c0 (LWP 8260)]
+[Thread 0x7fff9e1f66c0 (LWP 7908) exited]
+[Thread 0x7fff9e9f76c0 (LWP 7907) exited]
+[Thread 0x7fff9f1f86c0 (LWP 7906) exited]
+[Thread 0x7fff9f9f96c0 (LWP 7905) exited]
+[Thread 0x7fffa01fa6c0 (LWP 7904) exited]
+[Thread 0x7fffa09fb6c0 (LWP 7903) exited]
+[Thread 0x7fffc1bfe6c0 (LWP 7893) exited]
+[Thread 0x7fffcc8f06c0 (LWP 8200) exited]
+[Thread 0x7fffc4fff6c0 (LWP 8201) exited]
+[Thread 0x7fffc3ffd6c0 (LWP 8199) exited]
+[Thread 0x7fffc47fe6c0 (LWP 8198) exited]
+[Thread 0x7fff993f16c0 (LWP 8258) exited]
+[Thread 0x7fff909fd6c0 (LWP 8260) exited]
+[Thread 0x7fff919ff6c0 (LWP 8259) exited]
+[Thread 0x7fffa11fc6c0 (LWP 7902) exited]
+[Thread 0x7fffa19fd6c0 (LWP 7901) exited]
+[Thread 0x7fffa21fe6c0 (LWP 7900) exited]
+[Thread 0x7fffa29ff6c0 (LWP 7898) exited]
+[Thread 0x7fffc0bfc6c0 (LWP 7895) exited]
+[Thread 0x7fffc13fd6c0 (LWP 7894) exited]
+[Thread 0x7fff9abf46c0 (LWP 7911) exited]
+[Thread 0x7fff9d9f56c0 (LWP 7909) exited]
+[Thread 0x7fffcdbfe6c0 (LWP 7863) exited]
+[Thread 0x7fffcd3fd6c0 (LWP 7864) exited]
+[Thread 0x7fffce3ff6c0 (LWP 7862) exited]
+[Thread 0x7fffdeffd6c0 (LWP 7861) exited]
+[Thread 0x7fffeeba96c0 (LWP 7110) exited]
+[Thread 0x7fffee3a86c0 (LWP 7111) exited]
+[Thread 0x7fff9a3f36c0 (LWP 7957) exited]
+[Thread 0x7fffef7ff6c0 (LWP 7107) exited]
+[Thread 0x7fffcffff6c0 (LWP 7309) exited]
+[Thread 0x7fffdf7fe6c0 (LWP 7306) exited]
+[Thread 0x7fffdffff6c0 (LWP 7305) exited]
+[Thread 0x7fffec85c6c0 (LWP 7304) exited]
+[Thread 0x7fffefb00200 (LWP 6660) exited]
+[Thread 0x7fffc27ff6c0 (LWP 8257) exited]
+[New process 6660]
+[Inferior 1 (process 6660) exited normally]
+Missing separate debuginfos, use: zypper install libKF6DBusAddons6-debuginfo-6.30.0-1.1.x86_64 libKF6KIO6-debuginfo-6.30.0-1.1.x86_64 libKF6JobWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6StatusNotifierItem6-debuginfo-6.30.0-1.1.x86_64 libKF6I18n6-debuginfo-6.30.0-1.1.x86_64 libKF6WindowSystem6-debuginfo-6.30.0-1.1.x86_64 libKF6Crash6-debuginfo-6.30.0-1.1.x86_64 libKF6CoreAddons6-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigGui6-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigCore6-debuginfo-6.30.0-1.1.x86_64 libKF6Service6-debuginfo-6.30.0-1.1.x86_64 libKF6Solid6-debuginfo-6.30.0-1.1.x86_64 libKF6WidgetsAddons6-debuginfo-6.30.0-1.1.x86_64 libKF6Notifications6-debuginfo-6.30.0-1.1.x86_64 libKF6IconThemes6-debuginfo-6.30.0-1.1.x86_64 libKF6ColorScheme6-debuginfo-6.30.0-1.1.x86_64 libharfbuzz0-debuginfo-14.5.1-1.0.4.1.sr20261001.x86_64 libKF6Archive6-debuginfo-6.30.0-1.1.x86_64 libKF6BreezeIcons6-debuginfo-6.30.0-1.1.x86_64 libKF6GuiAddons6-debuginfo-6.30.0-1.1.x86_64 libcurl4-debuginfo-8.23.0-1.1.x86_64 libeconf0-debuginfo-0.8.4-1.2.x86_64 libKF6ItemViews6-debuginfo-6.30.0-1.1.x86_64 libKF6IconWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6BookmarksWidgets6-debuginfo-6.30.0-1.1.x86_64 libKF6Completion6-debuginfo-6.30.0-1.1.x86_64 libKF6Bookmarks6-debuginfo-6.30.0-1.1.x86_64 libKF6Codecs6-debuginfo-6.30.0-1.1.x86_64 libKF6Style6-debuginfo-6.30.0-1.1.x86_64 libKF6NewStuffCore6-debuginfo-6.30.0-1.1.x86_64 libKF6Attica6-debuginfo-6.30.0-1.1.x86_64 libKF6Syndication6-debuginfo-6.30.0-1.1.x86_64 libKF6Package6-debuginfo-6.30.0-1.1.x86_64 libfwupd3-debuginfo-2.1.8-2.1.x86_64 kf6-qqc2-desktop-style-debuginfo-6.30.0-1.1.x86_64 kf6-kirigami-imports-debuginfo-6.30.0-1.1.x86_64 libKirigamiPlatform6-debuginfo-6.30.0-1.1.x86_64 kf6-kconfig-imports-debuginfo-6.30.0-1.1.x86_64 libKF6ConfigQml6-debuginfo-6.30.0-1.1.x86_64 kf6-sonnet-imports-debuginfo-6.30.0-1.1.x86_64 libKF6SonnetCore6-debuginfo-6.30.0-1.1.x86_64 kf6-kitemmodels-imports-debuginfo-6.30.0-1.1.x86_64 libKF6ItemModels6-debuginfo-6.30.0-1.1.x86_64 libelf1-debuginfo-0.194-1.4.x86_64 kf6-kuserfeedback-imports-debuginfo-6.30.0-1.1.x86_64 libKF6UserFeedbackCore6-debuginfo-6.30.0-1.1.x86_64 kf6-kcmutils-imports-debuginfo-6.30.0-1.1.x86_64 libKF6KCMUtilsQuick6-debuginfo-6.30.0-1.1.x86_64 libKF6KCMUtilsCore6-debuginfo-6.30.0-1.1.x86_64 kf6-purpose-debuginfo-6.30.0-1.1.x86_64 libKF6Purpose6-debuginfo-6.30.0-1.1.x86_64 kf6-kio-debuginfo-6.30.0-1.1.x86_64 kf6-kimageformats-debuginfo-6.30.0-1.1.x86_64
+(gdb) exit
+ahjolinna@kotiboksi:~>

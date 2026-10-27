@@ -1,0 +1,580 @@
+#!/bin/bash
+# AtropOS health check for an installed system.
+# Report by default. --fix and the boot service correct only drift that
+# can be repaired on the writable /etc layer. The running snapshot keeps
+# /usr read-only, so restored drop-ins go under /etc and override /usr.
+#
+# Not repaired here: fstab and mount options, the boot command line
+# (no sdbootutil), and which display manager is enabled. Those wait for
+# the next install or an explicit package update. This is not a
+# health-checker plugin: a miss must not roll the snapshot back.
+#
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 ahjolinna <ahjolinna@yahoo.com>
+
+set -u
+
+apply=0
+boot=0
+case "${1:-}" in
+    "") ;;
+    --fix) apply=1 ;;
+    --boot) apply=1; boot=1 ;;
+    -h|--help)
+        echo "Usage: atropos-check [--fix|--boot]"
+        echo "  default   report, change nothing, exit 1 when something is wrong"
+        echo "  --fix     apply the safe repairs, then report"
+        echo "  --boot    same repairs, always exit 0 so a miss does not fail boot"
+        exit 0
+        ;;
+    *)
+        echo "unknown argument: $1" >&2
+        exit 2
+        ;;
+esac
+
+if ((apply)) && [[ "$(id -u)" -ne 0 ]]; then
+    echo "not root: reporting only"
+    apply=0
+fi
+
+pass=0
+miss=0
+skip=0
+reload=0
+
+section() { printf '\n%s\n' "$1"; }
+ok() { printf '  ok    %s\n' "$1"; pass=$((pass + 1)); }
+bad() { printf '  miss  %s\n' "$1"; miss=$((miss + 1)); }
+skipped() { printf '  skip  %s\n' "$1"; skip=$((skip + 1)); }
+fixed() { printf '  fixed %s\n' "$1"; pass=$((pass + 1)); }
+
+# Agama boots systemd-boot from the ESP and does not put that mount in fstab.
+# The firmware still names the loader when the ESP is not mounted.
+esp_used_by_systemd_boot() {
+    local bin loader_info text
+    for bin in /usr/bin/bootctl /usr/sbin/bootctl; do
+        [[ -x "$bin" ]] || continue
+        # is-installed opens the ESP directory. Agama leaves that unmounted,
+        # and a mounted vfat often has dmask=0077, so this fails for a user.
+        if "$bin" is-installed >/dev/null 2>&1; then
+            return 0
+        fi
+        # status reads the LoaderInfo EFI variable and does not need the ESP.
+        if "$bin" status 2>/dev/null | grep -q 'systemd-boot'; then
+            return 0
+        fi
+    done
+    for bin in /usr/bin/sdbootutil /usr/sbin/sdbootutil; do
+        [[ -x "$bin" ]] || continue
+        if PATH="/usr/sbin:/usr/bin:$PATH" "$bin" is-installed >/dev/null 2>&1; then
+            return 0
+        fi
+    done
+    for loader_info in /sys/firmware/efi/efivars/LoaderInfo-*; do
+        [[ -f "$loader_info" ]] || continue
+        if grep -a -q 'systemd-boot' "$loader_info" 2>/dev/null; then
+            return 0
+        fi
+        # efivarfs: 4-byte attribute header, then UTF-16LE text.
+        text=$(tail -c +5 "$loader_info" 2>/dev/null | iconv -f UTF-16LE -t UTF-8 2>/dev/null || true)
+        if [[ "$text" == *systemd-boot* ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Last uncommented Key=value in the files that exist.
+read_key() {
+    local key=$1
+    shift
+    local files=() path
+    for path in "$@"; do
+        [[ -f "$path" ]] || continue
+        files+=("$path")
+    done
+    if ((${#files[@]} == 0)); then
+        return 0
+    fi
+    awk -v key="$key" '
+        $0 ~ /^[[:space:]]*#/ { next }
+        $0 ~ ("^[[:space:]]*" key "[[:space:]]*=") {
+            value = $0
+            sub(/^[^=]*=[[:space:]]*/, "", value)
+            gsub(/\r/, "", value)
+            if (value ~ /^".*"$/) {
+                sub(/^"/, "", value)
+                sub(/"$/, "", value)
+            }
+        }
+        END { printf "%s", value }
+    ' "${files[@]}"
+}
+
+unit_state() {
+    systemctl is-enabled "$1" 2>/dev/null || true
+}
+
+file_contains() {
+    local file=$1 needle=$2
+    [[ -f "$file" ]] && grep -q -F -- "$needle" "$file"
+}
+
+# Write stdin to a path. Creates the directory. Fails when it is not writable.
+write_file() {
+    local file=$1
+    local dir tmp
+    dir=$(dirname "$file")
+    mkdir -p "$dir" 2>/dev/null || return 1
+    [[ -w "$dir" ]] || return 1
+    if [[ -e "$file" && ! -w "$file" ]]; then
+        return 1
+    fi
+    tmp=$(mktemp /tmp/atropos-check.XXXXXX) || return 1
+    cat > "$tmp" || { rm -f "$tmp"; return 1; }
+    mv "$tmp" "$file"
+}
+
+# Set KEY=value in a shell-style config. Other lines stay.
+write_shell_key() {
+    local file=$1 key=$2 value=$3
+    local dir tmp
+    dir=$(dirname "$file")
+    [[ -d "$dir" && -w "$dir" ]] || return 1
+    if [[ -e "$file" && ! -w "$file" ]]; then
+        return 1
+    fi
+    tmp=$(mktemp /tmp/atropos-check.XXXXXX) || return 1
+    if [[ ! -f "$file" ]]; then
+        printf '%s=%s\n' "$key" "$value" > "$tmp" || { rm -f "$tmp"; return 1; }
+    elif grep -Eq "^[[:space:]]*${key}[[:space:]]*=" "$file"; then
+        awk -v key="$key" -v value="$value" '
+            $0 ~ ("^[[:space:]]*" key "[[:space:]]*=") { print key "=" value; next }
+            { print }
+        ' "$file" > "$tmp" || { rm -f "$tmp"; return 1; }
+    else
+        cat "$file" > "$tmp" || { rm -f "$tmp"; return 1; }
+        printf '%s=%s\n' "$key" "$value" >> "$tmp" || { rm -f "$tmp"; return 1; }
+    fi
+    mv "$tmp" "$file"
+}
+
+# Set key=value inside an INI section. Other keys stay.
+write_ini_key() {
+    local file=$1 section=$2 key=$3 value=$4
+    local dir tmp
+    dir=$(dirname "$file")
+    mkdir -p "$dir" 2>/dev/null || return 1
+    [[ -w "$dir" ]] || return 1
+    if [[ -e "$file" && ! -w "$file" ]]; then
+        return 1
+    fi
+    tmp=$(mktemp /tmp/atropos-check.XXXXXX) || return 1
+    if [[ ! -f "$file" ]]; then
+        printf '[%s]\n%s=%s\n' "$section" "$key" "$value" > "$tmp" || { rm -f "$tmp"; return 1; }
+    else
+        awk -v section="$section" -v key="$key" -v value="$value" '
+            function is_key(line,    rest) {
+                rest = line
+                sub(/^[[:space:]]*/, "", rest)
+                if (index(rest, key) != 1) return 0
+                rest = substr(rest, length(key) + 1)
+                return rest ~ /^[[:space:]]*=/
+            }
+            BEGIN { in_section = 0; done = 0; saw = 0 }
+            /^[[:space:]]*\[/ {
+                if (in_section && !done) {
+                    print key "=" value
+                    done = 1
+                }
+                in_section = ($0 ~ "^[[:space:]]*\\[" section "\\][[:space:]]*$")
+                if (in_section) saw = 1
+                print
+                next
+            }
+            in_section && is_key($0) && !done {
+                print key "=" value
+                done = 1
+                next
+            }
+            in_section && is_key($0) { next }
+            { print }
+            END {
+                if (!done) {
+                    if (!saw) print "[" section "]"
+                    print key "=" value
+                }
+            }
+        ' "$file" > "$tmp" || { rm -f "$tmp"; return 1; }
+    fi
+    mv "$tmp" "$file"
+}
+
+ini_has() {
+    local file=$1 key=$2 value=$3
+    [[ -f "$file" ]] || return 1
+    grep -Eq "^[[:space:]]*${key}[[:space:]]*=[[:space:]]*${value}[[:space:]]*$" "$file"
+}
+
+if ((apply)); then
+    os_id=$(read_key ID /etc/os-release /usr/lib/os-release)
+    if [[ "$os_id" != atropos ]]; then
+        echo "ID=${os_id:-unset}: not AtropOS, reporting only"
+        apply=0
+    fi
+fi
+
+section "storage"
+fstype=$(findmnt -n -o FSTYPE / 2>/dev/null || true)
+opts=$(findmnt -n -o OPTIONS / 2>/dev/null || true)
+subvol=$(findmnt -n -o FSROOT / 2>/dev/null || true)
+if [[ "$fstype" == btrfs ]]; then
+    ok "/ is btrfs"
+else
+    bad "/ is '${fstype:-not mounted}', want btrfs"
+fi
+case "$subvol" in
+    /.snapshots/*/snapshot|/@/.snapshots/*/snapshot)
+        ok "/ is snapshot $subvol"
+        ;;
+    *)
+        bad "/ subvolume is '${subvol:-unset}'"
+        ;;
+esac
+case ",${opts}," in
+    *,ro,*) ok "/ is read-only" ;;
+    *) bad "/ is missing ro (${opts:-no options})" ;;
+esac
+case ",${opts}," in
+    *,compress=zstd:-4,*) ok "compress=zstd:-4" ;;
+    *) bad "compress=zstd:-4 is not on / (next install, fstab is not rewritten)" ;;
+esac
+case ",${opts}," in
+    *,lazytime,*) ok "lazytime" ;;
+    *) bad "lazytime is not on / (next install, fstab is not rewritten)" ;;
+esac
+if findmnt -n /var >/dev/null 2>&1; then
+    ok "/var is mounted"
+else
+    bad "/var is not mounted"
+fi
+if findmnt -n /home >/dev/null 2>&1; then
+    ok "/home is mounted"
+else
+    bad "/home is not mounted"
+fi
+if findmnt -n /boot/efi >/dev/null 2>&1 || findmnt -n /efi >/dev/null 2>&1; then
+    ok "ESP is mounted"
+elif findmnt -s -n /boot/efi >/dev/null 2>&1 || findmnt -s -n /efi >/dev/null 2>&1; then
+    ok "ESP is in fstab and not mounted right now"
+elif esp_used_by_systemd_boot; then
+    ok "ESP is used by systemd-boot and is not kept in fstab"
+else
+    bad "ESP is not mounted and not in fstab"
+fi
+
+section "boot command line"
+cmdline=$(cat /proc/cmdline 2>/dev/null || true)
+for token in quiet splash=silent psi=1 security=selinux selinux=1; do
+    case " $cmdline " in
+        *" $token "*) ok "$token" ;;
+        *) bad "$token is not on the running command line" ;;
+    esac
+done
+if [[ -e /proc/pressure/memory ]]; then
+    ok "/proc/pressure/memory exists"
+else
+    bad "/proc/pressure/memory is missing, so systemd-oomd cannot start (kernel-longterm needs psi=1 and a new boot entry)"
+fi
+if [[ -f /etc/selinux/config ]] \
+    && grep -q '^SELINUX=enforcing$' /etc/selinux/config \
+    && grep -q '^SELINUXTYPE=targeted$' /etc/selinux/config; then
+    ok "SELinux config is enforcing targeted"
+else
+    bad "SELinux config is not enforcing targeted"
+fi
+
+section "PackageKit"
+pk_lib=""
+for candidate in /usr/lib64/packagekit-backend/libpk_backend_atropos.so \
+                 /usr/lib/packagekit-backend/libpk_backend_atropos.so; do
+    if [[ -e "$candidate" ]]; then
+        pk_lib=$candidate
+        break
+    fi
+done
+pk_usr=/usr/lib/systemd/system/packagekit.service.d/atropos.conf
+pk_etc=/etc/systemd/system/packagekit.service.d/atropos.conf
+off_usr=/usr/lib/systemd/system/packagekit-offline-update.service.d/atropos.conf
+off_etc=/etc/systemd/system/packagekit-offline-update.service.d/atropos.conf
+dbus_svc=/usr/share/dbus-1/system-services/org.freedesktop.PackageKit.service
+if [[ -n "$pk_lib" ]]; then
+    ok "AtropOS PackageKit backend is installed"
+else
+    bad "libpk_backend_atropos.so is not installed"
+fi
+if [[ -e /usr/lib64/packagekit-backend/libpk_backend_zypp.so || -e /usr/lib/packagekit-backend/libpk_backend_zypp.so ]]; then
+    bad "PackageKit zypp backend is also installed"
+else
+    ok "PackageKit zypp backend is absent"
+fi
+if file_contains "$pk_usr" '--backend=atropos' || file_contains "$pk_etc" '--backend=atropos'; then
+    ok "packagekitd uses the atropos backend"
+elif ((apply)) && [[ -n "$pk_lib" ]]; then
+    if write_file "$pk_etc" <<'EOF'
+[Service]
+ExecStart=
+ExecStart=/usr/libexec/packagekitd --backend=atropos
+EOF
+    then
+        reload=1
+        fixed "restored $pk_etc"
+    else
+        bad "could not restore the packagekit backend drop-in under /etc"
+    fi
+else
+    bad "packagekitd is not configured to use --backend=atropos"
+fi
+if file_contains "$off_usr" '/usr/bin/true' || file_contains "$off_etc" '/usr/bin/true'; then
+    ok "offline updates do not reboot"
+elif ((apply)) && [[ -n "$pk_lib" ]]; then
+    if write_file "$off_etc" <<'EOF'
+[Service]
+ExecStart=
+ExecStart=/usr/bin/true
+FailureAction=none
+EOF
+    then
+        reload=1
+        fixed "restored $off_etc"
+    else
+        bad "could not restore the packagekit offline-update stub under /etc"
+    fi
+else
+    bad "packagekit offline-update stub is missing"
+fi
+if ((reload)); then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+if [[ -z "$pk_lib" ]]; then
+    skipped "PackageKit D-Bus activation (backend is not installed)"
+elif [[ -f "$dbus_svc" ]] && grep -q '^SystemdService=packagekit.service$' "$dbus_svc"; then
+    ok "PackageKit D-Bus activation starts packagekit.service"
+else
+    bad "PackageKit D-Bus activation does not point at packagekit.service"
+fi
+discover=/etc/xdg/discoverrc
+if ini_has "$discover" UseOfflineUpdates false; then
+    ok "Discover leaves the reboot to the user"
+elif ((apply)); then
+    if write_ini_key "$discover" Software UseOfflineUpdates false; then
+        fixed "set UseOfflineUpdates=false in $discover"
+    else
+        bad "could not set Discover UseOfflineUpdates=false"
+    fi
+else
+    bad "Discover UseOfflineUpdates=false is not set"
+fi
+
+section "desktop defaults"
+baloo_line='exclude folders[$e]=$HOME/.snapshots/'
+baloo_usr=/usr/etc/xdg/baloofilerc
+baloo_etc=/etc/xdg/baloofilerc
+if file_contains "$baloo_usr" "$baloo_line" || file_contains "$baloo_etc" "$baloo_line"; then
+    ok "Baloo skips ~/.snapshots"
+elif ((apply)); then
+    baloo_dir=$(dirname "$baloo_usr")
+    if mkdir -p "$baloo_dir" 2>/dev/null && [[ -w "$baloo_dir" ]]; then
+        if write_file "$baloo_usr" <<EOF
+[General]
+$baloo_line
+EOF
+        then
+            fixed "wrote $baloo_usr"
+        else
+            bad "could not write $baloo_usr"
+        fi
+    elif write_ini_key "$baloo_etc" General 'exclude folders[$e]' '$HOME/.snapshots/'; then
+        fixed "added the Baloo snapshot exclude to $baloo_etc"
+    else
+        bad "could not write the Baloo snapshot exclude"
+    fi
+else
+    bad "Baloo does not skip ~/.snapshots"
+fi
+shopt -s nullglob
+distro_meta=(/usr/share/metainfo/*[Aa]tropos*.xml /usr/share/appdata/*[Aa]tropos*.xml)
+shopt -u nullglob
+if ((${#distro_meta[@]} > 0)); then
+    ok "AppStream metadata ${distro_meta[0]}"
+else
+    skipped "no AtropOS AppStream distro component is packaged"
+fi
+
+section "systemd policy"
+# Disable the timer. Do not mask it: Discover still starts the service.
+timer=$(unit_state transactional-update.timer)
+case "$timer" in
+    disabled|masked|static)
+        ok "transactional-update.timer $timer"
+        ;;
+    enabled)
+        if ((apply)); then
+            if systemctl disable --now transactional-update.timer >/dev/null 2>&1; then
+                fixed "disabled transactional-update.timer"
+            else
+                bad "could not disable transactional-update.timer"
+            fi
+        else
+            bad "transactional-update.timer is enabled"
+        fi
+        ;;
+    *)
+        bad "transactional-update.timer is '${timer:-missing}'"
+        ;;
+esac
+
+shopt -s nullglob
+reboot_files=(
+    /usr/etc/transactional-update.conf
+    /usr/etc/transactional-update.conf.d/*
+    /etc/transactional-update.conf
+)
+shopt -u nullglob
+reboot_method=$(read_key REBOOT_METHOD "${reboot_files[@]}")
+if [[ "$reboot_method" == notify ]]; then
+    ok "REBOOT_METHOD=notify"
+elif ((apply)); then
+    if write_shell_key /etc/transactional-update.conf REBOOT_METHOD notify; then
+        fixed "set REBOOT_METHOD=notify in /etc/transactional-update.conf"
+    else
+        bad "could not set REBOOT_METHOD=notify"
+    fi
+else
+    bad "REBOOT_METHOD is '${reboot_method:-unset}', want notify"
+fi
+
+# Free the power-profiles bus name before starting tuned-ppd.
+ppd=$(unit_state power-profiles-daemon.service)
+case "$ppd" in
+    enabled)
+        if ((apply)); then
+            if systemctl disable --now power-profiles-daemon.service >/dev/null 2>&1; then
+                fixed "disabled power-profiles-daemon.service"
+            else
+                bad "could not disable power-profiles-daemon.service"
+            fi
+        else
+            bad "power-profiles-daemon.service is enabled"
+        fi
+        ;;
+    disabled|masked|static|not-found|"")
+        ok "power-profiles-daemon is ${ppd:-absent}"
+        ;;
+    *)
+        bad "power-profiles-daemon.service is '$ppd'"
+        ;;
+esac
+
+# tuned-ppd Requires tuned.service. Enable the daemon first so the
+# power-profiles bus has something to start. A static vendor link
+# reports enabled on systemd 261; accept static as well.
+enable_if_needed() {
+    local unit=$1 state
+    state=$(unit_state "$unit")
+    case "$state" in
+        enabled|static)
+            ok "$unit enabled"
+            ;;
+        not-found|"")
+            bad "$unit is not installed"
+            ;;
+        *)
+            # systemd 261 reports disabled for a relative link under
+            # /usr/lib/systemd/system/*.wants even though the target
+            # still pulls the unit in. That link is the enablement.
+            if [[ -L /usr/lib/systemd/system/multi-user.target.wants/$unit || -L /usr/lib/systemd/system/graphical.target.wants/$unit ]]; then
+                ok "$unit is pulled in by its vendor wants link"
+            elif ((apply)); then
+                if systemctl enable --now "$unit" >/dev/null 2>&1; then
+                    fixed "enabled $unit"
+                else
+                    bad "could not enable $unit"
+                fi
+            else
+                bad "$unit is '$state', want enabled"
+            fi
+            ;;
+    esac
+}
+enable_if_needed tuned.service
+enable_if_needed tuned-ppd.service
+
+oomd=$(unit_state systemd-oomd.service)
+case "$oomd" in
+    enabled)
+        ok "systemd-oomd.service enabled"
+        ;;
+    disabled|static)
+        if ((apply)); then
+            if systemctl enable systemd-oomd.service >/dev/null 2>&1; then
+                fixed "enabled systemd-oomd.service"
+            else
+                bad "could not enable systemd-oomd.service"
+            fi
+        else
+            bad "systemd-oomd.service is '$oomd', want enabled"
+        fi
+        ;;
+    *)
+        bad "systemd-oomd.service is '${oomd:-missing}'"
+        ;;
+esac
+if [[ "$oomd" == not-found || -z "$oomd" ]]; then
+    :
+elif [[ "$(systemctl is-active systemd-oomd.service 2>/dev/null || true)" == active ]]; then
+    ok "systemd-oomd.service active"
+elif [[ ! -e /proc/pressure/memory ]]; then
+    bad "systemd-oomd.service is inactive until psi=1 is on the boot entry"
+elif ((apply)); then
+    if systemctl start systemd-oomd.service >/dev/null 2>&1; then
+        fixed "started systemd-oomd.service"
+    else
+        bad "could not start systemd-oomd.service"
+    fi
+else
+    bad "systemd-oomd.service is not active"
+fi
+
+broker=$(unit_state dbus-broker.service)
+if [[ "$broker" == enabled ]]; then
+    ok "dbus-broker.service enabled"
+else
+    bad "dbus-broker.service is '${broker:-missing}', want enabled"
+fi
+
+if [[ "$(systemctl is-enabled plasmalogin.service 2>/dev/null || true)" == enabled ]]; then
+    ok "plasmalogin enabled"
+else
+    bad "plasmalogin is not enabled"
+fi
+sddm=$(unit_state sddm.service)
+case "$sddm" in
+    disabled|masked|not-found|"")
+        ok "sddm is ${sddm:-absent}"
+        ;;
+    *)
+        bad "sddm is '$sddm' (left as-is; the display manager is not switched)"
+        ;;
+esac
+
+section "summary"
+printf '%d ok, %d missing, %d skipped\n' "$pass" "$miss" "$skip"
+if ((boot)); then
+    exit 0
+fi
+if ((miss > 0)); then
+    exit 1
+fi
+exit 0

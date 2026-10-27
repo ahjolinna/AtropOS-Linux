@@ -1,0 +1,25 @@
+#!/bin/bash
+# Select Cover Switch once, when the saved task switcher is still KWin's
+# default. A later choice is left alone. Skel and the global theme do not
+# rewrite an account that already has a kwinrc.
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+set -eu
+stamp="${XDG_CONFIG_HOME:-$HOME/.config}/atropos/tabbox-cover.stamp"
+if [[ -f $stamp ]]; then
+    exit 0
+fi
+mkdir -p "$(dirname "$stamp")"
+current=""
+if [[ -x /usr/bin/kreadconfig6 ]]; then
+    current=$(/usr/bin/kreadconfig6 --file kwinrc --group TabBox --key LayoutName 2>/dev/null || true)
+fi
+if [[ -z $current || $current == thumbnail_grid ]]; then
+    if [[ -x /usr/bin/kwriteconfig6 ]]; then
+        /usr/bin/kwriteconfig6 --file kwinrc --group TabBox --key LayoutName coverswitch
+    fi
+    if [[ -n ${DBUS_SESSION_BUS_ADDRESS:-} && -x /usr/bin/qdbus6 ]]; then
+        /usr/bin/qdbus6 org.kde.KWin /KWin reconfigure >/dev/null 2>&1 || true
+    fi
+fi
+touch "$stamp"

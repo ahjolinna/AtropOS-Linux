@@ -1,0 +1,60 @@
+-------------------------------------------------------------------
+Fri Oct 23 03:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Use the spiky crown alone as the Agama icon, in royal purple.
+
+-------------------------------------------------------------------
+Fri Oct 23 02:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Replace the MicroOS chameleon with the AtropOS monogram.
+- Ship a dark-scheme version of the same drawing.
+
+-------------------------------------------------------------------
+Thu Oct 22 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Offer the unchecked atropos_debug pattern in the installer.
+
+-------------------------------------------------------------------
+Thu Oct 22 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Mount the btrfs root with compress=zstd:-4 and lazytime.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:59:58 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Select AtropOS-release and search the home:ahjolinna Slowroll repository.
+- Install kernel-longterm instead of also selecting kernel-default.
+- Ship the MicroOS distributor mark as the Agama product logo.
+
+-------------------------------------------------------------------
+Wed Oct 21 23:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add the base_max size Agama 24 requires, so the installer web server starts.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:59:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Own the Agama product directory.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Keep one btrfs root and add the Kalpa grub2 subvolumes.
+- Leave /var as a subvolume so Agama does not split it off.
+
+-------------------------------------------------------------------
+Tue Oct 20 23:10:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Offer atropos_nvidia as an unchecked installer pattern.
+
+-------------------------------------------------------------------
+Tue Oct 20 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Install from the Slowroll repositories.
+- Ask Agama to boot the installed system with systemd-boot.
+
+-------------------------------------------------------------------
+Tue Oct 20 19:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Package only the AtropOS Agama product definition.
+- Leave Agama itself upstream.

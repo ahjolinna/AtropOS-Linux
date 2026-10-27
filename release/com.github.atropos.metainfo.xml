@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="operating-system">
+  <id>com.github.atropos</id>
+  <name>AtropOS</name>
+  <summary>Immutable KDE Plasma desktop on openSUSE Slowroll</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <url type="homepage">https://github.com/AtropOSLinux/</url>
+  <developer id="com.github.atropos">
+    <name>AtropOS</name>
+  </developer>
+  <description>
+    <p>AtropOS is a rolling immutable Plasma desktop. The base system updates atomically. Applications come from Flatpak.</p>
+  </description>
+  <releases>
+    <release version="20261020" date="2026-10-20"/>
+  </releases>
+</component>

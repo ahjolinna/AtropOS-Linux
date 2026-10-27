@@ -1,0 +1,31 @@
+#!/bin/bash
+# Kirigami Addons 1.14 loads AboutPage from the plugin resource when qmldir
+# contains "prefer :/qt/qml/...". Bind a qmldir without that line, and a
+# page that labels the RPM row, over the installed files. This does not
+# touch the PackageKit binds.
+# SPDX-License-Identifier: LGPL-2.0-or-later
+
+set -u
+src=/usr/share/atropos/formcard
+action=${1:-start}
+found=0
+for lib in /usr/lib64 /usr/lib; do
+    dest=$lib/qt6/qml/org/kde/kirigamiaddons/formcard
+    [[ -f $dest/AboutPage.qml && -f $dest/qmldir ]] || continue
+    found=1
+    if [[ $action == stop ]]; then
+        umount "$dest/AboutPage.qml" 2>/dev/null || true
+        umount "$dest/qmldir" 2>/dev/null || true
+        continue
+    fi
+    if ! findmnt -n "$dest/AboutPage.qml" >/dev/null; then
+        mount --bind "$src/AboutPage.qml" "$dest/AboutPage.qml"
+    fi
+    if ! findmnt -n "$dest/qmldir" >/dev/null; then
+        mount --bind "$src/qmldir" "$dest/qmldir"
+    fi
+done
+if [[ $found -eq 0 && $action != stop ]]; then
+    echo "atropos-formcard-overlay: formcard is not installed" >&2
+fi
+exit 0

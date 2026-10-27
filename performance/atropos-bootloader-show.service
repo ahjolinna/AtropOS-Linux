@@ -1,0 +1,13 @@
+[Unit]
+Description=Arm the systemd-boot menu after an unclean shutdown
+DefaultDependencies=no
+After=local-fs.target sys-firmware-efi-efivars.mount
+Before=sysinit.target
+ConditionPathIsMountPoint=/sys/firmware/efi/efivars
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/atropos-bootloader show
+
+[Install]
+WantedBy=sysinit.target
