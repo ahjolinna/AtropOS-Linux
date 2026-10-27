@@ -14,15 +14,25 @@ Slowroll keeps the desktop current. The LTS kernel keeps the foundation steady. 
 
 ## Tuned for the person using it
 
-AtropOS ships with the small choices already made.
+AtropOS ships with the small choices already made, for a desk you work at and a desk you play at.
 
-- Memory stays compressed, so everyday work keeps its snap
-- The desktop watches memory pressure and stays responsive
-- Power saving runs, and the keyboard and mouse stay awake
-- Boot is quiet and opens straight on the desktop
-- The network is set for a responsive session, not a server
+- Memory stays compressed, so a full browser and a game can share the machine
+- When memory runs tight, the session you are in is the one that is protected
+- Plugged in, the machine leans into the hardware. On battery, it eases off
+- Power saving leaves the keyboard and mouse awake
+- A large download keeps its lane, so a call or a game does not hitch behind it
+- Copying files on a spinning disk stays in the background
+- Boot is quiet and opens straight on the desktop. After a crash, the boot menu waits. Any other time, hold Space
+- Wi-Fi follows the timezone you set
+- An encrypted system disk stays out of the file manager
 - A new account arrives on Aether Dark, with the AtropOS splash, wallpapers, and fonts already in place
 - The first login brings Firefox and the daily applications from Flathub
+
+## Ready when you play
+
+Windows games through Steam and Proton find a system that already expects them. Controllers are recognized. The sync those games want is loaded, and titles that misbehave under strict lock checks are left to run. The security policy knows games belong here. RGB lighting can be reached from OpenRGB.
+
+Choose the NVIDIA setup and the open driver installs itself for the long-term kernel. The GPU may sleep, and closing the lid does not freeze the session.
 
 ## Updates, from the desktop
 
