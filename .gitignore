@@ -2,8 +2,9 @@
 *.cpio
 *.obscpio
 *.tar.xz
-# These two archives have no unpacked tree beside them.
+# These archives have no unpacked tree beside them.
 !installer/config-cdroot.tar.xz
 !installer/live-root.tar.xz
+!atychia/atychia-0.19.tar.xz
 *.tar.zst
 os-release

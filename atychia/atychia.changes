@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 27 16:59:21 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship atychia-0.19.tar.xz. The unpacked source beside it was a second
+  copy of that archive.
+
+-------------------------------------------------------------------
 Tue Oct 27 04:40:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Clamp source timestamps that are ahead of the build clock. Ninja

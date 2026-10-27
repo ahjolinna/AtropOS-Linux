@@ -8,7 +8,7 @@
 
 Name:           atychia
 Version:        0.19
-Release:        8
+Release:        9
 Summary:        Recover a broken Plasma session without a TTY
 License:        GPL-2.0-or-later AND BSD-3-Clause AND CC0-1.0 AND FSFAP
 Group:          System/GUI/KDE
