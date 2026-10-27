@@ -14,25 +14,24 @@ Slowroll keeps the desktop current. The LTS kernel keeps the foundation steady. 
 
 ## Tuned for the person using it
 
-AtropOS ships with the small choices already made, for a desk you work at and a desk you play at.
+The machine already feels finished. Sit down and the desktop is yours: dark, quiet, and quick, whether the evening is work or play.
 
-- Memory stays compressed, so a full browser and a game can share the machine
-- When memory runs tight, the session you are in is the one that is protected
-- Plugged in, the machine leans into the hardware. On battery, it eases off
-- Power saving leaves the keyboard and mouse awake
-- A large download keeps its lane, so a call or a game does not hitch behind it
-- Copying files on a spinning disk stays in the background
-- Boot is quiet and opens straight on the desktop. After a crash, the boot menu waits. Any other time, hold Space
-- Wi-Fi follows the timezone you set
-- An encrypted system disk stays out of the file manager
-- A new account arrives on Aether Dark, with the AtropOS splash, wallpapers, and fonts already in place
-- The first login brings Firefox and the daily applications from Flathub
+- Tabs, music, and a game can share the machine and still feel light
+- When the machine is under pressure, the session you are in comes first
+- At the desk it gives you everything. On battery it settles into a calmer stride
+- The keyboard and mouse stay ready while the rest of the machine rests
+- A long download stays polite, so a call or a match keeps its rhythm
+- Big file copies fade into the background
+- Startup is a quiet path onto the desktop. After a rough stop, the boot menu is there to greet you
+- The file manager opens on your home, clean and uncluttered
+- A new account opens on Aether Dark, with the splash, wallpapers, and fonts already chosen
+- Firefox and the daily applications arrive on the first login
 
 ## Ready when you play
 
-Windows games through Steam and Proton find a system that already expects them. Controllers are recognized. The sync those games want is loaded, and titles that misbehave under strict lock checks are left to run. The security policy knows games belong here. RGB lighting can be reached from OpenRGB.
+Games are welcome from the first boot. Controllers are recognized, and Windows titles through Steam and Proton meet a system that was prepared for them. The lighting on your gear can be shaped from OpenRGB.
 
-Choose the NVIDIA setup and the open driver installs itself for the long-term kernel. The GPU may sleep, and closing the lid does not freeze the session.
+Choose NVIDIA and the open driver sets itself up. The graphics card knows when to rest, and closing the lid leaves your session waiting for you.
 
 ## Updates, from the desktop
 
