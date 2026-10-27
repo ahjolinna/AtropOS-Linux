@@ -12,7 +12,7 @@
   </a>
 </p>
 
-The fresh software of a half-rolling openSUSE, on the calm of a long-term kernel, sealed in an immutable model so an update cannot take the desktop with it. AtropOS is that combination, tuned until it feels like the machine you sit down at every day.
+Fresh software, stable base. AtropOS takes the rolling openSUSE ecosystem and anchors it with atomic updates and Btrfs snapshots. It’s a half-rolling Linux distribution engineered for predictability, performance, and daily desktop reliability.
 
 ## Best of both worlds
 
