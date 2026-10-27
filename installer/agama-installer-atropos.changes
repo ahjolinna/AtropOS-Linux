@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Oct 27 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Show the Online network dialog before NetworkManager's initrd wait.
+  That wait blocks for an hour under Plymouth when nothing has a lease.
+  Quit Plymouth and switch to tty1 first. Continue without a connection
+  skips the wait so Agama still starts.
+
+-------------------------------------------------------------------
 Tue Oct 27 02:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Point the live GRUB menu at themes/atropos. The boot script was
