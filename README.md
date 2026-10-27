@@ -4,6 +4,8 @@
 
 **Powered by openSUSE • Sealed by AtropOS**
 
+![AtropOS desktop](screenshots/desktop.png)
+
 The fresh software of a rolling openSUSE, on the calm of a long-term kernel, sealed so an update cannot take the desktop with it. AtropOS is that combination, tuned until it feels like the machine you sit down at every day.
 
 ## Best of both worlds
