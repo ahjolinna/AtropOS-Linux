@@ -26,6 +26,12 @@ AtropOS ships with the small choices already made.
 
 Discover on AtropOS can see the system update and apply it as one snapshot. This is a proof of concept: one system update, applied cleanly, with the restart left to you. Flatpak applications keep updating on their own.
 
+The version you were using stays. If the new one is not the one you want, start the previous version and the desktop is as you left it.
+
+## A quiet checkup
+
+Each boot, AtropOS looks the system over and sets right the settings that have drifted. Your files stay yours, and the version you are running stays the one you chose.
+
 ## A way back
 
 Atychia is there when Plasma sticks. One chord opens a recovery screen and can return you to the session you were in.
