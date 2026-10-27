@@ -7,7 +7,7 @@
 
 Name:           plasma6-lookandfeel-atropos
 Version:        0.5
-Release:        7
+Release:        8
 Summary:        AtropOS Plasma 6 splash screen
 License:        GPL-2.0-or-later
 Group:          System/GUI/KDE

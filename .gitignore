@@ -6,5 +6,7 @@
 !installer/config-cdroot.tar.xz
 !installer/live-root.tar.xz
 !atychia/atychia-0.19.tar.xz
+!splash/plasma6-lookandfeel-atropos-0.5.tar.xz
+!aether/plasma6-theme-aether-dark-0.0.3a.tar.xz
 *.tar.zst
 os-release
