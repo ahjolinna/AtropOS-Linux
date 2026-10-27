@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Oct 27 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Pack live-root.tar.xz and config-cdroot.tar.xz as root. The live
+  root archive owned /etc and /usr as the packager, so chkstat
+  refused to set permissions and the ISO build stopped.
+
+-------------------------------------------------------------------
 Tue Oct 27 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Show the Online network dialog before NetworkManager's initrd wait.
