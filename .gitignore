@@ -8,5 +8,7 @@
 !atychia/atychia-0.19.tar.xz
 !splash/plasma6-lookandfeel-atropos-0.5.tar.xz
 !aether/plasma6-theme-aether-dark-0.0.3a.tar.xz
+!plymouth/plymouth-theme-atropos-0.1.0.tar.xz
+!wallpapers/atropos-wallpapers-0.1.0.tar.xz
 *.tar.zst
 os-release
