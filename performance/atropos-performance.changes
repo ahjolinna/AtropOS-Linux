@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Tue Oct 27 21:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Create /var/log/tuned before relabeling it. tuned-ppd was denied
+  creating tuned-ppd.log because the directory was still var_log_t.
+  Relabel again before the daemon starts.
+- Welcome Center stays on the download page until the Flatpak seed
+  has actually finished. An unchecked systemd condition is not
+  "already installed".
+
+-------------------------------------------------------------------
 Tue Oct 27 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Hide the systemd-boot menu after a normal shutdown, and show it for

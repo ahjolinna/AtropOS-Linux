@@ -22,8 +22,12 @@ Welcome.Page {
     property string conditionResult: ""
     property string serviceResult: ""
     property string exitStamp: "0"
+    property string conditionStamp: "0"
     property int pollId: 0
 
+    // ConditionResult is false both before systemd has checked and when the
+    // marker exists. ConditionTimestamp stays 0 until the check runs.
+    readonly property bool conditionChecked: Number(conditionStamp) > 0
     readonly property string phase: {
         if (!statusKnown) {
             return "downloading"
@@ -32,7 +36,7 @@ Welcome.Page {
             return "downloading"
         }
         // ConditionPathExists=!marker failed, so the files are already installed.
-        if (conditionResult === "false") {
+        if (conditionChecked && (conditionResult === "false" || conditionResult === "no")) {
             return "ready"
         }
         if (serviceResult === "success" && Number(exitStamp) > 0) {
@@ -110,7 +114,8 @@ Welcome.Page {
             "active": "",
             "condition": "",
             "result": "",
-            "stamp": "0"
+            "stamp": "0",
+            "checked": "0"
         }
         function got(field, value) {
             if (id !== page.pollId) {
@@ -118,19 +123,21 @@ Welcome.Page {
             }
             box[field] = value
             box.n += 1
-            if (box.n < 4) {
+            if (box.n < 5) {
                 return
             }
             page.activeState = box.active
             page.conditionResult = box.condition
             page.serviceResult = box.result
             page.exitStamp = box.stamp
+            page.conditionStamp = box.checked
             page.statusKnown = true
         }
         page.ask("org.freedesktop.systemd1.Unit", "ActiveState", function (v) { got("active", v) }, id)
         page.ask("org.freedesktop.systemd1.Unit", "ConditionResult", function (v) { got("condition", v) }, id)
         page.ask("org.freedesktop.systemd1.Service", "Result", function (v) { got("result", v) }, id)
         page.ask("org.freedesktop.systemd1.Service", "ExecMainExitTimestamp", function (v) { got("stamp", v) }, id)
+        page.ask("org.freedesktop.systemd1.Unit", "ConditionTimestamp", function (v) { got("checked", v) }, id)
     }
 
     Timer {
