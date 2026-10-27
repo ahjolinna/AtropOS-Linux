@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 27 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Do not call seq from the early network setup. It is not in the
+  initrd, so the missing command flashed on the console.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Keep the Online network screen off the splash unless a real
