@@ -14,24 +14,13 @@ Slowroll keeps the desktop current. The LTS kernel keeps the foundation steady. 
 
 ## Tuned for the person using it
 
-The machine already feels finished. Sit down and the desktop is yours: dark, quiet, and quick, whether the evening is work or play.
+Sit down and it is already yours. Dark. Quiet. Quick. The evening can be work, or it can be play, and the machine simply keeps up.
 
-- Tabs, music, and a game can share the machine and still feel light
-- When the machine is under pressure, the session you are in comes first
-- At the desk it gives you everything. On battery it settles into a calmer stride
-- The keyboard and mouse stay ready while the rest of the machine rests
-- A long download stays polite, so a call or a match keeps its rhythm
-- Big file copies fade into the background
-- Startup is a quiet path onto the desktop. After a rough stop, the boot menu is there to greet you
-- The file manager opens on your home, clean and uncluttered
-- A new account opens on Aether Dark, with the splash, wallpapers, and fonts already chosen
-- Firefox and the daily applications arrive on the first login
+The first hello is finished before you touch a setting. Aether Dark is waiting, the splash has already played, and Firefox is there with the rest of the day. On battery the machine softens. At the desk it comes alive. Close the lid, walk away, and your place is still there when you come back.
 
 ## Ready when you play
 
-Games are welcome from the first boot. Controllers are recognized, and Windows titles through Steam and Proton meet a system that was prepared for them. The lighting on your gear can be shaped from OpenRGB.
-
-Choose NVIDIA and the open driver sets itself up. The graphics card knows when to rest, and closing the lid leaves your session waiting for you.
+Pick up a controller and go. The games you already own feel at home, including the Windows ones. The lights on your desk can match your mood. Choose NVIDIA and the picture is ready, resting when you are, awake when the game is.
 
 ## Updates, from the desktop
 
