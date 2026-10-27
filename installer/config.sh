@@ -103,9 +103,9 @@ fi
 systemctl disable snapper-cleanup.timer
 systemctl disable snapper-timeline.timer
 
-# disable unused services
-systemctl disable YaST2-Firstboot.service
-systemctl disable YaST2-Second-Stage.service
+# These units are not in the image. A missing unit must not abort set -e.
+systemctl disable YaST2-Firstboot.service >/dev/null 2>&1 || true
+systemctl disable YaST2-Second-Stage.service >/dev/null 2>&1 || true
 
 # Prevent premature activation of LVM (bsc#1246133)
 systemctl mask lvm2-monitor.service

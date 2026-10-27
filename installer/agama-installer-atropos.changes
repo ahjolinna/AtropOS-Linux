@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Oct 27 23:59:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ignore a missing YaST firstboot or second-stage unit. The image
+  configuration runs with set -e, and those units are not installed.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Do not call seq from the early network setup. It is not in the
