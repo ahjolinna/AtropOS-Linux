@@ -8,11 +8,11 @@
 
 Name:           atropos-nvidia
 Version:        0.1.0
-Release:        1
+Release:        2
 Summary:        AtropOS open NVIDIA G07 driver setup
 License:        GPL-2.0-or-later AND (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND CC0-1.0
 Group:          System/Base
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 ExclusiveArch:  x86_64
 BuildRequires:  systemd-rpm-macros
 Source0:        atropos-nvidia-setup

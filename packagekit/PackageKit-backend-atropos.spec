@@ -6,11 +6,11 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        6
+Release:        7
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 BuildRequires:  gcc
 BuildRequires:  glibc-devel
 BuildRequires:  pkgconfig(glib-2.0)

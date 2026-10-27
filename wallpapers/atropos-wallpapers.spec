@@ -7,11 +7,11 @@
 
 Name:           atropos-wallpapers
 Version:        0.1.0
-Release:        3
+Release:        4
 Summary:        AtropOS wallpapers and video wallpaper plugin
 License:        LicenseRef-Proprietary AND GPL-2.0-or-later
 Group:          System/GUI/KDE
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 Source0:        %{name}-%{version}.tar.xz
 BuildArch:      noarch
 Requires:       qt6-multimedia

@@ -6,11 +6,11 @@
 
 Name:           atropos-check
 Version:        0.1.0
-Release:        5
+Release:        6
 Summary:        Check and repair an installed AtropOS system
 License:        MIT
 Group:          System/Base
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 BuildArch:      noarch
 BuildRequires:  systemd-rpm-macros
 Source0:        atropos-check

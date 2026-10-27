@@ -6,13 +6,13 @@
 
 Name:           grub2-branding-atropos
 Version:        0.1.0
-Release:        3
+Release:        4
 Summary:        AtropOS GRUB theme for the live ISO
 # The menu pieces adapted from the openSUSE theme are CC-BY-SA-3.0.
 # logo.png is the AtropOS crown, GPL-2.0-only.
 License:        CC-BY-SA-3.0 AND GPL-2.0-only
 Group:          System/Boot
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 BuildArch:      noarch
 Source0:        theme.txt
 Source1:        highlight_c.png

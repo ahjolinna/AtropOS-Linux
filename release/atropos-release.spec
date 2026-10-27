@@ -7,11 +7,11 @@
 
 Name:           AtropOS-release
 Version:        20261020
-Release:        5
+Release:        6
 Summary:        AtropOS
 License:        GPL-2.0-or-later
 Group:          System/Fhs
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 Source1:        LICENSE
 Source2:        gpg-pubkey-home-ahjolinna.asc
 Source3:        atropos.repo
@@ -56,10 +56,10 @@ ANSI_COLOR="0;32"
 CPE_NAME="cpe:2.3:o:atropos:atropos:%{version}:*:*:*:*:*:*:*"
 # CPE 2.2
 #CPE_NAME="cpe:/o:atropos:atropos:%{version}"
-BUG_REPORT_URL="https://github.com/AtropOSLinux/"
-SUPPORT_URL="https://github.com/AtropOSLinux/"
-HOME_URL="https://github.com/AtropOSLinux/"
-DOCUMENTATION_URL="https://github.com/AtropOSLinux/"
+BUG_REPORT_URL="https://github.com/ahjolinna/AtropOS-Linux"
+SUPPORT_URL="https://github.com/ahjolinna/AtropOS-Linux"
+HOME_URL="https://github.com/ahjolinna/AtropOS-Linux"
+DOCUMENTATION_URL="https://github.com/ahjolinna/AtropOS-Linux"
 LOGO="distributor-logo"
 EOF
 mkdir -p %{buildroot}%{_sysconfdir}
@@ -67,8 +67,8 @@ ln -s ..%{_prefix}/lib/os-release %{buildroot}%{_sysconfdir}/os-release
 
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/rpm/gnupg/keys/gpg-pubkey-home-ahjolinna.asc
 install -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/zypp/repos.d/atropos.repo
-# Discover looks up the distro by reversing HOME_URL and appending ID.
-# https://github.com/AtropOSLinux/ plus ID=atropos is com.github.atropos.
+# Discover reverses the HOME_URL host and appends ID.
+# github.com plus ID=atropos is com.github.atropos. The repository path is not part of that id.
 # The release version matches VERSION_ID so Discover does not offer an upgrade.
 install -D -m 0644 %{SOURCE4} %{buildroot}%{_datadir}/metainfo/com.github.atropos.metainfo.xml
 

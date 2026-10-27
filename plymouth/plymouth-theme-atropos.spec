@@ -8,11 +8,11 @@
 
 Name:           plymouth-theme-atropos
 Version:        0.1.0
-Release:        3
+Release:        4
 Summary:        AtropOS Plymouth boot splash
 License:        GPL-2.0-or-later
 Group:          System/Base
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 Source0:        %{name}-%{version}.tar.xz
 Source1:        plymouthd.conf
 BuildArch:      noarch

@@ -12,7 +12,7 @@
         "Id": "org.atropos.video",
         "License": "GPL-2.0-or-later",
         "Name": "Video",
-        "Website": "https://github.com/AtropOSLinux/"
+        "Website": "https://github.com/ahjolinna/AtropOS-Linux"
     },
     "X-KDE-ParentApp": "org.kde.plasmashell"
 }

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.
+
+-------------------------------------------------------------------
 Wed Oct 21 23:59:40 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Let the GPU sleep, and keep the session unfrozen on suspend while nvidia is loaded.

@@ -5,7 +5,7 @@
   <summary>Immutable KDE Plasma desktop on openSUSE Slowroll</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0-or-later</project_license>
-  <url type="homepage">https://github.com/AtropOSLinux/</url>
+  <url type="homepage">https://github.com/ahjolinna/AtropOS-Linux</url>
   <developer id="com.github.atropos">
     <name>AtropOS</name>
   </developer>

@@ -10,7 +10,7 @@
 
 Name:           plasma6-theme-aether-dark
 Version:        0.0.3a
-Release:        8
+Release:        9
 Summary:        Aether Dark Plasma 6 theme
 License:        LGPL-2.1-only
 Group:          System/GUI/KDE

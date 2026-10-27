@@ -24,11 +24,11 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        20
+Release:        21
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
-URL:            https://github.com/AtropOSLinux/
+URL:            https://github.com/ahjolinna/AtropOS-Linux
 Source0:        %name.rpmlintrc
 Source1:        79-atropos-display.preset
 Source2:        99-atropos-applications.conf

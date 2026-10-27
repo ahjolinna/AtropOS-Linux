@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.
+
+-------------------------------------------------------------------
 Mon Oct 26 23:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Draw the disk passphrase in the middle of the screen when TPM unlock
