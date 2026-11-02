@@ -8,7 +8,7 @@
 
 Name:           atychia
 Version:        0.19
-Release:        9
+Release:        10
 Summary:        Recover a broken Plasma session without a TTY
 License:        GPL-2.0-or-later AND BSD-3-Clause AND CC0-1.0 AND FSFAP
 Group:          System/GUI/KDE
@@ -118,7 +118,10 @@ install -D -m 0644 %{SOURCE4} %{buildroot}%{_datadir}/dbus-1/system.d/z-atropos-
 %dir %{_prefix}/lib/systemd/user-preset
 %{_prefix}/lib/systemd/user-preset/81-atychia.preset
 %{_libexecdir}/atychia-as-root
-%dir %{_sysconfdir}/sudoers.d
+# sudo owns this directory as mode 0750. The build root still has to
+# list it, and a different mode is a file conflict. That conflict made
+# transactional-update dup discard the snapshot.
+%dir %attr(0750,root,root) %{_sysconfdir}/sudoers.d
 %attr(0440,root,root) %config(noreplace) %{_sysconfdir}/sudoers.d/atropos-atychia
 %dir %{_datadir}/dbus-1
 %dir %{_datadir}/dbus-1/system.d

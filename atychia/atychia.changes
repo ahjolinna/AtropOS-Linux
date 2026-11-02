@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Oct 28 01:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Own /etc/sudoers.d as mode 0750, the same mode as sudo. Mode 0755
+  conflicted with sudo, so transactional-update dup discarded the
+  snapshot and Discover installed nothing.
+
+-------------------------------------------------------------------
 Tue Oct 27 16:59:21 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Ship atychia-0.19.tar.xz. The unpacked source beside it was a second
