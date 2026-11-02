@@ -1,0 +1,5 @@
+-------------------------------------------------------------------
+Wed Oct 28 01:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Package 0.8.0, the latest release. Ship the highlighters beside the
+  script so it can find them without an extra setting.

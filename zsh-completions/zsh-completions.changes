@@ -1,0 +1,6 @@
+-------------------------------------------------------------------
+Wed Oct 28 01:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Package 0.36.0. The 0.34.0 archive was two releases behind.
+- Install the functions as normal files in site-functions. compinit
+  already searches that directory.

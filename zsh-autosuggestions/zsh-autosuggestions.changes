@@ -1,0 +1,5 @@
+-------------------------------------------------------------------
+Wed Oct 28 01:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Package 0.7.1, the latest release. The 0.7.0 archive was one
+  release behind, and a later git snapshot only documented FreeBSD.

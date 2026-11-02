@@ -345,7 +345,7 @@ if [[ -x $bootloader ]] \
 else
     bad "bootloader script, units, or package file list is wrong"
 fi
-tools='kvantum-qt6 kvantum-qt5 kvantum-manager kvantum-themes sensors libdisplay-info-tools clinfo inxi conky android-udev-rules android-tools ufw hunspell kup-backup unrar lrzip orca htop git yubikey-manager flatpak-builder mcfly plocate'
+tools='kvantum-qt6 kvantum-qt5 kvantum-manager kvantum-themes sensors libdisplay-info-tools clinfo inxi conky android-udev-rules android-tools ufw hunspell kup-backup unrar lrzip orca htop git osc yubikey-manager flatpak-builder mcfly plocate zsh zsh-autosuggestions zsh-syntax-highlighting zsh-history-substring-search zsh-completions'
 missing=
 for name in $tools; do
     if ! grep -q "^Requires:[[:space:]]*${name}$" "$root/patterns/patterns-atropos.spec"; then
@@ -538,7 +538,13 @@ if [[ -f $root/patterns/bash.bashrc.local ]] \
     && grep -q 'HISTFILE' "$root/patterns/bash.bashrc.local" \
     && bash -n "$root/patterns/bash.bashrc.local" \
     && bash -n "$root/performance/atropos-cover-switch" \
-    && bash -n "$root/check/atropos-check"; then
+    && bash -n "$root/check/atropos-check" \
+    && grep -q 'mcfly init zsh' "$root/patterns/zsh.zshrc.local" \
+    && grep -q 'zsh-syntax-highlighting.zsh' "$root/patterns/zsh.zshrc.local" \
+    && grep -q 'zsh-autosuggestions.zsh' "$root/patterns/zsh.zshrc.local" \
+    && grep -q 'history-substring-search-up' "$root/patterns/zsh.zshrc.local" \
+    && grep -q 'SHELL=/bin/zsh' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '%attr(0750,root,root) %{_sysconfdir}/sudoers.d' "$root/atychia/atychia.spec"; then
     ok "mcfly hook and shell helpers parse"
 else
     bad "mcfly hook or a shell helper failed to parse"

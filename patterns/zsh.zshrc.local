@@ -1,0 +1,45 @@
+# AtropOS interactive zsh setup. /etc/zshrc sources this when the file
+# is not empty. A non-interactive shell never reads /etc/zshrc.
+# Extra completions come from /usr/share/zsh/site-functions, which
+# compinit already searches.
+
+HISTSIZE=100000
+SAVEHIST=100000
+setopt HIST_IGNORE_ALL_DUPS
+setopt SHARE_HISTORY
+setopt INC_APPEND_HISTORY
+
+if [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+
+# McFly replaces Ctrl-R. It prints an error when the history file is missing.
+if [[ -x /usr/bin/mcfly && -z ${MCFLY_DISABLE-} ]]; then
+    _atropos_hist=${HISTFILE:-${HOME-}/.zsh_history}
+    if [[ -n ${HOME-} && ! -e $_atropos_hist ]]; then
+        : > "$_atropos_hist" 2>/dev/null || true
+    fi
+    if [[ -r $_atropos_hist ]]; then
+        eval "$(/usr/bin/mcfly init zsh)"
+    fi
+    unset _atropos_hist
+fi
+
+# Highlighting wraps the line editor, so it follows autosuggestions and
+# McFly. Substring search has to follow highlighting.
+if [[ -r /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
+
+if [[ -r /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
+    HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
+    source /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+    if [[ -n ${terminfo[kcuu1]-} ]]; then
+        bindkey "${terminfo[kcuu1]}" history-substring-search-up
+        bindkey "${terminfo[kcud1]}" history-substring-search-down
+    fi
+    bindkey '^[[A' history-substring-search-up
+    bindkey '^[[B' history-substring-search-down
+    bindkey -M emacs '^P' history-substring-search-up
+    bindkey -M emacs '^N' history-substring-search-down
+fi

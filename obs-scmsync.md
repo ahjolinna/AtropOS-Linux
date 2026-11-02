@@ -23,6 +23,10 @@ https://github.com/ahjolinna/AtropOS-Linux
 | plasma6-lookandfeel-atropos | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=splash#main` |
 | plasma6-theme-aether-dark | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=aether#main` |
 | atropos-wallpapers | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=wallpapers#main` |
+| zsh-autosuggestions | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-autosuggestions#main` |
+| zsh-syntax-highlighting | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-syntax-highlighting#main` |
+| zsh-history-substring-search | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-history-substring-search#main` |
+| zsh-completions | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-completions#main` |
 
 Every package archive in this repository is in git, except
 `plasma6-login-manager`, which fetches its archive from the `_service`.

@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        22
+Release:        23
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -38,6 +38,7 @@ Source5:        org.qt.qdbusviewer6.desktop
 Source6:        atropos-oss-debug.repo
 Source7:        bash.bashrc.local
 Source8:        82-atropos-tools.preset
+Source9:        zsh.zshrc.local
 ExclusiveArch:  x86_64 aarch64
 
 %description
@@ -63,6 +64,14 @@ Requires:       aaa_base
 Requires:       audit
 Requires:       bash
 Requires:       bash-completion
+# zsh is the login shell. bash stays for scripts.
+Requires:       zsh
+Requires:       zsh-autosuggestions
+Requires:       zsh-syntax-highlighting
+Requires:       zsh-history-substring-search
+Requires:       zsh-completions
+Requires(post): zsh
+Requires(post): shadow
 Requires:       branding
 Requires:       build-key
 Requires:       busybox
@@ -429,6 +438,7 @@ Requires:       inxi
 Requires:       conky
 Requires:       htop
 Requires:       git
+Requires:       osc
 Requires:       plocate
 # unrar is in the non-oss repository. The product already enables that repo.
 Requires:       unrar
@@ -550,6 +560,7 @@ install -D -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/profile.d/atropos-appli
 install -D -m 0644 %{SOURCE5} %{buildroot}%{_datadir}/atropos/applications/org.qt.qdbusviewer6.desktop
 install -D -m 0644 %{SOURCE6} %{buildroot}%{_sysconfdir}/zypp/repos.d/atropos-oss-debug.repo
 install -D -m 0644 %{SOURCE7} %{buildroot}%{_sysconfdir}/bash.bashrc.local
+install -D -m 0644 %{SOURCE9} %{buildroot}%{_sysconfdir}/zsh.zshrc.local
 install -D -m 0644 %{SOURCE8} %{buildroot}%{_prefix}/lib/systemd/system-preset/82-atropos-tools.preset
 install -D -m 0644 %{SOURCE5} %{buildroot}%{_sysconfdir}/skel/.local/share/applications/org.qt.qdbusviewer6.desktop
 
@@ -563,6 +574,29 @@ if [ -x /usr/bin/systemctl ]; then
     systemctl --no-reload enable --force plasmalogin.service >/dev/null 2>&1 || :
     # plocate's own scriptlet runs before this package's preset is installed.
     systemctl --no-reload preset plocate-updatedb.timer >/dev/null 2>&1 || :
+fi
+# New accounts use zsh. Accounts still on the previous bash default
+# move once. A later choice of another shell is left alone.
+if [ ! -e /etc/atropos/default-shell-zsh ]; then
+    if [ -f /etc/default/useradd ]; then
+        sed -i 's|^SHELL=.*|SHELL=/bin/zsh|' /etc/default/useradd || :
+    fi
+    if [ -x /usr/bin/chsh ]; then
+        getent passwd | while IFS=: read -r user _ uid _ _ _ shell _; do
+            case $uid in
+                ''|*[!0-9]*) continue ;;
+            esac
+            if [ "$uid" -ge 1000 ] && [ "$uid" -lt 65534 ]; then
+                case $shell in
+                    /bin/bash|/usr/bin/bash)
+                        chsh -s /bin/zsh "$user" || :
+                        ;;
+                esac
+            fi
+        done || :
+    fi
+    mkdir -p /etc/atropos
+    : > /etc/atropos/default-shell-zsh
 fi
 # Aeon and MicroOS relabel a read-only root from /etc/selinux/.autorelabel.
 # /.autorelabel cannot be written on the snapshot. selinux-autorelabel
@@ -582,6 +616,7 @@ fi
 %{_prefix}/lib/systemd/system-preset/79-atropos-display.preset
 %{_prefix}/lib/systemd/system-preset/82-atropos-tools.preset
 %config(noreplace) %{_sysconfdir}/bash.bashrc.local
+%config(noreplace) %{_sysconfdir}/zsh.zshrc.local
 %{_prefix}/lib/environment.d/99-atropos-applications.conf
 %{_sysconfdir}/profile.d/atropos-applications.sh
 %{_sysconfdir}/profile.d/atropos-applications.csh
