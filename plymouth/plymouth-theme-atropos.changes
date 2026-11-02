@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Tue Nov 03 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Install label-pango.so and a Sans font into the initrd. The script
+  theme draws the passphrase with Image.Text, and Slowroll ships no
+  label.so or label-freetype.so for plymouth-populate-initrd to copy.
+- Release 13. The image already carries 0.1.0-12.1, and the repository
+  copy is 0.1.0-5.1.
+- Do not rebuild the initrd from this package. The next initrd build
+  picks the plugin up.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:58:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Ship plymouth-theme-atropos-0.1.0.tar.xz. The unpacked theme beside
