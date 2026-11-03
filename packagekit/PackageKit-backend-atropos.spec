@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        9
+Release:        10
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
@@ -34,8 +34,9 @@ snapshot and does not reboot. Resolve reports installed packages, and
 staged updates from the last check, so Discover can open. Installing or
 removing individual RPM packages is refused. Flatpak updates stay on
 Discover's Flatpak backend. A failed update names the file conflict,
-the missing dependency, or the package file that was not published
-yet. The snapshot cleanup is not the reason shown in Discover.
+the missing dependency, the package file that was not published yet,
+or an ERROR: line from the snapshot tools. Snapshot cleanup is not
+the reason shown in Discover.
 
 %prep
 
@@ -53,13 +54,17 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/xdg/discoverrc
 
 %post
 %systemd_post packagekit.service
-if [ -x /usr/bin/systemctl ]; then
+# transactional-update runs this scriptlet in the new snapshot while
+# packagekitd is waiting on that dup. tukit bind-mounts /run, so a
+# restart stops the live daemon and Discover loses the bus. The new
+# backend starts when the new snapshot boots.
+if [ -z "${TRANSACTIONAL_UPDATE:-}" ] && [ -x /usr/bin/systemctl ]; then
     systemctl try-restart packagekit.service >/dev/null 2>&1 || :
 fi
 
 %postun
 %systemd_postun packagekit.service
-if [ "$1" -eq 0 ] && [ -x /usr/bin/systemctl ]; then
+if [ "$1" -eq 0 ] && [ -z "${TRANSACTIONAL_UPDATE:-}" ] && [ -x /usr/bin/systemctl ]; then
     systemctl try-restart packagekit.service >/dev/null 2>&1 || :
 fi
 

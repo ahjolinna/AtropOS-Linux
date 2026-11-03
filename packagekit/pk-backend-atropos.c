@@ -11,13 +11,15 @@
  * a name is installed. An unknown name is not an error. Flatpak stays on
  * Discover's Flatpak backend.
  *
- * A failed update keeps both command streams. zypper writes a file
- * conflict and a dependency problem on stderr. transactional-update
- * writes the download cache and "Discarding snapshot" on stdout.
- * Discover shows the end of a long error, so the log is rewritten into
- * a short reason: the two packages that own one file, the dependency
- * nothing provides, a package file that returned HTTP 404, a setup
- * script, or a full disk. The snapshot cleanup is not the reason.
+ * A successful check parses zypper's stdout only. stderr stays separate
+ * and is joined only after the command has failed, so a plugin warning
+ * cannot break the update list. Discover's simulate call finishes with
+ * no packages; the following call is the real dup. Cancel sends one
+ * SIGTERM and waits ten seconds on the monotonic clock before SIGKILL.
+ * A failed update names the file conflict, the missing dependency, the
+ * package file that returned HTTP 404, a setup script, a full disk, or
+ * an ERROR: line from the snapshot tools. Exit 4 without a dependency
+ * sentence is a transaction error. Snapshot cleanup is not the reason.
  * transactional-update exits 1 for every zypper failure. The zypper
  * code is the number in "failed with exit code".
  *
@@ -113,18 +115,21 @@ child_set_pgroup (gpointer unused)
 }
 
 typedef struct {
-	gchar *output;
+	gchar *output;		/* stdout only. The dry-run XML is parsed from this. */
+	gchar *stderr_text;	/* failure text. Not part of the XML document. */
 	gint exit_code;
 	gboolean cancelled;
-	gchar *error;
+	gchar *error;		/* spawn failure. The child never ran. */
 } AtroposRun;
 
 static void
 atropos_run_clear (AtroposRun *run)
 {
 	g_free (run->output);
+	g_free (run->stderr_text);
 	g_free (run->error);
 	run->output = NULL;
+	run->stderr_text = NULL;
 	run->error = NULL;
 }
 
@@ -151,10 +156,10 @@ note_progress (PkBackendJob *job, const gchar *chunk)
 }
 
 /*
- * stdout and stderr stay separate until the command exits. Mixing the
- * pipes as the bytes arrive can cut a conflict line in half with a
- * progress line. stderr is appended afterwards, so a reason Discover
- * did not rewrite is still at the end of the text.
+ * stdout and stderr stay separate buffers. A successful dry-run is XML on
+ * stdout, and any stderr warning would make GMarkup reject that document.
+ * zypper writes a file conflict on stderr. Failure text joins the two
+ * after the command has already failed.
  */
 static void
 read_pipe (gint fd, GString *buf, PkBackendJob *job, gboolean *eof)
@@ -185,8 +190,9 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	gboolean out_eof = FALSE;
 	gboolean err_eof = FALSE;
 	gboolean exited = FALSE;
+	gboolean termed = FALSE;
 	gint status = 0;
-	gint cancel_waits = 0;
+	gint64 term_at = 0;
 
 	memset (run, 0, sizeof *run);
 	run->exit_code = -1;
@@ -233,13 +239,21 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 		gint out_slot = -1;
 		gint err_slot = -1;
 
+		/*
+		 * Count time, not loop turns. A streaming zypper fills a pipe
+		 * many times a second, and SIGKILL that soon skips
+		 * transactional-update's snapshot cleanup and can leave a
+		 * zypp lock. Ten seconds lets the process group exit cleanly.
+		 */
 		if (pk_backend_job_is_cancelled (job)) {
 			run->cancelled = TRUE;
-			if (cancel_waits == 0)
+			if (!termed) {
 				kill (-pid, SIGTERM);
-			else if (cancel_waits == 50)
+				termed = TRUE;
+				term_at = g_get_monotonic_time ();
+			} else if (g_get_monotonic_time () - term_at >= 10 * G_USEC_PER_SEC) {
 				kill (-pid, SIGKILL);
-			cancel_waits++;
+			}
 		}
 
 		if (!out_eof) {
@@ -291,13 +305,8 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	if (err_fd >= 0)
 		close (err_fd);
 	g_spawn_close_pid (pid);
-	if (err_buf->len > 0) {
-		if (out_buf->len > 0 && out_buf->str[out_buf->len - 1] != '\n')
-			g_string_append_c (out_buf, '\n');
-		g_string_append_len (out_buf, err_buf->str, err_buf->len);
-	}
-	g_string_free (err_buf, TRUE);
 	run->output = g_string_free (out_buf, FALSE);
+	run->stderr_text = g_string_free (err_buf, FALSE);
 	/*
 	 * 102 and 103 are zypper's "finished, reboot or restart suggested"
 	 * codes. The command did its work. 106 (a repository was skipped)
@@ -406,8 +415,6 @@ zypper_error_code (gint exit_code, const gchar *output)
 		code = PK_ERROR_ENUM_NO_SPACE_ON_DEVICE;
 	else if (text_has (lower, "scriptlet failed"))
 		code = PK_ERROR_ENUM_PACKAGE_FAILED_TO_CONFIGURE;
-	else if (reported == 4)
-		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
 	else if (reported == 8) /* ZYPPER_EXIT_ERR_COMMIT */
 		code = PK_ERROR_ENUM_TRANSACTION_ERROR;
 	else if (reported == 1 || reported == 2 || reported == 3)
@@ -918,7 +925,6 @@ static gboolean
 failure_line_is_wrapper (const gchar *line)
 {
 	return failure_line_is_noise (line) ||
-		g_str_has_prefix (line, "ERROR:") ||
 		g_str_has_prefix (line, "Application returned") ||
 		g_str_has_prefix (line, "Please see the above") ||
 		g_str_has_prefix (line, "Problem occurred") ||
@@ -1229,30 +1235,18 @@ scriptlet_failure_text (const gchar *text)
 	guint i;
 	GPtrArray *names;
 	GString *msg;
-	gchar *lower_text;
 
-	if (text == NULL)
+	if (text == NULL || strstr (text, "scriptlet failed") == NULL)
 		return NULL;
-	lower_text = g_ascii_strdown (text, -1);
-	if (strstr (lower_text, "scriptlet failed") == NULL) {
-		g_free (lower_text);
-		return NULL;
-	}
-	g_free (lower_text);
 	lines = g_strsplit (text, "\n", -1);
 	names = g_ptr_array_new_with_free_func (g_free);
 	for (i = 0; lines[i] != NULL; i++) {
 		const gchar *open;
 		const gchar *close;
 		gchar *name;
-		gchar *lower_line;
 
-		lower_line = g_ascii_strdown (lines[i], -1);
-		if (strstr (lower_line, "scriptlet failed") == NULL) {
-			g_free (lower_line);
+		if (strstr (lines[i], "scriptlet failed") == NULL)
 			continue;
-		}
-		g_free (lower_line);
 		open = strchr (lines[i], '(');
 		close = open != NULL ? strchr (open + 1, ')') : NULL;
 		if (open == NULL || close == NULL || close == open + 1)
@@ -1309,9 +1303,57 @@ log_is_only_noise (const gchar *text)
 }
 
 /*
+ * A log that is only progress plus one ERROR: line used to be thrown away,
+ * because ERROR: was treated as cleanup. Keep that sentence. A one-line
+ * failure such as "mirror down" is already readable, so return NULL and
+ * let that line through.
+ */
+static gchar *
+plain_reason_text (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	gboolean noise = FALSE;
+	GPtrArray *rows;
+	GString *msg;
+
+	if (text == NULL)
+		return NULL;
+	lines = g_strsplit (text, "\n", -1);
+	rows = g_ptr_array_new_with_free_func (g_free);
+	for (i = 0; lines[i] != NULL; i++) {
+		gchar *line = g_strdup (lines[i]);
+
+		g_strstrip (line);
+		if (line[0] == '\0') {
+			g_free (line);
+			continue;
+		}
+		if (failure_line_is_wrapper (line)) {
+			noise = TRUE;
+			g_free (line);
+			continue;
+		}
+		if (names_have (rows, line)) {
+			g_free (line);
+			continue;
+		}
+		g_ptr_array_add (rows, line);
+	}
+	g_strfreev (lines);
+	if (rows->len == 0 || (!noise && strlen (text) < 400 && rows->len <= 3)) {
+		g_ptr_array_free (rows, TRUE);
+		return NULL;
+	}
+	msg = g_string_new ("The update was not installed. Nothing was changed.");
+	append_capped (msg, rows);
+	g_ptr_array_free (rows, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+/*
  * A long log whose tail is the download cache used to be the whole dialog.
- * Keep a short reason instead. A one-line failure such as "mirror down"
- * is already readable, so return NULL and let that line through.
+ * Keep a short reason instead.
  */
 static gchar *
 friendly_failure_text (const gchar *text, gint exit_code)
@@ -1334,6 +1376,9 @@ friendly_failure_text (const gchar *text, gint exit_code)
 	}
 	g_free (lower);
 	shown = dep_problem_text (text);
+	if (shown != NULL)
+		return shown;
+	shown = plain_reason_text (text);
 	if (shown != NULL)
 		return shown;
 	if (!log_is_only_noise (text))
@@ -1362,16 +1407,30 @@ fail_job (PkBackendJob *job, PkErrorEnum code, const gchar *text)
 	g_free (shown);
 }
 
+/* stdout, then stderr. The XML parser must not see this joined buffer. */
+static gchar *
+command_log (const AtroposRun *run)
+{
+	if (run->error != NULL)
+		return g_strdup (run->error);
+	if (run->stderr_text == NULL || run->stderr_text[0] == '\0')
+		return g_strdup (run->output != NULL ? run->output : "");
+	if (run->output == NULL || run->output[0] == '\0')
+		return g_strdup (run->stderr_text);
+	return g_strconcat (run->output, "\n", run->stderr_text, NULL);
+}
+
 static void
 fail_command (PkBackendJob *job, const AtroposRun *run)
 {
 	gchar *text;
-	const gchar *raw = run->error != NULL ? run->error : run->output;
+	gchar *raw;
 
 	if (run->cancelled) {
 		fail_job (job, PK_ERROR_ENUM_TRANSACTION_CANCELLED, "Cancelled");
 		return;
 	}
+	raw = command_log (run);
 	text = missing_download_text (raw);
 	if (text == NULL)
 		text = friendly_failure_text (raw, run->exit_code);
@@ -1379,6 +1438,7 @@ fail_command (PkBackendJob *job, const AtroposRun *run)
 		text = atropos_error_text (raw, run->exit_code);
 	fail_job (job, zypper_error_code (run->exit_code, raw), text);
 	g_free (text);
+	g_free (raw);
 }
 
 static gboolean
@@ -1418,6 +1478,7 @@ collect_updates (PkBackendJob *job, GPtrArray **pkgs_out)
 		return FALSE;
 	}
 
+	/* stdout only. stderr is a warning or a later failure, not XML. */
 	pkgs = parse_zypper_xml (dup.output != NULL ? dup.output : "", &parse_error, &download_size);
 	atropos_run_clear (&dup);
 	if (pkgs == NULL) {
@@ -2102,6 +2163,24 @@ main (void)
 		g_free (shown);
 		if (zypper_error_code (1, dep) != PK_ERROR_ENUM_DEP_RESOLUTION_FAILED) {
 			g_printerr ("dependency exit code mapping failed\n");
+			return 1;
+		}
+		shown = friendly_failure_text (
+			"In cache foo.rpm (1/1), 1 KiB\n"
+			"ERROR: snapper create failed: no space in metadata\n"
+			"Discarding snapshot 9.\n", 1);
+		if (shown == NULL || strstr (shown, "snapper create failed") == NULL ||
+		    strstr (shown, "In cache") != NULL ||
+		    strstr (shown, "did not give a clearer reason") != NULL ||
+		    strstr (shown, "Discarding") != NULL) {
+			g_printerr ("ERROR line was dropped: %s\n",
+				    shown != NULL ? shown : "none");
+			g_free (shown);
+			return 1;
+		}
+		g_free (shown);
+		if (zypper_error_code (4, "mirror down") != PK_ERROR_ENUM_TRANSACTION_ERROR) {
+			g_printerr ("generic exit 4 was reported as a dependency error\n");
 			return 1;
 		}
 	}

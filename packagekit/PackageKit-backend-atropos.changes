@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Tue Nov 03 01:23:50 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Parse a successful update check from zypper's stdout only. stderr
+  is kept for the failure text, so a warning does not make the XML
+  parser reject the update list.
+- After cancel, send SIGTERM and wait ten seconds before SIGKILL, so
+  transactional-update can discard the snapshot.
+- Do not restart packagekitd from %post while TRANSACTIONAL_UPDATE
+  is set. That restart hits the daemon which is running the update.
+- Show an ERROR: line from snapper or the snapshot tools. Exit 4
+  without a dependency sentence is a transaction error.
+- Release 10. The repository already has 0.1.0-9.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 01:02:33 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - When the package transaction fails, show the conflict. zypper writes
