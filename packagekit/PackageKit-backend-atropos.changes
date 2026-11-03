@@ -1,4 +1,19 @@
 -------------------------------------------------------------------
+Tue Nov 03 01:02:33 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- When the package transaction fails, show the conflict. zypper writes
+  that on stderr. The stdout tail was the download cache, "exit status
+  8", and "Discarding snapshot".
+- Say, in plain language, when two packages own one file or a dependency
+  cannot be satisfied. transactional-update exits 1 for every zypper
+  failure, so the real code is taken from "failed with exit code".
+  A failure that gives no reason still says nothing was changed.
+- Keep the two command streams apart until the command exits, then
+  append stderr. A progress line no longer lands in the middle of a
+  conflict line.
+- Release 9.
+
+-------------------------------------------------------------------
 Tue Nov 03 00:33:19 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - When a repository file returns HTTP 404, name the missing packages.

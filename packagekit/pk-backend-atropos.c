@@ -11,6 +11,16 @@
  * a name is installed. An unknown name is not an error. Flatpak stays on
  * Discover's Flatpak backend.
  *
+ * A failed update keeps both command streams. zypper writes a file
+ * conflict and a dependency problem on stderr. transactional-update
+ * writes the download cache and "Discarding snapshot" on stdout.
+ * Discover shows the end of a long error, so the log is rewritten into
+ * a short reason: the two packages that own one file, the dependency
+ * nothing provides, a package file that returned HTTP 404, a setup
+ * script, or a full disk. The snapshot cleanup is not the reason.
+ * transactional-update exits 1 for every zypper failure. The zypper
+ * code is the number in "failed with exit code".
+ *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -140,14 +150,40 @@ note_progress (PkBackendJob *job, const gchar *chunk)
 	}
 }
 
+/*
+ * stdout and stderr stay separate until the command exits. Mixing the
+ * pipes as the bytes arrive can cut a conflict line in half with a
+ * progress line. stderr is appended afterwards, so a reason Discover
+ * did not rewrite is still at the end of the text.
+ */
+static void
+read_pipe (gint fd, GString *buf, PkBackendJob *job, gboolean *eof)
+{
+	gchar tmp[4096];
+	ssize_t n;
+
+	n = read (fd, tmp, sizeof tmp - 1);
+	if (n > 0) {
+		tmp[n] = '\0';
+		g_string_append_len (buf, tmp, n);
+		note_progress (job, tmp);
+		return;
+	}
+	if (n == 0 || (n < 0 && errno != EINTR))
+		*eof = TRUE;
+}
+
 static gboolean
 run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 {
 	GPid pid = 0;
-	gint fd = -1;
+	gint out_fd = -1;
+	gint err_fd = -1;
 	GError *error = NULL;
-	GString *buf;
-	gboolean eof = FALSE;
+	GString *out_buf;
+	GString *err_buf;
+	gboolean out_eof = FALSE;
+	gboolean err_eof = FALSE;
 	gboolean exited = FALSE;
 	gint status = 0;
 	gint cancel_waits = 0;
@@ -178,7 +214,7 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 					TRUE);
 		if (!g_spawn_async_with_pipes (NULL, argv, env,
 					       G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-					       child_set_pgroup, NULL, &pid, NULL, &fd, NULL, &error)) {
+					       child_set_pgroup, NULL, &pid, NULL, &out_fd, &err_fd, &error)) {
 			run->error = g_strdup (error->message);
 			g_error_free (error);
 			g_strfreev (env);
@@ -189,8 +225,14 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	if (setpgid (pid, pid) != 0 && errno != EACCES)
 		g_debug ("setpgid: %s", g_strerror (errno));
 
-	buf = g_string_new (NULL);
-	while (!eof || !exited) {
+	out_buf = g_string_new (NULL);
+	err_buf = g_string_new (NULL);
+	while (!out_eof || !err_eof || !exited) {
+		struct pollfd pfd[2] = { { 0 } };
+		gint npfd = 0;
+		gint out_slot = -1;
+		gint err_slot = -1;
+
 		if (pk_backend_job_is_cancelled (job)) {
 			run->cancelled = TRUE;
 			if (cancel_waits == 0)
@@ -200,24 +242,27 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 			cancel_waits++;
 		}
 
-		if (!eof) {
-			struct pollfd pfd;
-			gchar tmp[4096];
-			ssize_t n;
-
-			pfd.fd = fd;
-			pfd.events = POLLIN;
-			pfd.revents = 0;
-			if (poll (&pfd, 1, 200) > 0 && (pfd.revents & (POLLIN | POLLHUP | POLLERR)) != 0) {
-				n = read (fd, tmp, sizeof tmp - 1);
-				if (n > 0) {
-					tmp[n] = '\0';
-					g_string_append_len (buf, tmp, n);
-					note_progress (job, tmp);
-				} else if (n == 0 || errno != EINTR) {
-					eof = TRUE;
-				}
-			}
+		if (!out_eof) {
+			pfd[npfd].fd = out_fd;
+			pfd[npfd].events = POLLIN;
+			pfd[npfd].revents = 0;
+			out_slot = npfd++;
+		}
+		if (!err_eof) {
+			pfd[npfd].fd = err_fd;
+			pfd[npfd].events = POLLIN;
+			pfd[npfd].revents = 0;
+			err_slot = npfd++;
+		}
+		/*
+		 * npfd == 0 still has to wait. Otherwise a child that closed
+		 * both pipes and has not exited makes this loop spin.
+		 */
+		if (poll (npfd > 0 ? pfd : NULL, npfd, 200) > 0) {
+			if (out_slot >= 0 && (pfd[out_slot].revents & (POLLIN | POLLHUP | POLLERR)) != 0)
+				read_pipe (out_fd, out_buf, job, &out_eof);
+			if (err_slot >= 0 && (pfd[err_slot].revents & (POLLIN | POLLHUP | POLLERR)) != 0)
+				read_pipe (err_fd, err_buf, job, &err_eof);
 		}
 
 		if (!exited) {
@@ -241,9 +286,18 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 		kill (-pid, SIGKILL);
 		waitpid (pid, &status, 0);
 	}
-	close (fd);
+	if (out_fd >= 0)
+		close (out_fd);
+	if (err_fd >= 0)
+		close (err_fd);
 	g_spawn_close_pid (pid);
-	run->output = g_string_free (buf, FALSE);
+	if (err_buf->len > 0) {
+		if (out_buf->len > 0 && out_buf->str[out_buf->len - 1] != '\n')
+			g_string_append_c (out_buf, '\n');
+		g_string_append_len (out_buf, err_buf->str, err_buf->len);
+	}
+	g_string_free (err_buf, TRUE);
+	run->output = g_string_free (out_buf, FALSE);
 	/*
 	 * 102 and 103 are zypper's "finished, reboot or restart suggested"
 	 * codes. The command did its work. 106 (a repository was skipped)
@@ -266,21 +320,49 @@ text_has (const gchar *lower, const gchar *needle)
  * PackageKit has no PK_ERROR_ENUM_LOCKED; the lock code is CANNOT_GET_LOCK.
  */
 static gboolean output_has_hard_404 (const gchar *text);
+static gboolean output_has_file_conflict (const gchar *text);
+static gboolean output_has_dep_problem (const gchar *text);
+
+/*
+ * transactional-update exits 1 for every zypper failure. The real code is
+ * in "failed with exit code N" or "exit status N".
+ */
+static gint
+embedded_command_exit (const gchar *text, gint fallback)
+{
+	const gchar *hit;
+	gint code;
+
+	if (text == NULL)
+		return fallback;
+	hit = strstr (text, "failed with exit code ");
+	if (hit == NULL)
+		hit = strstr (text, "exit status ");
+	if (hit == NULL)
+		return fallback;
+	while (*hit != '\0' && !g_ascii_isdigit (*hit))
+		hit++;
+	if (*hit == '\0')
+		return fallback;
+	code = (gint) g_ascii_strtoll (hit, NULL, 10);
+	if (code <= 0)
+		return fallback;
+	return code;
+}
 
 static PkErrorEnum
 zypper_error_code (gint exit_code, const gchar *output)
 {
 	gchar *lower;
 	PkErrorEnum code;
+	gint reported;
 
 	if (exit_code < 0)
 		return PK_ERROR_ENUM_FAILED_INITIALIZATION;
 
-	switch (exit_code) {
-	case 1: /* ZYPPER_EXIT_ERR_BUG */
-	case 2: /* ZYPPER_EXIT_ERR_SYNTAX */
-	case 3: /* ZYPPER_EXIT_ERR_INVALID_ARGS */
-		return PK_ERROR_ENUM_INTERNAL_ERROR;
+	reported = embedded_command_exit (output, exit_code);
+
+	switch (reported) {
 	case 5: /* ZYPPER_EXIT_ERR_PRIVILEGES */
 		return PK_ERROR_ENUM_NOT_AUTHORIZED;
 	case 6: /* ZYPPER_EXIT_NO_REPOS */
@@ -302,6 +384,10 @@ zypper_error_code (gint exit_code, const gchar *output)
 		code = PK_ERROR_ENUM_PACKAGE_DOWNLOAD_FAILED;
 	else if (text_has (lower, "is locked") || text_has (lower, "zypp lock"))
 		code = PK_ERROR_ENUM_CANNOT_GET_LOCK;
+	else if (output_has_file_conflict (output))
+		code = PK_ERROR_ENUM_PACKAGE_CONFLICTS;
+	else if (output_has_dep_problem (output))
+		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
 	else if (text_has (lower, "please insert") || text_has (lower, "medium"))
 		code = PK_ERROR_ENUM_MEDIA_CHANGE_REQUIRED;
 	else if (text_has (lower, "no network") || text_has (lower, "network is unreachable"))
@@ -316,9 +402,17 @@ zypper_error_code (gint exit_code, const gchar *output)
 		code = PK_ERROR_ENUM_PACKAGE_CONFLICTS;
 	else if (text_has (lower, "unresolved") || text_has (lower, "solver"))
 		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
-	else if (exit_code == 8) /* ZYPPER_EXIT_ERR_COMMIT */
+	else if (text_has (lower, "no space left") || text_has (lower, "not enough space"))
+		code = PK_ERROR_ENUM_NO_SPACE_ON_DEVICE;
+	else if (text_has (lower, "scriptlet failed"))
+		code = PK_ERROR_ENUM_PACKAGE_FAILED_TO_CONFIGURE;
+	else if (reported == 4)
 		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
-	else if (exit_code > 128)
+	else if (reported == 8) /* ZYPPER_EXIT_ERR_COMMIT */
+		code = PK_ERROR_ENUM_TRANSACTION_ERROR;
+	else if (reported == 1 || reported == 2 || reported == 3)
+		code = PK_ERROR_ENUM_INTERNAL_ERROR;
+	else if (reported > 128)
 		code = PK_ERROR_ENUM_PROCESS_KILL;
 	else
 		code = PK_ERROR_ENUM_TRANSACTION_ERROR;
@@ -784,10 +878,10 @@ missing_download_text (const gchar *text)
 	}
 	g_strfreev (lines);
 
-	msg = g_string_new ("A package file is missing from the repository (HTTP 404). "
-			    "The repository metadata was published before the file, "
-			    "which happens during a rebuild. Nothing was installed. "
-			    "Try the update again in a few minutes.");
+	msg = g_string_new ("The update was not installed. Some packages are listed "
+			    "but not available for download yet (HTTP 404). This happens "
+			    "while the repository is still being published. Nothing was "
+			    "changed. Wait a few minutes and try the update again.");
 	if (names->len > 0)
 		g_string_append (msg, " Missing:");
 	shown = MIN (names->len, 8);
@@ -797,6 +891,461 @@ missing_download_text (const gchar *text)
 		g_string_append_printf (msg, " and %u more", names->len - shown);
 	g_ptr_array_free (names, TRUE);
 	return g_string_free (msg, FALSE);
+}
+
+/* Download progress and the snapshot cleanup. Discover was showing these. */
+static gboolean
+failure_line_is_noise (const gchar *line)
+{
+	return g_str_has_prefix (line, "In cache") ||
+		g_str_has_prefix (line, "Retrieving:") ||
+		g_str_has_prefix (line, "Preloading:") ||
+		g_str_has_prefix (line, "Verifying") ||
+		g_str_has_prefix (line, "Preparing") ||
+		g_str_has_prefix (line, "Options:") ||
+		strstr (line, "Found plugin") != NULL ||
+		strstr (line, "tukit ") != NULL ||
+		strstr (line, "Transaction completed") != NULL ||
+		strstr (line, "transactional-update finished") != NULL ||
+		strstr (line, "Use '--interactive'") != NULL ||
+		strstr (line, "Removing snapshot") != NULL ||
+		strstr (line, "Discarding snapshot") != NULL ||
+		strstr (line, "Using 'snapper'") != NULL;
+}
+
+/* Solver menus and the transactional-update summary. Not a reason. */
+static gboolean
+failure_line_is_wrapper (const gchar *line)
+{
+	return failure_line_is_noise (line) ||
+		g_str_has_prefix (line, "ERROR:") ||
+		g_str_has_prefix (line, "Application returned") ||
+		g_str_has_prefix (line, "Please see the above") ||
+		g_str_has_prefix (line, "Problem occurred") ||
+		g_str_has_prefix (line, "Executing the transaction") ||
+		g_str_has_prefix (line, "Checking for ") ||
+		g_str_has_prefix (line, "Solution ") ||
+		g_str_has_prefix (line, "Choose from") ||
+		g_str_has_prefix (line, "Choose the");
+}
+
+/*
+ * "file PATH from install of NEW conflicts with file from package OLD"
+ * rpm prints this when two packages own one path with different metadata.
+ */
+static gboolean
+split_file_conflict (const gchar *line, gchar **path_out, gchar **newer_out, gchar **older_out)
+{
+	const gchar *from;
+	const gchar *mid;
+	const gchar *path;
+	const gchar *newer;
+	const gchar *older;
+	gsize path_len;
+	gsize newer_len;
+
+	if (!g_str_has_prefix (line, "file "))
+		return FALSE;
+	from = strstr (line, " from install of ");
+	mid = strstr (line, " conflicts with file from package ");
+	if (from == NULL || mid == NULL || mid <= from)
+		return FALSE;
+	path = line + 5;
+	path_len = (gsize) (from - path);
+	newer = from + strlen (" from install of ");
+	newer_len = (gsize) (mid - newer);
+	older = mid + strlen (" conflicts with file from package ");
+	if (path_len == 0 || newer_len == 0 || older[0] == '\0')
+		return FALSE;
+	if (path_out != NULL)
+		*path_out = g_strstrip (g_strndup (path, path_len));
+	if (newer_out != NULL)
+		*newer_out = g_strstrip (g_strndup (newer, newer_len));
+	if (older_out != NULL)
+		*older_out = g_strstrip (g_strdup (older));
+	return TRUE;
+}
+
+static gboolean
+output_has_file_conflict (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	gboolean found = FALSE;
+
+	if (text == NULL)
+		return FALSE;
+	lines = g_strsplit (text, "\n", -1);
+	for (i = 0; lines[i] != NULL && !found; i++) {
+		gchar *line = g_strdup (lines[i]);
+		gchar *lower;
+
+		g_strstrip (line);
+		lower = g_ascii_strdown (line, -1);
+		found = split_file_conflict (line, NULL, NULL, NULL) ||
+			strstr (lower, "file conflict") != NULL ||
+			strstr (lower, "conflicts between attempted") != NULL;
+		g_free (lower);
+		g_free (line);
+	}
+	g_strfreev (lines);
+	return found;
+}
+
+static gboolean
+line_is_dep_problem (const gchar *line)
+{
+	gchar *lower;
+	gboolean yes;
+
+	lower = g_ascii_strdown (line, -1);
+	yes = (g_str_has_prefix (lower, "problem:") &&
+	       !g_str_has_prefix (lower, "problem occurred")) ||
+		strstr (lower, "nothing provides") != NULL ||
+		strstr (lower, "requirement cannot be provided") != NULL ||
+		strstr (lower, "conflicting requests") != NULL ||
+		strstr (lower, "not installable providers") != NULL ||
+		strstr (lower, "unresolved") != NULL;
+	g_free (lower);
+	return yes;
+}
+
+static gboolean
+output_has_dep_problem (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	gboolean found = FALSE;
+
+	if (text == NULL)
+		return FALSE;
+	lines = g_strsplit (text, "\n", -1);
+	for (i = 0; lines[i] != NULL && !found; i++) {
+		gchar *line = g_strdup (lines[i]);
+
+		g_strstrip (line);
+		found = line[0] != '\0' && !failure_line_is_wrapper (line) &&
+			line_is_dep_problem (line);
+		g_free (line);
+	}
+	g_strfreev (lines);
+	return found;
+}
+
+static gchar *
+replace_literal (const gchar *text, const gchar *from, const gchar *to)
+{
+	const gchar *hit;
+
+	hit = strstr (text, from);
+	if (hit == NULL)
+		return g_strdup (text);
+	return g_strdup_printf ("%.*s%s%s", (gint) (hit - text), text, to, hit + strlen (from));
+}
+
+/* Turn one zypper "Problem:" line into a sentence. */
+static gchar *
+friendly_problem_line (const gchar *stripped)
+{
+	const gchar *body = stripped;
+	gchar *step;
+	gchar *next;
+	const gchar *provides;
+	const gchar *needed;
+
+	if (g_str_has_prefix (body, "Problem:")) {
+		body += strlen ("Problem:");
+		while (*body == ' ')
+			body++;
+	}
+	if (g_strcmp0 (body, "conflicting requests") == 0)
+		return g_strdup ("The requested packages conflict with each other.");
+
+	provides = strstr (body, "nothing provides ");
+	needed = provides != NULL ? strstr (provides, " needed by ") : NULL;
+	if (provides != NULL && needed != NULL) {
+		gchar *what;
+		gchar *who;
+		gchar *sentence;
+
+		what = g_strndup (provides + strlen ("nothing provides "),
+				  (gsize) (needed - (provides + strlen ("nothing provides "))));
+		who = g_strdup (needed + strlen (" needed by "));
+		g_strstrip (what);
+		g_strstrip (who);
+		sentence = g_strdup_printf ("%s needs %s, and no repository provides it.", who, what);
+		g_free (what);
+		g_free (who);
+		return sentence;
+	}
+
+	step = replace_literal (body, "the to be installed ", "");
+	next = replace_literal (step, "but this requirement cannot be provided",
+				"and that requirement cannot be met");
+	g_free (step);
+	return next;
+}
+
+static gchar *
+friendly_provider_line (const gchar *stripped)
+{
+	const gchar *what = stripped;
+
+	if (g_str_has_prefix (what, "not installable providers:")) {
+		what += strlen ("not installable providers:");
+		while (*what == ' ')
+			what++;
+		if (what[0] == '\0')
+			return g_strdup ("Nothing available provides the missing dependency.");
+		return g_strdup_printf ("Nothing available provides %s.", what);
+	}
+	return g_strdup (stripped);
+}
+
+static void
+append_capped (GString *msg, GPtrArray *lines)
+{
+	guint i;
+	guint shown;
+	guint added = 0;
+
+	shown = MIN (lines->len, 8);
+	for (i = 0; i < shown && msg->len < 1700; i++) {
+		g_string_append_c (msg, '\n');
+		g_string_append (msg, g_ptr_array_index (lines, i));
+		added++;
+	}
+	if (added < lines->len)
+		g_string_append_printf (msg, "\nand %u more", lines->len - added);
+}
+
+static gchar *
+file_conflict_text (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	GPtrArray *rows;
+	GString *msg;
+
+	if (!output_has_file_conflict (text))
+		return NULL;
+	lines = g_strsplit (text, "\n", -1);
+	rows = g_ptr_array_new_with_free_func (g_free);
+	for (i = 0; lines[i] != NULL; i++) {
+		gchar *line = g_strdup (lines[i]);
+		gchar *path = NULL;
+		gchar *newer = NULL;
+		gchar *older = NULL;
+		gchar *sentence;
+
+		g_strstrip (line);
+		if (!split_file_conflict (line, &path, &newer, &older)) {
+			g_free (line);
+			continue;
+		}
+		sentence = g_strdup_printf ("%s is owned by both %s and %s.", path, newer, older);
+		g_free (path);
+		g_free (newer);
+		g_free (older);
+		g_free (line);
+		if (names_have (rows, sentence)) {
+			g_free (sentence);
+			continue;
+		}
+		g_ptr_array_add (rows, sentence);
+	}
+	g_strfreev (lines);
+	if (rows->len == 0) {
+		g_ptr_array_free (rows, TRUE);
+		return NULL;
+	}
+	msg = g_string_new ("The update was not installed. Two packages own the same file, "
+			    "so nothing was changed.");
+	append_capped (msg, rows);
+	g_string_append (msg, "\nUpdating again will fail until those packages are fixed.");
+	g_ptr_array_free (rows, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+static gchar *
+dep_problem_text (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	GPtrArray *rows;
+	GString *msg;
+
+	if (text == NULL || !output_has_dep_problem (text))
+		return NULL;
+	lines = g_strsplit (text, "\n", -1);
+	rows = g_ptr_array_new_with_free_func (g_free);
+	for (i = 0; lines[i] != NULL; i++) {
+		gchar *line = g_strdup (lines[i]);
+		gchar *sentence = NULL;
+		gchar *lower;
+
+		g_strstrip (line);
+		if (line[0] == '\0' || failure_line_is_wrapper (line)) {
+			g_free (line);
+			continue;
+		}
+		lower = g_ascii_strdown (line, -1);
+		if (g_str_has_prefix (lower, "problem:") || strstr (lower, "nothing provides") != NULL ||
+		    strstr (lower, "conflicting requests") != NULL)
+			sentence = friendly_problem_line (line);
+		else if (strstr (lower, "not installable providers") != NULL)
+			sentence = friendly_provider_line (line);
+		g_free (lower);
+		g_free (line);
+		if (sentence == NULL)
+			continue;
+		if (names_have (rows, sentence)) {
+			g_free (sentence);
+			continue;
+		}
+		g_ptr_array_add (rows, sentence);
+	}
+	g_strfreev (lines);
+	if (rows->len == 0) {
+		g_ptr_array_free (rows, TRUE);
+		return g_strdup ("The update was not installed. A dependency could not be "
+				 "satisfied, so nothing was changed.\n"
+				 "Try again in a few minutes. If this dependency is still "
+				 "missing, the packages need a fix.");
+	}
+	msg = g_string_new ("The update was not installed. A dependency could not be "
+			    "satisfied, so nothing was changed.");
+	append_capped (msg, rows);
+	g_string_append (msg, "\nTry again in a few minutes. If this dependency is still "
+			      "missing, the packages need a fix.");
+	g_ptr_array_free (rows, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+static gchar *
+scriptlet_failure_text (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	GPtrArray *names;
+	GString *msg;
+	gchar *lower_text;
+
+	if (text == NULL)
+		return NULL;
+	lower_text = g_ascii_strdown (text, -1);
+	if (strstr (lower_text, "scriptlet failed") == NULL) {
+		g_free (lower_text);
+		return NULL;
+	}
+	g_free (lower_text);
+	lines = g_strsplit (text, "\n", -1);
+	names = g_ptr_array_new_with_free_func (g_free);
+	for (i = 0; lines[i] != NULL; i++) {
+		const gchar *open;
+		const gchar *close;
+		gchar *name;
+		gchar *lower_line;
+
+		lower_line = g_ascii_strdown (lines[i], -1);
+		if (strstr (lower_line, "scriptlet failed") == NULL) {
+			g_free (lower_line);
+			continue;
+		}
+		g_free (lower_line);
+		open = strchr (lines[i], '(');
+		close = open != NULL ? strchr (open + 1, ')') : NULL;
+		if (open == NULL || close == NULL || close == open + 1)
+			continue;
+		name = g_strndup (open + 1, (gsize) (close - open - 1));
+		g_strstrip (name);
+		if (name[0] == '\0' || names_have (names, name)) {
+			g_free (name);
+			continue;
+		}
+		g_ptr_array_add (names, name);
+	}
+	g_strfreev (lines);
+	if (names->len == 0) {
+		g_ptr_array_free (names, TRUE);
+		return g_strdup ("The update was not installed. A setup script failed, so "
+				 "nothing was changed.");
+	}
+	msg = g_string_new ("The update was not installed. A setup script failed, so "
+			    "nothing was changed.");
+	g_string_append_printf (msg, "\nScript: %s", (const gchar *) g_ptr_array_index (names, 0));
+	if (names->len > 1)
+		g_string_append_printf (msg, "\nand %u more", names->len - 1);
+	g_ptr_array_free (names, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+static gboolean
+log_is_only_noise (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	gboolean any = FALSE;
+	gboolean only = TRUE;
+
+	if (text == NULL)
+		return TRUE;
+	lines = g_strsplit (text, "\n", -1);
+	for (i = 0; lines[i] != NULL; i++) {
+		gchar *line = g_strdup (lines[i]);
+
+		g_strstrip (line);
+		if (line[0] == '\0') {
+			g_free (line);
+			continue;
+		}
+		any = TRUE;
+		if (!failure_line_is_wrapper (line))
+			only = FALSE;
+		g_free (line);
+	}
+	g_strfreev (lines);
+	return !any || only;
+}
+
+/*
+ * A long log whose tail is the download cache used to be the whole dialog.
+ * Keep a short reason instead. A one-line failure such as "mirror down"
+ * is already readable, so return NULL and let that line through.
+ */
+static gchar *
+friendly_failure_text (const gchar *text, gint exit_code)
+{
+	gchar *shown;
+	gchar *lower;
+	gint code;
+
+	shown = file_conflict_text (text);
+	if (shown != NULL)
+		return shown;
+	shown = scriptlet_failure_text (text);
+	if (shown != NULL)
+		return shown;
+	lower = text != NULL ? g_ascii_strdown (text, -1) : NULL;
+	if (text_has (lower, "no space left") || text_has (lower, "not enough space")) {
+		g_free (lower);
+		return g_strdup ("The update was not installed. The disk ran out of space, "
+				 "so nothing was changed. Free some space and try the update again.");
+	}
+	g_free (lower);
+	shown = dep_problem_text (text);
+	if (shown != NULL)
+		return shown;
+	if (!log_is_only_noise (text))
+		return NULL;
+
+	code = embedded_command_exit (text, exit_code);
+	if (code > 0)
+		return g_strdup_printf ("The update was not installed. Nothing was changed. "
+					"The updater failed (exit %d) and did not give a clearer reason.",
+					code);
+	return g_strdup ("The update was not installed. Nothing was changed. "
+			 "The updater failed and did not give a reason.");
 }
 
 static void
@@ -824,6 +1373,8 @@ fail_command (PkBackendJob *job, const AtroposRun *run)
 		return;
 	}
 	text = missing_download_text (raw);
+	if (text == NULL)
+		text = friendly_failure_text (raw, run->exit_code);
 	if (text == NULL)
 		text = atropos_error_text (raw, run->exit_code);
 	fail_job (job, zypper_error_code (run->exit_code, raw), text);
@@ -1450,11 +2001,117 @@ main (void)
 			return 1;
 		}
 	}
+	{
+		const gchar *log =
+			"In cache libavutil60-8.1.2-5.1.2.1.sr20261001.x86_64.rpm (16/32), 377.6 KiB\n"
+			"In cache libcjson1-1.7.19-3.1.2.1.sr20261001.x86_64.rpm (17/32),  41.3 KiB\n"
+			"Verifying [....done]\n"
+			"Preparing [...done]\n"
+			"Problem occurred during or after installation or removal of packages:\n"
+			"Executing the transaction failed because of the following problems:\n"
+			"    file /etc/sudoers.d from install of atychia-0.19-9.1.x86_64 "
+			"conflicts with file from package sudo-1.9.17p2-4.1.x86_64\n"
+			"Please see the above error message for a hint.\n"
+			"Application returned with exit status 8.\n"
+			"ERROR: zypper dup on /.snapshots/3/snapshot failed with exit code 8!\n"
+			"Found plugin \"/usr/lib/tukit/plugins/10-sdbootutil.tukit\"\n"
+			"Discarding snapshot 3.\n"
+			"transactional-update finished\n";
+		gchar *shown = friendly_failure_text (log, 1);
+		gchar *status_only;
+		gchar *noise;
+		const gchar *cache_only =
+			"In cache foo.rpm (1/1), 1 KiB\n"
+			"Discarding snapshot 3.\n"
+			"transactional-update finished\n";
+		const gchar *dep =
+			"Computing distribution upgrade...\n"
+			"Problem: the to be installed atychia-0.19-12.1.x86_64 requires "
+			"libfoo.so.1()(64bit), but this requirement cannot be provided\n"
+			"  not installable providers: libfoo.so.1()(64bit)\n"
+			" Solution 1: do not install atychia-0.19-12.1.x86_64\n"
+			" Solution 2: break atychia-0.19-12.1.x86_64 by ignoring some of its dependencies\n"
+			"Choose from above solutions by number or cancel [1/2/c/d/?] (c): c\n"
+			"ERROR: zypper dup on /.snapshots/7/snapshot failed with exit code 4!\n"
+			"Discarding snapshot 7.\n";
+
+		if (shown == NULL || strstr (shown, "/etc/sudoers.d") == NULL ||
+		    strstr (shown, "is owned by both") == NULL ||
+		    strstr (shown, "atychia-0.19-9.1.x86_64") == NULL ||
+		    strstr (shown, "sudo-1.9.17p2-4.1.x86_64") == NULL ||
+		    strstr (shown, "was not installed") == NULL ||
+		    strstr (shown, "nothing was changed") == NULL ||
+		    strstr (shown, "In cache") != NULL ||
+		    strstr (shown, "Discarding snapshot") != NULL ||
+		    strstr (shown, "exit status") != NULL ||
+		    strlen (shown) > 2000) {
+			g_printerr ("conflict error text mapping failed: %s\n",
+				    shown != NULL ? shown : "none");
+			g_free (shown);
+			return 1;
+		}
+		g_free (shown);
+		if (zypper_error_code (8, log) != PK_ERROR_ENUM_PACKAGE_CONFLICTS ||
+		    zypper_error_code (1, log) != PK_ERROR_ENUM_PACKAGE_CONFLICTS) {
+			g_printerr ("conflict exit code mapping failed\n");
+			return 1;
+		}
+		if (friendly_failure_text ("mirror down\n", 4) != NULL) {
+			g_printerr ("short error was rewritten\n");
+			return 1;
+		}
+		noise = friendly_failure_text (cache_only, 1);
+		if (noise == NULL || strstr (noise, "was not installed") == NULL ||
+		    strstr (noise, "Nothing was changed") == NULL ||
+		    strstr (noise, "In cache") != NULL ||
+		    strstr (noise, "Discarding") != NULL) {
+			g_printerr ("noise-only error text mapping failed: %s\n",
+				    noise != NULL ? noise : "none");
+			g_free (noise);
+			return 1;
+		}
+		g_free (noise);
+		status_only = friendly_failure_text (
+			"In cache foo.rpm (1/1), 1 KiB\n"
+			"Application returned with exit status 8.\n"
+			"Discarding snapshot 3.\n", 1);
+		if (status_only == NULL || strstr (status_only, "exit 8") == NULL ||
+		    strstr (status_only, "Nothing was changed") == NULL ||
+		    strstr (status_only, "In cache") != NULL ||
+		    strstr (status_only, "Application returned") != NULL) {
+			g_printerr ("exit-status fallback failed: %s\n",
+				    status_only != NULL ? status_only : "none");
+			g_free (status_only);
+			return 1;
+		}
+		g_free (status_only);
+		shown = friendly_failure_text (dep, 1);
+		if (shown == NULL || strstr (shown, "dependency could not be satisfied") == NULL ||
+		    strstr (shown, "atychia-0.19-12.1.x86_64 requires") == NULL ||
+		    strstr (shown, "Nothing available provides libfoo") == NULL ||
+		    strstr (shown, "the to be installed") != NULL ||
+		    strstr (shown, "Solution") != NULL ||
+		    strstr (shown, "ignoring") != NULL ||
+		    strstr (shown, "Discarding") != NULL ||
+		    strlen (shown) > 2000) {
+			g_printerr ("dependency error text mapping failed: %s\n",
+				    shown != NULL ? shown : "none");
+			g_free (shown);
+			return 1;
+		}
+		g_free (shown);
+		if (zypper_error_code (1, dep) != PK_ERROR_ENUM_DEP_RESOLUTION_FAILED) {
+			g_printerr ("dependency exit code mapping failed\n");
+			return 1;
+		}
+	}
 	if (zypper_error_code (7, NULL) != PK_ERROR_ENUM_CANNOT_GET_LOCK ||
 	    zypper_error_code (106, NULL) != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||
 	    zypper_error_code (4, "Timeout exceeded when accessing the mirror") != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||
 	    zypper_error_code (8, "the following conflict was found") != PK_ERROR_ENUM_PACKAGE_CONFLICTS ||
-	    zypper_error_code (5, NULL) != PK_ERROR_ENUM_NOT_AUTHORIZED) {
+	    zypper_error_code (5, NULL) != PK_ERROR_ENUM_NOT_AUTHORIZED ||
+	    zypper_error_code (1, NULL) != PK_ERROR_ENUM_INTERNAL_ERROR ||
+	    zypper_error_code (1, "No space left on device") != PK_ERROR_ENUM_NO_SPACE_ON_DEVICE) {
 		g_printerr ("exit code mapping failed\n");
 		return 1;
 	}

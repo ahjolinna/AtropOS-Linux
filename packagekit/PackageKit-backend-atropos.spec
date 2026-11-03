@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        8
+Release:        9
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
@@ -33,7 +33,9 @@ download size. Update All runs transactional-update dup in a new
 snapshot and does not reboot. Resolve reports installed packages, and
 staged updates from the last check, so Discover can open. Installing or
 removing individual RPM packages is refused. Flatpak updates stay on
-Discover's Flatpak backend.
+Discover's Flatpak backend. A failed update names the file conflict,
+the missing dependency, or the package file that was not published
+yet. The snapshot cleanup is not the reason shown in Discover.
 
 %prep
 
