@@ -359,7 +359,7 @@ if [[ -x $bootloader ]] \
 else
     bad "bootloader script, units, or package file list is wrong"
 fi
-tools='kvantum-qt6 kvantum-qt5 kvantum-manager kvantum-themes sensors libdisplay-info-tools clinfo inxi conky android-udev-rules android-tools ufw hunspell kup-backup unrar lrzip orca htop git osc yubikey-manager flatpak-builder mcfly plocate zsh zsh-autosuggestions zsh-syntax-highlighting zsh-history-substring-search zsh-completions'
+tools='kvantum-qt6 kvantum-qt5 kvantum-manager kvantum-themes sensors libdisplay-info-tools clinfo inxi conky android-udev-rules android-tools ufw hunspell kup-backup unrar lrzip orca htop git gh osc yubikey-manager flatpak-builder mcfly plocate zsh zsh-autosuggestions zsh-syntax-highlighting zsh-history-substring-search zsh-completions'
 missing=
 for name in $tools; do
     if ! grep -q "^Requires:[[:space:]]*${name}$" "$root/patterns/patterns-atropos.spec"; then

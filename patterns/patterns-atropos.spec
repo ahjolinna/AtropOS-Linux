@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        27
+Release:        28
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -448,6 +448,8 @@ Requires:       inxi
 Requires:       conky
 Requires:       htop
 Requires:       git
+# GitHub CLI. Slowroll ships this as gh.
+Requires:       gh
 Requires:       osc
 Requires:       plocate
 # unrar is in the non-oss repository. The product already enables that repo.
