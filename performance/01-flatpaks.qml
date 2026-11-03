@@ -19,31 +19,51 @@ Welcome.Page {
 
     property bool statusKnown: false
     property string activeState: ""
+    property string subState: ""
     property string conditionResult: ""
     property string serviceResult: ""
     property string exitStamp: "0"
     property string conditionStamp: "0"
+    property bool sawDownload: false
+    property double openedAt: 0
+    property double tick: 0
     property int pollId: 0
 
     // ConditionResult is false both before systemd has checked and when the
     // marker exists. ConditionTimestamp stays 0 until the check runs.
+    // A false condition is not proof the download finished: the unit is
+    // still inactive while it waits for the network, and the old page
+    // stopped polling once it had said "installed".
     readonly property bool conditionChecked: Number(conditionStamp) > 0
+    readonly property bool serviceRunning: {
+        const state = activeState
+        const sub = subState
+        return state === "activating" || state === "active" || state === "reloading" || state === "deactivating"
+            || sub === "start-pre" || sub === "start" || sub === "running" || sub === "start-post"
+    }
+    readonly property bool serviceExited: serviceResult === "success" && Number(exitStamp) > 0
+        && (activeState === "inactive" || activeState === "dead" || activeState === "failed")
+    readonly property bool skippedBecauseSeeded: !sawDownload && conditionChecked
+        && (conditionResult === "false" || conditionResult === "no")
+        && (activeState === "inactive" || activeState === "dead")
+        && Number(exitStamp) === 0
+        && openedAt > 0 && tick - openedAt >= 20000
     readonly property string phase: {
-        if (!statusKnown) {
+        if (!statusKnown || serviceRunning) {
             return "downloading"
         }
-        if (activeState === "activating" || activeState === "active") {
-            return "downloading"
-        }
-        // ConditionPathExists=!marker failed, so the files are already installed.
-        if (conditionChecked && (conditionResult === "false" || conditionResult === "no")) {
-            return "ready"
-        }
-        if (serviceResult === "success" && Number(exitStamp) > 0) {
+        if (serviceExited) {
             return "ready"
         }
         if (serviceResult !== "" && serviceResult !== "success") {
             return "failed"
+        }
+        // The oneshot was seen running and has not exited yet.
+        if (sawDownload) {
+            return "downloading"
+        }
+        if (skippedBecauseSeeded) {
+            return "ready"
         }
         return "downloading"
     }
@@ -112,6 +132,7 @@ Welcome.Page {
         const box = {
             "n": 0,
             "active": "",
+            "sub": "",
             "condition": "",
             "result": "",
             "stamp": "0",
@@ -123,27 +144,38 @@ Welcome.Page {
             }
             box[field] = value
             box.n += 1
-            if (box.n < 5) {
+            if (box.n < 6) {
                 return
             }
+            const running = box.active === "activating" || box.active === "active"
+                || box.active === "reloading" || box.active === "deactivating"
+                || box.sub === "start-pre" || box.sub === "start" || box.sub === "running" || box.sub === "start-post"
+            if (running) {
+                page.sawDownload = true
+            }
             page.activeState = box.active
+            page.subState = box.sub
             page.conditionResult = box.condition
             page.serviceResult = box.result
             page.exitStamp = box.stamp
             page.conditionStamp = box.checked
+            page.tick = Date.now()
             page.statusKnown = true
         }
         page.ask("org.freedesktop.systemd1.Unit", "ActiveState", function (v) { got("active", v) }, id)
+        page.ask("org.freedesktop.systemd1.Unit", "SubState", function (v) { got("sub", v) }, id)
         page.ask("org.freedesktop.systemd1.Unit", "ConditionResult", function (v) { got("condition", v) }, id)
         page.ask("org.freedesktop.systemd1.Service", "Result", function (v) { got("result", v) }, id)
         page.ask("org.freedesktop.systemd1.Service", "ExecMainExitTimestamp", function (v) { got("stamp", v) }, id)
         page.ask("org.freedesktop.systemd1.Unit", "ConditionTimestamp", function (v) { got("checked", v) }, id)
     }
 
+    Component.onCompleted: openedAt = Date.now()
+
     Timer {
         interval: 1500
         repeat: true
-        running: page.downloading
+        running: true
         triggeredOnStart: true
         onTriggered: page.beginPoll()
     }

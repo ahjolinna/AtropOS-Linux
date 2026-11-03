@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Tue Nov 03 08:36:59 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Seed Merkuro, Elisa, Skanlite, and KMahjongg from Flathub.
+- Welcome Center said the Flatpak download had finished while the
+  seed service was still going to run, and then stopped checking.
+  The progress page stays up until that service has exited, and it
+  keeps checking so a late start is shown.
+- A fresh install no longer downloads those applications from the
+  package script. The first-boot service does it while Welcome
+  Center can see it.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.

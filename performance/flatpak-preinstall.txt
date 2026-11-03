@@ -6,5 +6,9 @@ org.kde.kwrite
 io.github.mpc_qt.mpc-qt
 org.kde.kcalc
 org.kde.kolourpaint
+org.kde.merkuro
+org.kde.elisa
+org.kde.skanlite
+org.kde.kmahjongg
 io.github.slgobinath.SafeEyes
 org.mozilla.firefox

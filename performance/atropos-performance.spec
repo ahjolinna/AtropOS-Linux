@@ -9,7 +9,7 @@
 
 Name:           atropos-performance
 Version:        0.4.0
-Release:        15
+Release:        16
 Summary:        AtropOS desktop performance defaults
 License:        (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND Apache-2.0 AND ISC AND CC0-1.0 AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later
 Group:          System/Base
@@ -245,13 +245,13 @@ if [ -x /usr/bin/systemctl ]; then
     systemctl --no-reload preset tuned.service >/dev/null 2>&1 || :
     systemctl --no-reload preset tuned-ppd.service >/dev/null 2>&1 || :
 fi
-# Agama installs this package into the target. Root flatpak does not need
-# the system bus, so the download can finish before the first boot. Kiwi
-# writes /.kconfig and /.profile while it builds the live ISO; skip that,
-# or the Offline image would fetch Flathub into the live root. A failure
-# leaves the marker unset and atropos-seed-flatpaks.service tries again.
-if [ ! -e /.kconfig ] && [ ! -e /.profile ] && [ -x %{_libexecdir}/atropos-seed-flatpaks ]; then
-    %{_libexecdir}/atropos-seed-flatpaks || :
+# A fresh install leaves the download for atropos-seed-flatpaks.service,
+# so Welcome Center can show it. An upgrade keeps the old marker, which
+# would hide applications added to the list. Drop that marker when one
+# is missing. The next boot installs it. Do not install from this
+# script: that finished before the first login.
+if [ "$1" -ge 2 ] && [ -f /var/lib/atropos/flatpaks-seeded ] && [ -x %{_libexecdir}/atropos-seed-flatpaks ]; then
+    %{_libexecdir}/atropos-seed-flatpaks --missing || rm -f /var/lib/atropos/flatpaks-seeded
 fi
 # The OpenRGB Flatpak does not install host rules. Create the group and
 # reload udev on the target. Kiwi's /.kconfig and /.profile mean this is
