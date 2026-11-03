@@ -17,6 +17,9 @@
 
 %define kf6_version 6.27.0
 %define qt6_version 6.11.2
+# CMakeLists PROJECT_DEP_VERSION. Not %{version}: set_version follows the
+# Plasma/6.7 tag, which can be newer than Slowroll's workspace and kscreen.
+%define plasma_dep_version 6.7.0
 %define rname plasma-login-manager
 
 Name:           plasma6-login-manager
@@ -48,10 +51,10 @@ BuildRequires:  cmake(KF6KCMUtils) >= %{kf6_version}
 BuildRequires:  cmake(KF6Auth) >= %{kf6_version}
 BuildRequires:  cmake(KF6KIO) >= %{kf6_version}
 BuildRequires:  cmake(KF6CoreAddons) >= %{kf6_version}
-BuildRequires:  cmake(KF6Screen) >= %{version}
+BuildRequires:  cmake(KF6Screen) >= %{plasma_dep_version}
 BuildRequires:  cmake(LayerShellQt)
-BuildRequires:  cmake(LibKWorkspace) >= %{version}
-BuildRequires:  cmake(LibKLookAndFeel) >= %{version}
+BuildRequires:  cmake(LibKWorkspace) >= %{plasma_dep_version}
+BuildRequires:  cmake(LibKLookAndFeel) >= %{plasma_dep_version}
 BuildRequires:  cmake(PlasmaQuick)
 BuildRequires:  cmake(Qt6Core) >= %{qt6_version}
 BuildRequires:  cmake(Qt6DBus) >= %{qt6_version}

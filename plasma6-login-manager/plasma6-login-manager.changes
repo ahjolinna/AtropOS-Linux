@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Nov  3 21:07:04 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require KF6Screen, LibKWorkspace, and LibKLookAndFeel at 6.7.0.
+  The Plasma/6.7 tag can be newer than Slowroll's Plasma 6.7.5.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:50:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Rename the package to plasma6-login-manager, the name used for the
