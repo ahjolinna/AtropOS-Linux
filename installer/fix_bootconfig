@@ -24,6 +24,25 @@ if [ -f .profile ]; then
     cp .profile "$dst"
 fi
 
+# Offline config.sh leaves a signed rpm-md repository in ./packages.
+# Agama uses /install on the ISO, mounted at /run/initramfs/live/install,
+# and then skips the product's remote repositories. This hook runs before
+# the squashfs is packed. Move the repository onto the media and drop the
+# root copy so the packages are stored once.
+if [ -d packages ]; then
+    if [ ! -d "$dst" ]; then
+        echo "editbootconfig: media directory '$1' is not a directory" >&2
+        exit 1
+    fi
+    rm -rf "$dst/install"
+    if ! mv packages "$dst/install"; then
+        mkdir -p "$dst/install"
+        cp -a packages/. "$dst/install/"
+        rm -rf packages
+    fi
+    test -f "$dst/install/repodata/repomd.xml"
+fi
+
 arch=`uname -m`
 
 bootfix=$dst/fix_bootconfig.$arch

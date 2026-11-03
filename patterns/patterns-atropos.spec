@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        23
+Release:        25
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -488,6 +488,11 @@ Provides:       pattern-order() = 9210
 Provides:       pattern-visible()
 ExclusiveArch:  x86_64
 Requires:       atropos-nvidia
+Requires:       nvidia-open-driver-G07-signed-kmp-meta
+Requires:       nvidia-open-driver-G07-signed-kmp-longterm
+Requires:       nvidia-userspace-meta-G07
+Requires:       nvidia-video-G07
+Requires:       nvidia-compute-utils-G07
 # Keep a supplemented solve on the open longterm module.
 Conflicts:      nvidia-open-driver-G07-signed-kmp-default
 Conflicts:      nvidia-open-driver-G07-signed-cuda-kmp-default
@@ -496,10 +501,12 @@ Conflicts:      nvidia-open-driver-G06-signed-kmp-meta
 Conflicts:      nvidia-driver-G06-kmp-meta
 
 %description nvidia
-Open NVIDIA driver for Turing and newer GPUs. First boot installs
+Open NVIDIA driver for Turing and newer GPUs. Agama installs
 nvidia-open-driver-G07-signed-kmp-meta, the kernel-longterm module, and
-the matching G07 userspace from the NVIDIA repository, then asks for a
-reboot. The proprietary driver and the CUDA kernel module are left out.
+the matching G07 userspace when this pattern is selected. The
+proprietary driver and the CUDA kernel module are left out. If those
+packages are absent, atropos-nvidia installs them on first boot and
+reboots before the login screen.
 %endif
 
 %package debug

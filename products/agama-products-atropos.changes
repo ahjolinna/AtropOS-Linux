@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Nov 03 06:08:27 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add the NVIDIA Tumbleweed repository for x86_64. onlyRequired keeps
+  the driver unselected until the NVIDIA pattern is chosen. Offline
+  media with an install/ repository skips this URL.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.

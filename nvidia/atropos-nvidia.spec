@@ -1,14 +1,15 @@
 #
 # spec file for package atropos-nvidia
 #
-# First-boot installer for the open signed NVIDIA G07 driver.
-# The driver packages themselves stay out of the Agama solver so the
-# proprietary G06 supplements in the NVIDIA repository are not selected
-# for the user.
+# First-boot fallback for the open signed NVIDIA G07 driver.
+# Agama installs the driver when the atropos_nvidia pattern is selected.
+# solver.onlyRequires stays on, so the G06 supplements stay unselected
+# while that pattern is off. This package installs the driver on first
+# boot when those packages are absent.
 
 Name:           atropos-nvidia
 Version:        0.1.0
-Release:        3
+Release:        4
 Summary:        AtropOS open NVIDIA G07 driver setup
 License:        GPL-2.0-or-later AND (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND CC0-1.0
 Group:          System/Base
@@ -27,10 +28,11 @@ Requires:       transactional-update
 Requires:       openSUSE-repos-Slowroll-NVIDIA
 
 %description
-On first boot, installs the signed open NVIDIA G07 driver built for
-kernel-longterm into a new snapshot. The package set follows the
-openSUSE NVIDIA SDB for Leap and Tumbleweed. The machine reboots
-before the login screen, so Plasma does not start on llvmpipe.
+Installs the signed open NVIDIA G07 driver built for kernel-longterm
+when Agama did not. The package set follows the openSUSE NVIDIA SDB
+for Leap and Tumbleweed. That first boot reboots before the login
+screen, so Plasma does not start on llvmpipe. When the driver packages
+are already installed, first boot records that and continues.
 The GPU can sleep, suspend does not freeze the session while the
 nvidia module is loaded, and GPU memory allocation skips the
 security wipe.

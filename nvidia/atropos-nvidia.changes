@@ -1,4 +1,25 @@
 -------------------------------------------------------------------
+Tue Nov 03 06:08:27 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Skip the first-boot install when the open G07 packages are already
+  installed. Agama installs them when the NVIDIA pattern is selected.
+- Release 4. The repository already has 0.1.0-2.1.
+
+-------------------------------------------------------------------
+Tue Nov 03 05:15:42 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Mount the EFI partition from fstab before installing the driver.
+  Inside the snapshot /boot is not that partition, so the kernel
+  scriptlet fails, zypper exits 107, and transactional-update deletes
+  the snapshot.
+- Keep the snapshot when zypper exits 102 or 103. Those mean the
+  packages were installed and a reboot is required.
+- Write the install marker on the running system too. /var is a
+  separate subvolume, so a marker written only in the snapshot stays
+  hidden and the next boot installs the driver again.
+- Release 4. The repository already has 0.1.0-2.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 04:48:53 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Pass --auto-agree-with-licenses after the zypper subcommand. zypper

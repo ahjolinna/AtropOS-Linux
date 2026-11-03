@@ -22,6 +22,11 @@ software:
     # installed system; AtropOS-release keeps the same repository there.
     - url: https://download.opensuse.org/repositories/home:/ahjolinna/openSUSE_Slowroll/
       archs: x86_64
+    # Open G07 userspace. The installer keeps onlyRequired on, so the G06
+    # and G07 hardware supplements stay out unless atropos_nvidia requires
+    # the packages. An ISO with an install/ repository skips this whole list.
+    - url: https://download.nvidia.com/opensuse/tumbleweed
+      archs: x86_64
   installation_labels:
     - label: AtropOS-desktop-x86_64
       archs: x86_64
@@ -30,10 +35,9 @@ software:
   optional_patterns: []
   user_patterns:
     - container_runtime
-    # Unchecked. Selecting it installs atropos-nvidia, which applies the
-    # open signed G07 driver on first boot. The NVIDIA repository is not
-    # an installation repository: its hardware supplements would otherwise
-    # pull the proprietary driver during the solve.
+    # Unchecked. Selecting it installs the open signed G07 longterm module
+    # and its userspace during the Agama solve. atropos-nvidia still
+    # installs that set on first boot when the packages are absent.
     - name: atropos_nvidia
       selected: false
     # Unchecked. gdb, strace, perf, valgrind, heaptrack, and the other

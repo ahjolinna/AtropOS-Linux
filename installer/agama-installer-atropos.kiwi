@@ -120,7 +120,7 @@
         <package name="health-checker"/>
         <package name="createrepo_c"/>
         <!-- Server NIC/HBA/embedded firmware not needed in the live installer.
-             The packages remain in /packages for the installed system (Offline). -->
+             The packages remain in the Offline install/ repository. -->
         <package name="kernel-firmware-bnx2"/>
         <package name="kernel-firmware-chelsio"/>
         <package name="kernel-firmware-dpaa2"/>
@@ -159,6 +159,9 @@
         <package name="staging-build-key"/>
         <package name="plymouth-branding-openSUSE" arch="aarch64,x86_64" />
         <package name="plymouth-theme-atropos" arch="aarch64,x86_64" />
+        <!-- Public repomd key for download.nvidia.com. Agama imports gpg-*
+             from this directory into the installed system. -->
+        <file name="gpg-pubkey-nvidia-tumbleweed.asc" target="/usr/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc" permissions="644"/>
     </packages>
 
     <!-- Offline embeds the image repository. patterns-atropos-base is solved

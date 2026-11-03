@@ -36,6 +36,14 @@ rm -f /etc/zypp/repos.d/agama-openSUSE_Tumbleweed.repo \
       /etc/zypp/repos.d/agama-openSUSE_Tumbleweed.repo.disabled
 rm -f /etc/zypp/repos.d/*.disabled
 
+# The NVIDIA repomd key ships in the image description. Agama imports
+# every gpg-* file here into the installed system, and the live solver
+# trusts keys that are already in this rpm database.
+if [ -f /image/gpg-pubkey-nvidia-tumbleweed.asc ]; then
+  install -D -m 0644 /image/gpg-pubkey-nvidia-tumbleweed.asc \
+    /usr/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc
+fi
+
 # import the openSUSE keys, but check if there is any
 if stat -t /usr/lib/rpm/gnupg/keys/*.asc 2>/dev/null 1>/dev/null; then
   rpm --import /usr/lib/rpm/gnupg/keys/*.asc
@@ -207,13 +215,80 @@ dd bs=1 count=1 seek=2G if=/dev/zero of=/var/lib/live_free_space
 rm -f /usr/bin/suseconnect
 
 # Offline: OBS bind-mounts the build repository at /repos. Copy it to
-# /packages and sign it so agama-web-server trusts the embedded media.
-# The product file is not rewritten. It lists Slowroll oss, non-oss,
-# update/slowroll/repo/oss, and the home:ahjolinna Slowroll overlay.
+# /packages, add the open G07 closure on x86_64, and sign it. fix_bootconfig
+# moves /packages to the ISO directory install/ before the squashfs is packed.
+# The product file is not rewritten.
 if [[ "$kiwi_profiles" == *"Offline"* ]]; then
     mkdir -p /packages
     find /repos -name "*.rpm" 2>/dev/null \
         | xargs -r -I{} cp -n {} /packages/
+    # The image repositories do not carry download.nvidia.com or the
+    # update-slowroll kmp that matches current G07 userspace. Download
+    # that closure into the embedded repository. Leave it out of the live
+    # root: the live kernel is kernel-default.
+    if [ "$arch" = "x86_64" ]; then
+        update_url=https://download.opensuse.org/update/slowroll/repo/oss/
+        nvidia_url=https://download.nvidia.com/opensuse/tumbleweed
+        zypper --non-interactive ar -f "$update_url" atropos-offline-update
+        zypper --non-interactive ar -f "$nvidia_url" atropos-offline-nvidia
+        zypper --non-interactive --gpg-auto-import-keys refresh \
+            atropos-offline-update atropos-offline-nvidia
+        cache=/var/cache/zypp/atropos-offline-download
+        mkdir -p "$cache"
+        zypper --non-interactive --gpg-auto-import-keys \
+            --pkg-cache-dir "$cache" install \
+            --download-only --no-recommends --auto-agree-with-licenses \
+            nvidia-open-driver-G07-signed-kmp-meta \
+            nvidia-open-driver-G07-signed-kmp-longterm \
+            nvidia-userspace-meta-G07 \
+            nvidia-video-G07 \
+            nvidia-compute-utils-G07
+        if rpm -q nvidia-video-G07 >/dev/null 2>&1; then
+            echo "The open driver was installed into the live root" >&2
+            exit 1
+        fi
+        for name in \
+            nvidia-open-driver-G07-signed-kmp-meta \
+            nvidia-open-driver-G07-signed-kmp-longterm \
+            nvidia-userspace-meta-G07 \
+            nvidia-video-G07 \
+            nvidia-compute-utils-G07
+        do
+            if ! find "$cache" -name "${name}-[0-9]*.rpm" | grep -q .; then
+                echo "Offline repository download is missing ${name}" >&2
+                exit 1
+            fi
+        done
+        if ! find "$cache" -name 'kernel-longterm-[0-9]*.rpm' | grep -q .; then
+            echo "Offline repository download is missing kernel-longterm" >&2
+            exit 1
+        fi
+        userspace_rpm=$(find "$cache" -name 'nvidia-userspace-meta-G07-[0-9]*.rpm' -print -quit)
+        need=$(rpm -qp --requires "$userspace_rpm" \
+            | sed -n 's/.*nvidia-open-driver-G07-signed-kmp = \([^ )]*\).*/\1/p' \
+            | head -n 1)
+        if [ -z "$need" ]; then
+            echo "nvidia-userspace-meta-G07 does not require the open kmp" >&2
+            exit 1
+        fi
+        matched=0
+        while IFS= read -r kmp_rpm; do
+            if rpm -qp --provides "$kmp_rpm" \
+                | grep -F -q "nvidia-open-driver-G07-signed-kmp = ${need}"; then
+                matched=1
+                break
+            fi
+        done < <(find "$cache" -name 'nvidia-open-driver-G07-signed-kmp-longterm-[0-9]*.rpm')
+        if [ "$matched" != 1 ]; then
+            echo "Downloaded longterm kmp does not provide ${need}" >&2
+            exit 1
+        fi
+        find "$cache" -name '*.rpm' -exec cp -n -t /packages/ {} +
+        rm -rf "$cache"
+        zypper --non-interactive rr atropos-offline-update atropos-offline-nvidia
+        rm -f /etc/zypp/repos.d/atropos-offline-update.repo \
+              /etc/zypp/repos.d/atropos-offline-nvidia.repo
+    fi
     createrepo_c /packages
     echo "RPM count in packages: $(find /packages -name '*.rpm' | wc -l)"
     # patterns-atropos-base requires plymouth-theme-atropos. --clean-deps

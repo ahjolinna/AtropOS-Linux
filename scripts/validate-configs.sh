@@ -32,10 +32,16 @@ if ruby -ryaml -e '
   patterns = data.dig("software", "user_patterns") || []
   debug = patterns.find { |item| item.is_a?(Hash) && item["name"] == "atropos_debug" }
   abort "atropos_debug is not an unchecked user pattern" unless debug && debug["selected"] == false
+  nvidia = patterns.find { |item| item.is_a?(Hash) && item["name"] == "atropos_nvidia" }
+  abort "atropos_nvidia is not an unchecked user pattern" unless nvidia && nvidia["selected"] == false
+  repos = data.dig("software", "installation_repositories") || []
+  nvidia_repo = repos.find { |item| item["url"] == "https://download.nvidia.com/opensuse/tumbleweed" }
+  abort "NVIDIA Tumbleweed repository is missing" unless nvidia_repo && nvidia_repo["archs"] == "x86_64"
 ' "$root/products/atropos.yaml"
 then
     ok "atropos.yaml parses, and compress=zstd:-4 plus lazytime are the only fstab options"
     ok "atropos_debug is an unchecked installer pattern"
+    ok "atropos_nvidia is unchecked and the NVIDIA repository is x86_64 only"
 else
     bad "atropos.yaml failed the product check"
 fi
@@ -472,6 +478,25 @@ if tar -xOJf "$cdroot" ./fix_bootconfig.x86_64 | grep -q 'boot/grub2/themes/atro
     ok "ISO boot script selects the atropos theme and asks Online for a network"
 else
     bad "ISO boot script still forces the openSUSE theme or skips the Online network dialog"
+fi
+if grep -q 'onlyRequired' "$root/installer/config.sh" \
+    && grep -q 'download.nvidia.com/opensuse/tumbleweed' "$root/installer/config.sh" \
+    && grep -q -- '--download-only' "$root/installer/config.sh" \
+    && grep -q 'mv packages "\$dst/install"' "$root/installer/fix_bootconfig" \
+    && grep -q 'gpg-pubkey-nvidia-tumbleweed.asc' "$root/installer/agama-installer-atropos.kiwi" \
+    && grep -q 'BEGIN PGP PUBLIC KEY BLOCK' "$root/installer/gpg-pubkey-nvidia-tumbleweed.asc" \
+    && grep -q 'nvidia-open-driver-G07-signed-kmp-longterm' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'nvidia-userspace-meta-G07' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'nvidia-video-G07' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'nvidia-compute-utils-G07' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'rpm -q' "$root/nvidia/atropos-nvidia-setup" \
+    && bash -n "$root/installer/config.sh" \
+    && bash -n "$root/installer/fix_bootconfig" \
+    && bash -n "$root/nvidia/atropos-nvidia-setup" \
+    && bash -n "$root/nvidia/atropos-nvidia-apply"; then
+    ok "Agama can install the open G07 driver from the Online repository or the Offline ISO"
+else
+    bad "open G07 Agama install is incomplete"
 fi
 if grep -q '^enable tuned.service$' "$root/performance/80-atropos.preset" \
     && grep -q 'multi-user.target.wants/tuned.service' "$root/performance/atropos-performance.spec" \
