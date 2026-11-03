@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Tue Nov 03 02:25:39 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- After an update is staged, Discover shows "System update" with
+  "Installed. Reboot to apply." instead of a package named AtropOS
+  version staged and an unknown size.
+- Notify the user who started the update, once, that it was installed
+  and will be applied after reboot.
+- Keep the solved update list while a reboot is waiting, so Discover's
+  refresh does not drop the download size.
+- Release 11. The repository already has 0.1.0-10.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 01:23:50 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Parse a successful update check from zypper's stdout only. stderr

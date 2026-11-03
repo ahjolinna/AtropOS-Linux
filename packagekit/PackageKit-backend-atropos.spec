@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        10
+Release:        11
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
@@ -23,6 +23,8 @@ Source3:        discoverrc
 Requires:       PackageKit
 Requires:       transactional-update
 Requires:       zypper
+Requires:       /usr/bin/gdbus
+Requires:       /usr/sbin/runuser
 Provides:       PackageKit-backend
 Conflicts:      PackageKit-backend-zypp
 
@@ -30,13 +32,15 @@ Conflicts:      PackageKit-backend-zypp
 PackageKit backend used by Discover on AtropOS. Checking for updates runs
 zypper dup --dry-run and reports one System updates row with that
 download size. Update All runs transactional-update dup in a new
-snapshot and does not reboot. Resolve reports installed packages, and
-staged updates from the last check, so Discover can open. Installing or
-removing individual RPM packages is refused. Flatpak updates stay on
-Discover's Flatpak backend. A failed update names the file conflict,
-the missing dependency, the package file that was not published yet,
-or an ERROR: line from the snapshot tools. Snapshot cleanup is not
-the reason shown in Discover.
+snapshot and does not reboot. While that snapshot is waiting, Discover
+shows one row that says the update is installed and a reboot will apply
+it, and the user who started the update gets one notification. Resolve
+reports installed packages and staged updates from the last check, so
+Discover can open. Installing or removing individual RPM packages is
+refused. Flatpak updates stay on Discover's Flatpak backend. A failed
+update names the file conflict, the missing dependency, the package
+file that was not published yet, or an ERROR: line from the snapshot
+tools. Snapshot cleanup is not the reason shown in Discover.
 
 %prep
 

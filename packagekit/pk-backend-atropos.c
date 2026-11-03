@@ -23,14 +23,21 @@
  * transactional-update exits 1 for every zypper failure. The zypper
  * code is the number in "failed with exit code".
  *
+ * After the snapshot is staged, Discover shows one "System update" row
+ * whose version is "Installed. Reboot to apply." The user who started
+ * the update is notified once. The solved list stays until reboot so
+ * that row can still show the download size.
+ *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include <errno.h>
 #include <poll.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -51,15 +58,26 @@ void pk_backend_job_set_status (PkBackendJob *job, PkStatusEnum status);
 void pk_backend_job_set_allow_cancel (PkBackendJob *job, gboolean allow_cancel);
 void pk_backend_job_set_percentage (PkBackendJob *job, guint percentage);
 gboolean pk_backend_job_is_cancelled (PkBackendJob *job);
+guint pk_backend_job_get_uid (PkBackendJob *job);
 
 #define ATROPOS_CACHE_DIR "/var/cache/atropos-packagekit"
 #define ATROPOS_CACHE_FILE ATROPOS_CACHE_DIR "/updates.tsv"
 #define ATROPOS_CACHE_TMP ATROPOS_CACHE_FILE ".tmp"
 #define ATROPOS_SIZE_FILE ATROPOS_CACHE_DIR "/download-size"
 #define ATROPOS_REBOOT_FILE "/run/reboot-needed"
+/* One notification per staged update. /run is cleared on reboot. */
+#define ATROPOS_NOTIFIED_FILE "/run/atropos-packagekit-notified"
 #define ATROPOS_PERCENTAGE_INVALID 101
 /* Discover shows this single row instead of one row per RPM. */
 #define ATROPOS_BUNDLE_NAME "System updates"
+/*
+ * Discover's update row shows the package name and the version, not the
+ * summary. The version is the sentence under the name.
+ */
+#define ATROPOS_REBOOT_NAME "System update"
+#define ATROPOS_REBOOT_VERSION "Installed. Reboot to apply."
+#define ATROPOS_REBOOT_SUMMARY "The update was installed. It will be applied after you reboot."
+#define ATROPOS_REBOOT_DETAIL "The update was installed into the next snapshot. Reboot to start it. This session stays as it is until then."
 
 typedef struct {
 	gchar *section;
@@ -706,27 +724,21 @@ cache_is_fresh (guint max_age)
 }
 
 static gchar *
-package_id_for (const AtroposPkg *pkg)
-{
-	return pk_package_id_build (pkg->name, pkg->edition, pkg->arch, pkg->repo);
-}
-
-static gchar *
 bundle_package_id (void)
 {
 	return pk_package_id_build (ATROPOS_BUNDLE_NAME, "pending", "noarch", "slowroll");
 }
 
-/* The reboot-pending path synthesizes one row when the cache is missing. */
-static gboolean
-is_staged_placeholder (GPtrArray *pkgs)
+static gchar *
+reboot_package_id (void)
 {
-	AtroposPkg *pkg;
+	return pk_package_id_build (ATROPOS_REBOOT_NAME, ATROPOS_REBOOT_VERSION, "noarch", "reboot");
+}
 
-	if (pkgs == NULL || pkgs->len != 1)
-		return FALSE;
-	pkg = g_ptr_array_index (pkgs, 0);
-	return g_strcmp0 (pkg->repo, "transactional-update") == 0;
+static gboolean
+is_reboot_package (gchar **parts)
+{
+	return parts != NULL && g_strcmp0 (parts[PK_PACKAGE_ID_DATA], "reboot") == 0;
 }
 
 static gchar *
@@ -754,14 +766,6 @@ emit_system_updates (PkBackendJob *job, GPtrArray *pkgs, guint64 download_size)
 
 	if (pkgs == NULL || pkgs->len == 0)
 		return;
-	if (is_staged_placeholder (pkgs)) {
-		AtroposPkg *pkg = g_ptr_array_index (pkgs, 0);
-
-		package_id = package_id_for (pkg);
-		pk_backend_job_package (job, PK_INFO_ENUM_NORMAL, package_id, pkg->summary);
-		g_free (package_id);
-		return;
-	}
 	summary = bundle_summary (pkgs->len, download_size);
 	package_id = bundle_package_id ();
 	pk_backend_job_package (job, PK_INFO_ENUM_NORMAL, package_id, summary);
@@ -1499,8 +1503,112 @@ collect_updates (PkBackendJob *job, GPtrArray **pkgs_out)
 }
 
 static void
+reap_notify (GPid pid, gint status, gpointer user_data)
+{
+	(void) status;
+	(void) user_data;
+	g_spawn_close_pid (pid);
+}
+
+/*
+ * Tell the session that clicked Update. packagekitd is root, and the
+ * session bus rejects a root connection, so this is a short-lived
+ * process running as that user. A failure leaves the update staged.
+ */
+static void
+notify_update_installed (PkBackendJob *job)
+{
+	guint uid = pk_backend_job_get_uid (job);
+	struct passwd *pw;
+	struct stat st;
+	gchar *stamp = NULL;
+	gchar *previous = NULL;
+	gchar *username = NULL;
+	gchar *home = NULL;
+	gchar *bus = NULL;
+	gchar *runtime = NULL;
+	gchar *env_bus = NULL;
+	gchar *env_runtime = NULL;
+	gchar *env_home = NULL;
+	gchar *argv[24];
+	gchar *envp[5];
+	GPid pid = 0;
+	GError *error = NULL;
+	guint n = 0;
+
+	if (uid < 1000)
+		return;
+	bus = g_strdup_printf ("/run/user/%u/bus", uid);
+	if (!g_file_test (bus, G_FILE_TEST_EXISTS))
+		goto out;
+	if (stat (ATROPOS_REBOOT_FILE, &st) == 0)
+		stamp = g_strdup_printf ("%lld\n", (long long) st.st_mtime);
+	else
+		stamp = g_strdup ("staged\n");
+	if (g_file_get_contents (ATROPOS_NOTIFIED_FILE, &previous, NULL, NULL) &&
+	    g_strcmp0 (previous, stamp) == 0)
+		goto out;
+	pw = getpwuid (uid);
+	if (pw == NULL || pw->pw_name == NULL || pw->pw_name[0] == '\0')
+		goto out;
+	username = g_strdup (pw->pw_name);
+	home = g_strdup (pw->pw_dir != NULL ? pw->pw_dir : "/");
+	runtime = g_strdup_printf ("/run/user/%u", uid);
+	env_bus = g_strdup_printf ("DBUS_SESSION_BUS_ADDRESS=unix:path=%s", bus);
+	env_runtime = g_strdup_printf ("XDG_RUNTIME_DIR=%s", runtime);
+	env_home = g_strdup_printf ("HOME=%s", home);
+	argv[n++] = "/usr/sbin/runuser";
+	argv[n++] = "-u";
+	argv[n++] = username;
+	argv[n++] = "-m";
+	argv[n++] = "--";
+	argv[n++] = "/usr/bin/gdbus";
+	argv[n++] = "call";
+	argv[n++] = "--session";
+	argv[n++] = "--dest";
+	argv[n++] = "org.freedesktop.Notifications";
+	argv[n++] = "--object-path";
+	argv[n++] = "/org/freedesktop/Notifications";
+	argv[n++] = "--method";
+	argv[n++] = "org.freedesktop.Notifications.Notify";
+	argv[n++] = "Discover";
+	argv[n++] = "0";
+	argv[n++] = "system-software-update";
+	argv[n++] = "Update installed";
+	argv[n++] = ATROPOS_REBOOT_SUMMARY;
+	argv[n++] = "[]";
+	argv[n++] = "{'resident': <true>}";
+	argv[n++] = "0";
+	argv[n++] = NULL;
+	envp[0] = env_bus;
+	envp[1] = env_runtime;
+	envp[2] = env_home;
+	envp[3] = "PATH=/usr/bin:/usr/sbin:/bin";
+	envp[4] = NULL;
+	if (!g_spawn_async (NULL, argv, envp,
+			    G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+			    NULL, NULL, &pid, &error)) {
+		g_clear_error (&error);
+		goto out;
+	}
+	g_child_watch_add (pid, reap_notify, NULL);
+	g_file_set_contents (ATROPOS_NOTIFIED_FILE, stamp, -1, NULL);
+out:
+	g_free (stamp);
+	g_free (previous);
+	g_free (username);
+	g_free (home);
+	g_free (bus);
+	g_free (runtime);
+	g_free (env_bus);
+	g_free (env_runtime);
+	g_free (env_home);
+}
+
+static void
 finish_reboot_required (PkBackendJob *job, const gchar *package_id)
 {
+	notify_update_installed (job);
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_FINISHED);
 	pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
 	pk_backend_job_finished (job);
@@ -1541,34 +1649,16 @@ pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filter
 	(void) backend;
 	(void) filters;
 	if (atropos_reboot_pending ()) {
-		pkgs = read_cache ();
-		if (pkgs == NULL) {
-			pkgs = g_ptr_array_new_with_free_func ((GDestroyNotify) atropos_pkg_free);
-			AtroposPkg *pkg = g_new0 (AtroposPkg, 1);
-			pkg->section = g_strdup ("upgrade");
-			pkg->name = g_strdup ("AtropOS");
-			pkg->edition = g_strdup ("staged");
-			pkg->arch = g_strdup ("noarch");
-			pkg->repo = g_strdup ("transactional-update");
-			pkg->summary = g_strdup ("System update is staged. Reboot to start the new snapshot.");
-			g_ptr_array_add (pkgs, pkg);
-		}
-		emit_system_updates (job, pkgs, read_download_size ());
-		/*
-		 * Tell Discover a reboot is waiting. This does not reboot.
-		 * The user starts the staged snapshot when they choose to.
-		 */
-		if (pkgs->len > 0) {
-			gchar *package_id;
+		gchar *package_id = reboot_package_id ();
 
-			if (is_staged_placeholder (pkgs))
-				package_id = package_id_for (g_ptr_array_index (pkgs, 0));
-			else
-				package_id = bundle_package_id ();
-			pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
-			g_free (package_id);
-		}
-		g_ptr_array_free (pkgs, TRUE);
+		/*
+		 * The snapshot is already installed. Keep one row so the
+		 * Updates page explains that, and ask for a reboot. This
+		 * does not reboot and does not start another dup.
+		 */
+		pk_backend_job_package (job, PK_INFO_ENUM_NORMAL, package_id, ATROPOS_REBOOT_SUMMARY);
+		pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
+		g_free (package_id);
 		pk_backend_job_finished (job);
 		return;
 	}
@@ -1594,9 +1684,16 @@ pk_backend_refresh_cache (PkBackend *backend, PkBackendJob *job, gboolean force)
 {
 	(void) backend;
 	(void) force;
-	g_unlink (ATROPOS_CACHE_FILE);
-	g_unlink (ATROPOS_CACHE_TMP);
-	g_unlink (ATROPOS_SIZE_FILE);
+	/*
+	 * Discover refreshes before it asks for updates. Deleting the solved
+	 * list while a reboot is waiting dropped the download size, and the
+	 * row fell back to a nameless placeholder. Keep it until reboot.
+	 */
+	if (!atropos_reboot_pending ()) {
+		g_unlink (ATROPOS_CACHE_FILE);
+		g_unlink (ATROPOS_CACHE_TMP);
+		g_unlink (ATROPOS_SIZE_FILE);
+	}
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_REFRESH_CACHE);
 	pk_backend_job_finished (job);
 }
@@ -1614,6 +1711,23 @@ pk_backend_get_details (PkBackend *backend, PkBackendJob *job, gchar **package_i
 		const gchar *summary = "System update";
 		guint j;
 
+		if (is_reboot_package (parts)) {
+			guint64 download_size = read_download_size ();
+			GString *desc = g_string_new (ATROPOS_REBOOT_DETAIL);
+
+			if (pkgs != NULL && pkgs->len > 0)
+				g_string_append_printf (desc, "\n\nIncludes %u packages.", pkgs->len);
+			/*
+			 * Discover's size column reads the installed-size field and
+			 * prints Unknown when it is 0. The download total is that size.
+			 */
+			pk_backend_job_details (job, package_ids[i], ATROPOS_REBOOT_SUMMARY, "unknown",
+						PK_GROUP_ENUM_UNKNOWN, desc->str, NULL,
+						(gulong) download_size, download_size);
+			g_string_free (desc, TRUE);
+			g_strfreev (parts);
+			continue;
+		}
 		if (parts != NULL && g_strcmp0 (parts[PK_PACKAGE_ID_NAME], ATROPOS_BUNDLE_NAME) == 0) {
 			GString *desc;
 			guint64 download_size = read_download_size ();
@@ -1674,11 +1788,20 @@ pk_backend_get_update_detail (PkBackend *backend, PkBackendJob *job, gchar **pac
 
 	(void) backend;
 	for (i = 0; package_ids != NULL && package_ids[i] != NULL; i++) {
+		gchar **parts = pk_package_id_split (package_ids[i]);
+		const gchar *text = "Reboot to start the new snapshot.";
+		const gchar *changelog = "Staged with transactional-update dup. The reboot is left to you.";
+
+		/* The waiting row is already installed. A pending check is not. */
+		if (is_reboot_package (parts)) {
+			text = ATROPOS_REBOOT_SUMMARY;
+			changelog = ATROPOS_REBOOT_DETAIL;
+		}
 		pk_backend_job_update_detail (job, package_ids[i], none, none, none, none, none,
 					      PK_RESTART_ENUM_SYSTEM,
-					      "Reboot to start the new snapshot.",
-					      "Staged with transactional-update dup. The reboot is left to you.",
+					      text, changelog,
 					      PK_UPDATE_STATE_ENUM_STABLE, "", "");
+		g_strfreev (parts);
 	}
 	pk_backend_job_finished (job);
 }
@@ -1915,7 +2038,8 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 		"/usr/sbin/transactional-update", "--non-interactive", "--no-selfupdate",
 		"--drop-if-no-change", "dup", NULL,
 	};
-	const gchar *package_id = "AtropOS;staged;noarch;transactional-update";
+	gchar *owned_id = NULL;
+	const gchar *package_id = NULL;
 
 	(void) backend;
 	if (pk_bitfield_contain (transaction_flags, PK_TRANSACTION_FLAG_ENUM_SIMULATE)) {
@@ -1924,9 +2048,14 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 	}
 	if (package_ids != NULL && package_ids[0] != NULL)
 		package_id = package_ids[0];
+	else {
+		owned_id = reboot_package_id ();
+		package_id = owned_id;
+	}
 
 	if (atropos_reboot_pending ()) {
 		finish_reboot_required (job, package_id);
+		g_free (owned_id);
 		return;
 	}
 
@@ -1934,6 +2063,7 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 	if (!run_command (job, argv, &dup)) {
 		fail_command (job, &dup);
 		atropos_run_clear (&dup);
+		g_free (owned_id);
 		return;
 	}
 	/*
@@ -1946,6 +2076,7 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 		finish_reboot_required (job, package_id);
 	else
 		pk_backend_job_finished (job);
+	g_free (owned_id);
 	atropos_run_clear (&dup);
 }
 
@@ -1978,6 +2109,7 @@ void pk_backend_job_package (PkBackendJob *job, PkInfoEnum info, const gchar *pa
 void pk_backend_job_details (PkBackendJob *job, const gchar *package_id, const gchar *summary, const gchar *license, PkGroupEnum group, const gchar *description, const gchar *url, gulong size, guint64 download_size) { (void) job; (void) package_id; (void) summary; (void) license; (void) group; (void) description; (void) url; (void) size; (void) download_size; }
 void pk_backend_job_update_detail (PkBackendJob *job, const gchar *package_id, gchar **updates, gchar **obsoletes, gchar **vendor_urls, gchar **bugzilla_urls, gchar **cve_urls, PkRestartEnum restart, const gchar *update_text, const gchar *changelog, PkUpdateStateEnum state, const gchar *issued, const gchar *updated) { (void) job; (void) package_id; (void) updates; (void) obsoletes; (void) vendor_urls; (void) bugzilla_urls; (void) cve_urls; (void) restart; (void) update_text; (void) changelog; (void) state; (void) issued; (void) updated; }
 void pk_backend_job_require_restart (PkBackendJob *job, PkRestartEnum restart, const gchar *package_id) { (void) job; (void) restart; (void) package_id; }
+guint pk_backend_job_get_uid (PkBackendJob *job) { (void) job; return 0; }
 void pk_backend_job_error_code (PkBackendJob *job, PkErrorEnum code, const gchar *details, ...) { (void) job; (void) code; (void) details; }
 void pk_backend_job_set_status (PkBackendJob *job, PkStatusEnum status) { (void) job; (void) status; }
 void pk_backend_job_set_allow_cancel (PkBackendJob *job, gboolean allow_cancel) { (void) job; (void) allow_cancel; }
@@ -2240,6 +2372,23 @@ main (void)
 			}
 			g_free (from_id);
 		}
+	}
+	{
+		gchar *id = reboot_package_id ();
+		gchar **parts = pk_package_id_split (id);
+
+		if (parts == NULL || !is_reboot_package (parts) ||
+		    g_strcmp0 (parts[PK_PACKAGE_ID_NAME], ATROPOS_REBOOT_NAME) != 0 ||
+		    g_strcmp0 (parts[PK_PACKAGE_ID_VERSION], ATROPOS_REBOOT_VERSION) != 0 ||
+		    strstr (ATROPOS_REBOOT_SUMMARY, "will be applied after you reboot") == NULL ||
+		    strstr (id, "staged") != NULL) {
+			g_printerr ("reboot package id failed: %s\n", id != NULL ? id : "none");
+			g_strfreev (parts);
+			g_free (id);
+			return 1;
+		}
+		g_strfreev (parts);
+		g_free (id);
 	}
 	g_print ("parse ok\n");
 	return 0;
