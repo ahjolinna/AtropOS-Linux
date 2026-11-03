@@ -30,3 +30,30 @@ https://github.com/ahjolinna/AtropOS-Linux
 
 Every package archive in this repository is in git, except
 `plasma6-login-manager`, which fetches its archive from the `_service`.
+
+## GitHub webhooks
+
+OBS does not poll git. One OBS token, bound to one package in
+`home:ahjolinna`, needs one webhook on
+https://github.com/ahjolinna/AtropOS-Linux
+(Settings, Webhooks, Add webhook). The 19 packages above need 19 webhooks.
+A push updates only the package whose token is in that webhook.
+
+The numeric id and the secret come from `osc token`. Do not put the
+secret in the URL, and do not use a GitHub token as the secret.
+
+| Field | Value |
+|---|---|
+| Payload URL | `https://build.opensuse.org/trigger/webhook?id=TOKEN_ID` |
+| Content type | `application/x-www-form-urlencoded` |
+| Secret | that token's OBS secret string |
+| SSL verification | on |
+| Event | Just the push event |
+
+`https://build.opensuse.org/trigger/workflow?id=` is the workflow
+endpoint. It needs a workflow token and `.obs/workflows.yml`. This
+repository has no workflow file, so that URL does not refresh a
+scmsync package.
+
+If GitHub shows the delivery and the package has no `_scmsync` update,
+run `osc service remoterun home:ahjolinna PACKAGE` once for that package.
