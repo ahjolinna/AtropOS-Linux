@@ -4,3 +4,8 @@ enable plocate-updatedb.timer
 # The wants symlink ships in the package. This line keeps preset-all,
 # whose last match is disable *, from turning the migration back off.
 enable atropos-default-shell.service
+# Discover's PackageKit plugin searches the distro AppStream cache.
+# Apps on this system are Flatpaks. 95-default-SUSE.preset enables
+# the sync, and this file is read first. System updates stay on
+# PackageKit.
+disable appstream-sync-cache.service

@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        13
+Release:        14
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages

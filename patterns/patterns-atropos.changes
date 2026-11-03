@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Nov 03 19:49:28 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Bind /boot into the update snapshot. The EFI partition is mounted
+  there. Without that bind, a kernel scriptlet cannot see systemd-boot,
+  sdbootutil fails, and transactional-update deletes the snapshot.
+- Stop syncing the distro AppStream cache. Discover search lists
+  Flatpaks. System updates stay on PackageKit.
+
+-------------------------------------------------------------------
 Tue Nov 03 08:53:30 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Make zsh the login shell after the account exists. The previous

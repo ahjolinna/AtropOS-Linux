@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        26
+Release:        27
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -45,6 +45,9 @@ Source9:        zsh.zshrc.local
 Source10:       useradd.default
 Source11:       atropos-default-shell
 Source12:       atropos-default-shell.service
+# Stock tukit does not bind /boot. The EFI partition is mounted there,
+# and a kernel update fails inside the snapshot without this bind.
+Source13:       20-atropos-boot.conf
 ExclusiveArch:  x86_64 aarch64
 BuildRequires:  systemd-rpm-macros
 
@@ -582,6 +585,7 @@ mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 ln -s ../atropos-default-shell.service \
     %{buildroot}%{_unitdir}/multi-user.target.wants/atropos-default-shell.service
 install -D -m 0644 %{SOURCE8} %{buildroot}%{_prefix}/lib/systemd/system-preset/82-atropos-tools.preset
+install -D -m 0644 %{SOURCE13} %{buildroot}%{_prefix}/etc/tukit.conf.d/20-atropos-boot.conf
 install -D -m 0644 %{SOURCE5} %{buildroot}%{_sysconfdir}/skel/.local/share/applications/org.qt.qdbusviewer6.desktop
 
 %post base
@@ -594,6 +598,15 @@ if [ -x /usr/bin/systemctl ]; then
     systemctl --no-reload enable --force plasmalogin.service >/dev/null 2>&1 || :
     # plocate's own scriptlet runs before this package's preset is installed.
     systemctl --no-reload preset plocate-updatedb.timer >/dev/null 2>&1 || :
+    # The unit's own scriptlet also runs before this preset is installed,
+    # and an image that already booted has the catalog on disk.
+    systemctl --no-reload preset appstream-sync-cache.service >/dev/null 2>&1 || :
+fi
+# /var is a separate subvolume, so this removes the catalog on the
+# running system. Discover's PackageKit plugin reads it for search.
+# Flatpak results do not come from this directory.
+if [ -d /var/cache/swcatalog/xml ]; then
+    find /var/cache/swcatalog/xml -maxdepth 1 -type f \( -name '*.xml' -o -name '*.xml.gz' \) -delete || :
 fi
 # Aeon and MicroOS relabel a read-only root from /etc/selinux/.autorelabel.
 # /.autorelabel cannot be written on the snapshot. selinux-autorelabel
@@ -612,6 +625,8 @@ fi
 %{_docdir}/patterns-atropos/base.txt
 %{_prefix}/lib/systemd/system-preset/79-atropos-display.preset
 %{_prefix}/lib/systemd/system-preset/82-atropos-tools.preset
+%dir %{_prefix}/etc/tukit.conf.d
+%{_prefix}/etc/tukit.conf.d/20-atropos-boot.conf
 %config(noreplace) %{_sysconfdir}/bash.bashrc.local
 %config(noreplace) %{_sysconfdir}/zsh.zshrc.local
 %config(noreplace) %{_sysconfdir}/default/useradd

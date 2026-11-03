@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 03 20:01:02 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Make Flathub the Discover application source. With the distro
+  catalog gone, the home page stayed on the PackageKit source and
+  showed "Unable to load applications".
+- Release 14. The repository already has 0.1.0-12.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 09:20:08 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Send the reboot notification when the update is staged, not when a

@@ -372,6 +372,15 @@ if [[ -z $missing ]] && grep -q 'mcfly init bash' "$root/patterns/bash.bashrc.lo
 else
     bad "pattern is missing tools:${missing:- none}, or the mcfly hook or plocate timer is absent"
 fi
+if grep -q '^disable appstream-sync-cache.service$' "$root/patterns/82-atropos-tools.preset" \
+    && grep -q 'preset appstream-sync-cache.service' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'swcatalog/xml' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '^BINDDIRS\[boot\]="/boot"$' "$root/patterns/20-atropos-boot.conf" \
+    && grep -q 'tukit.conf.d/20-atropos-boot.conf' "$root/patterns/patterns-atropos.spec"; then
+    ok "Discover search skips distro packages and tukit binds /boot"
+else
+    bad "AppStream preset or the /boot tukit bind is missing"
+fi
 hw='fprintd fprintd-pam pam_u2f libfido2-1 libfido2-udev pcsc-ccid pcsc-acsccid'
 missing=
 for name in $hw; do
@@ -546,6 +555,13 @@ if grep -q 'no output' "$root/packagekit/pk-backend-atropos.c" \
     ok "PackageKit errors are not blank and updates are one System updates row"
 else
     bad "PackageKit can still report an empty transaction error or list every RPM"
+fi
+if grep -q '^UseOfflineUpdates=false$' "$root/packagekit/discoverrc" \
+    && grep -q '^Sources=flathub$' "$root/packagekit/discoverrc" \
+    && grep -q '^currentApplicationBackend=flatpak-backend$' "$root/packagekit/discoverrc"; then
+    ok "Discover home page uses Flathub"
+else
+    bad "Discover is not set to Flathub"
 fi
 if grep -q '/usr/libexec/atychia-as-root' "$root/atychia/src/atychiad/main.cpp" \
     && ! grep -q 'u"pkexec"' "$root/atychia/src/atychiad/main.cpp" \

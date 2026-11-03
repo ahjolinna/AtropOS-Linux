@@ -1,2 +1,11 @@
+# Home and search use Flathub. The distro AppStream catalog is not
+# synced, so the PackageKit source has nothing to show and Discover's
+# home page says it cannot load applications.
 [Software]
 UseOfflineUpdates=false
+
+[FlatpakSources]
+Sources=flathub
+
+[ResourcesModel]
+currentApplicationBackend=flatpak-backend
