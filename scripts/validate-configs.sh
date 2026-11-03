@@ -36,12 +36,12 @@ if ruby -ryaml -e '
   abort "atropos_nvidia is not an unchecked user pattern" unless nvidia && nvidia["selected"] == false
   repos = data.dig("software", "installation_repositories") || []
   nvidia_repo = repos.find { |item| item["url"] == "https://download.nvidia.com/opensuse/tumbleweed" }
-  abort "NVIDIA Tumbleweed repository is missing" unless nvidia_repo && nvidia_repo["archs"] == "x86_64"
+  abort "NVIDIA Tumbleweed repository is an installation repository" if nvidia_repo
 ' "$root/products/atropos.yaml"
 then
     ok "atropos.yaml parses, and compress=zstd:-4 plus lazytime are the only fstab options"
     ok "atropos_debug is an unchecked installer pattern"
-    ok "atropos_nvidia is unchecked and the NVIDIA repository is x86_64 only"
+    ok "atropos_nvidia is unchecked and the NVIDIA repository is not an installation repository"
 else
     bad "atropos.yaml failed the product check"
 fi
@@ -506,14 +506,30 @@ if grep -q 'onlyRequired' "$root/installer/config.sh" \
     && grep -q 'nvidia-userspace-meta-G07' "$root/patterns/patterns-atropos.spec" \
     && grep -q 'nvidia-video-G07' "$root/patterns/patterns-atropos.spec" \
     && grep -q 'nvidia-compute-utils-G07' "$root/patterns/patterns-atropos.spec" \
+    && ! grep -q 'download.nvidia.com/opensuse/tumbleweed' "$root/products/atropos.yaml" \
+    && grep -q '^Requires:[[:space:]]*nvidia-open-driver-G07-signed-kmp-meta$' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '^Requires:[[:space:]]*nvidia-open-driver-G07-signed-kmp-longterm$' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '^Requires:[[:space:]]*nvidia-userspace-meta-G07$' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '^Requires:[[:space:]]*nvidia-video-G07$' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '^Requires:[[:space:]]*nvidia-compute-utils-G07$' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'extraRepositories' "$root/installer/config.sh" \
+    && grep -q '"alias": "agama-nvidia"' "$root/installer/config.sh" \
+    && ! grep -q '"alias": "atropos-nvidia"' "$root/installer/config.sh" \
+    && grep -q '"priority": 200' "$root/installer/config.sh" \
+    && grep -q '2FB03195DECD49492BD1C17AB1D0D788DB27FD5A' "$root/installer/config.sh" \
+    && grep -q 'Conflicts:[[:space:]]*openSUSE-repos-Slowroll-NVIDIA' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'priority=200' "$root/nvidia/atropos-nvidia.repo" \
+    && grep -q 'gpg-pubkey-nvidia-tumbleweed.asc' "$root/nvidia/atropos-nvidia.spec" \
+    && ! grep -q 'Requires:[[:space:]]*openSUSE-repos-Slowroll-NVIDIA' "$root/nvidia/atropos-nvidia.spec" \
+    && grep -q 'libOpenCL1-' "$root/installer/config.sh" \
     && grep -q 'rpm -q' "$root/nvidia/atropos-nvidia-setup" \
     && bash -n "$root/installer/config.sh" \
     && bash -n "$root/installer/fix_bootconfig" \
     && bash -n "$root/nvidia/atropos-nvidia-setup" \
     && bash -n "$root/nvidia/atropos-nvidia-apply"; then
-    ok "Agama can install the open G07 driver from the Online repository or the Offline ISO"
+    ok "Agama installs the open G07 driver, and the NVIDIA repository stays below Slowroll"
 else
-    bad "open G07 Agama install is incomplete"
+    bad "open G07 install path is incomplete"
 fi
 if grep -q '^enable tuned.service$' "$root/performance/80-atropos.preset" \
     && grep -q 'multi-user.target.wants/tuned.service' "$root/performance/atropos-performance.spec" \

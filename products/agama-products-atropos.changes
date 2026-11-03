@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 03 23:01:47 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Do not install from the NVIDIA Tumbleweed repository. Its libOpenCL1
+  and nvidia-libXNVCtrl replace the Slowroll packages, and the first
+  update stops after Agama removes that URL. atropos-nvidia adds the
+  repository later, and only when the NVIDIA pattern is selected.
+
+-------------------------------------------------------------------
 Tue Nov 03 06:08:27 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Add the NVIDIA Tumbleweed repository for x86_64. onlyRequired keeps

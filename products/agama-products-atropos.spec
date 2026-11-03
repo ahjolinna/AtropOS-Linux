@@ -6,7 +6,7 @@
 
 Name:           agama-products-atropos
 Version:        0.4.0
-Release:        10
+Release:        11
 Summary:        AtropOS product definition for the Agama installer
 # The product file and the two crown SVGs are GPL-2.0-only.
 # The mark is the AtropOS crown, not the openSUSE chameleon.

@@ -283,7 +283,14 @@ if [[ "$kiwi_profiles" == *"Offline"* ]]; then
             echo "Downloaded longterm kmp does not provide ${need}" >&2
             exit 1
         fi
-        find "$cache" -name '*.rpm' -exec cp -n -t /packages/ {} +
+        # Skip the NVIDIA builds of packages Slowroll already ships.
+        # libOpenCL1 and nvidia-libXNVCtrl have a higher release there.
+        # Once this repository is the only install source, the solver
+        # keeps those builds and the first update cannot replace them.
+        find "$cache" -name '*.rpm' \
+            ! -name 'libOpenCL1-*.rpm' \
+            ! -name 'nvidia-libXNVCtrl-*.rpm' \
+            -exec cp -n -t /packages/ {} +
         rm -rf "$cache"
         zypper --non-interactive rr atropos-offline-update atropos-offline-nvidia
         rm -f /etc/zypp/repos.d/atropos-offline-update.repo \
@@ -318,9 +325,36 @@ fi
 
 # Both flavors install only the required dependency closure. The product
 # repositories stay as agama-products-atropos shipped them.
+# Online adds the NVIDIA repository here, not in the product file. Product
+# installation repositories cannot set a priority. The alias starts with
+# agama- so Agama removes it after the solve and an AMD install does not
+# keep the URL. Priority 200 is below Slowroll, so libOpenCL1 and
+# nvidia-libXNVCtrl stay on the openSUSE builds. The open G07 packages
+# exist only here, so selecting atropos_nvidia installs them during the
+# solve. atropos-nvidia then keeps the same URL at priority 200. Offline
+# media already carries that closure and must not refresh this URL.
+if [[ "$kiwi_profiles" == *"Offline"* ]]; then
 cat > /etc/agama-online-defaults.json << 'DEFAULTS_EOF'
 {"software": {"onlyRequired": true}}
 DEFAULTS_EOF
+else
+cat > /etc/agama-online-defaults.json << 'DEFAULTS_EOF'
+{
+  "software": {
+    "onlyRequired": true,
+    "extraRepositories": [
+      {
+        "alias": "agama-nvidia",
+        "name": "NVIDIA open driver (Tumbleweed)",
+        "url": "https://download.nvidia.com/opensuse/tumbleweed",
+        "priority": 200,
+        "gpgFingerprints": ["2FB03195DECD49492BD1C17AB1D0D788DB27FD5A"]
+      }
+    ]
+  }
+}
+DEFAULTS_EOF
+fi
 cat > /etc/systemd/system/agama-atropos-online-config.service << 'SERVICE_EOF'
 [Unit]
 Description=Apply AtropOS installer solver configuration

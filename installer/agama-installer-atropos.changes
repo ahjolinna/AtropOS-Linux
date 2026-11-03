@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Tue Nov 03 23:20:59 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- On the online ISO, add the NVIDIA Tumbleweed repository for the
+  Agama solve only, aliased agama-nvidia at priority 200. Agama
+  removes that alias afterwards, so an AMD install does not keep
+  the URL. Selecting the NVIDIA pattern installs the open G07
+  driver during the solve. atropos-nvidia keeps the same URL at
+  priority 200 when that pattern is selected.
+
+-------------------------------------------------------------------
+Tue Nov 03 23:01:47 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Leave libOpenCL1 and nvidia-libXNVCtrl out of the offline NVIDIA
+  closure. Slowroll already ships them, and the NVIDIA builds are a
+  higher release.
+
+-------------------------------------------------------------------
 Tue Nov 03 06:08:27 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Put the Offline package repository at install/ on the ISO, so Agama

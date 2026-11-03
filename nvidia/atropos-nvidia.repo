@@ -1,0 +1,11 @@
+# Priority 200 is below Slowroll's 99. Packages that exist in both
+# stay on the openSUSE build. The open G07 driver is only here.
+[atropos-nvidia]
+name=NVIDIA open driver (Tumbleweed)
+enabled=1
+autorefresh=1
+baseurl=https://download.nvidia.com/opensuse/tumbleweed
+type=rpm-md
+priority=200
+gpgcheck=1
+gpgkey=file:///usr/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc

@@ -1,4 +1,19 @@
 -------------------------------------------------------------------
+Tue Nov 03 23:12:15 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require the open G07 packages again so Agama installs the driver
+  when the NVIDIA pattern is selected. The first Plasma session must
+  not be software rendering.
+
+-------------------------------------------------------------------
+Tue Nov 03 23:01:47 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Do not require the open G07 packages in the installer solve.
+  atropos-nvidia installs them on first boot. The base pattern
+  conflicts with openSUSE-repos-Slowroll-NVIDIA so that repository
+  cannot replace Slowroll's libOpenCL1 or nvidia-libXNVCtrl.
+
+-------------------------------------------------------------------
 Tue Nov 03 20:31:50 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require gh, the GitHub CLI from Slowroll.

@@ -22,11 +22,15 @@ software:
     # installed system; AtropOS-release keeps the same repository there.
     - url: https://download.opensuse.org/repositories/home:/ahjolinna/openSUSE_Slowroll/
       archs: x86_64
-    # Open G07 userspace. The installer keeps onlyRequired on, so the G06
-    # and G07 hardware supplements stay out unless atropos_nvidia requires
-    # the packages. An ISO with an install/ repository skips this whole list.
-    - url: https://download.nvidia.com/opensuse/tumbleweed
-      archs: x86_64
+    # The NVIDIA Tumbleweed repository is not an installation repository.
+    # Those URLs cannot set a priority, and Agama removes them after
+    # install. The online image adds the URL as an extra repository
+    # aliased agama-nvidia at priority 200 for the solve, then drops that
+    # alias. Slowroll wins libOpenCL1 and nvidia-libXNVCtrl. Selecting
+    # atropos_nvidia installs the open G07 driver during this solve.
+    # atropos-nvidia keeps the same URL at priority 200 only when that
+    # pattern is selected. An ISO with an install/ repository skips this
+    # whole list and carries the driver closure itself.
   installation_labels:
     - label: AtropOS-desktop-x86_64
       archs: x86_64
@@ -36,8 +40,8 @@ software:
   user_patterns:
     - container_runtime
     # Unchecked. Selecting it installs the open signed G07 longterm module
-    # and its userspace during the Agama solve. atropos-nvidia still
-    # installs that set on first boot when the packages are absent.
+    # and its userspace during the Agama solve. The NVIDIA repository is
+    # priority 200, so it does not replace Slowroll's shared libraries.
     - name: atropos_nvidia
       selected: false
     # Unchecked. gdb, strace, perf, valgrind, heaptrack, and the other
