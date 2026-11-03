@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Nov 03 04:48:53 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Pass --auto-agree-with-licenses after the zypper subcommand. zypper
+  1.14 rejects it before the command, so the first-boot install exited
+  2 and the driver was never installed.
+- Reboot before the login screen once that snapshot is ready.
+- Release 3. The repository already has 0.1.0-2.1.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.

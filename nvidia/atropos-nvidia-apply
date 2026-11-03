@@ -8,7 +8,9 @@
 set -euo pipefail
 
 zypper --non-interactive --gpg-auto-import-keys refresh
-zypper --non-interactive --gpg-auto-import-keys --auto-agree-with-licenses install \
+# --auto-agree-with-licenses is a command option. zypper 1.14 exits 2
+# when it is placed before the subcommand, and the driver is not installed.
+zypper --non-interactive --gpg-auto-import-keys install --auto-agree-with-licenses \
     nvidia-open-driver-G07-signed-kmp-meta \
     nvidia-open-driver-G07-signed-kmp-longterm \
     nvidia-userspace-meta-G07 \

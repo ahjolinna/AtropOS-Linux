@@ -8,7 +8,7 @@
 
 Name:           atropos-nvidia
 Version:        0.1.0
-Release:        2
+Release:        3
 Summary:        AtropOS open NVIDIA G07 driver setup
 License:        GPL-2.0-or-later AND (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND CC0-1.0
 Group:          System/Base
@@ -29,7 +29,8 @@ Requires:       openSUSE-repos-Slowroll-NVIDIA
 %description
 On first boot, installs the signed open NVIDIA G07 driver built for
 kernel-longterm into a new snapshot. The package set follows the
-openSUSE NVIDIA SDB for Leap and Tumbleweed. A reboot activates it.
+openSUSE NVIDIA SDB for Leap and Tumbleweed. The machine reboots
+before the login screen, so Plasma does not start on llvmpipe.
 The GPU can sleep, suspend does not freeze the session while the
 nvidia module is loaded, and GPU memory allocation skips the
 security wipe.
