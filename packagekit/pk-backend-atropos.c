@@ -265,6 +265,8 @@ text_has (const gchar *lower, const gchar *needle)
  * has to separate a dead mirror, a media change, a lock, and a conflict.
  * PackageKit has no PK_ERROR_ENUM_LOCKED; the lock code is CANNOT_GET_LOCK.
  */
+static gboolean output_has_hard_404 (const gchar *text);
+
 static PkErrorEnum
 zypper_error_code (gint exit_code, const gchar *output)
 {
@@ -296,7 +298,9 @@ zypper_error_code (gint exit_code, const gchar *output)
 	}
 
 	lower = output != NULL ? g_ascii_strdown (output, -1) : NULL;
-	if (text_has (lower, "is locked") || text_has (lower, "zypp lock"))
+	if (output_has_hard_404 (output))
+		code = PK_ERROR_ENUM_PACKAGE_DOWNLOAD_FAILED;
+	else if (text_has (lower, "is locked") || text_has (lower, "zypp lock"))
 		code = PK_ERROR_ENUM_CANNOT_GET_LOCK;
 	else if (text_has (lower, "please insert") || text_has (lower, "medium"))
 		code = PK_ERROR_ENUM_MEDIA_CHANGE_REQUIRED;
@@ -685,6 +689,116 @@ atropos_error_text (const gchar *text, gint exit_code)
 	return g_strdup_printf ("The update command failed with no output (exit %d).", exit_code);
 }
 
+/* "trying next mirror" is a retry. The line that gives up has no such note. */
+static gboolean
+line_is_hard_404 (const gchar *line)
+{
+	gchar *lower;
+	gboolean hard;
+
+	lower = g_ascii_strdown (line, -1);
+	hard = (strstr (lower, "404") != NULL || strstr (lower, "not found on medium") != NULL) &&
+		strstr (lower, "trying next mirror") == NULL;
+	g_free (lower);
+	return hard;
+}
+
+static gboolean
+output_has_hard_404 (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	gboolean found = FALSE;
+
+	if (text == NULL)
+		return FALSE;
+	lines = g_strsplit (text, "\n", -1);
+	for (i = 0; lines[i] != NULL; i++) {
+		if (line_is_hard_404 (lines[i])) {
+			found = TRUE;
+			break;
+		}
+	}
+	g_strfreev (lines);
+	return found;
+}
+
+/* The rpm token on a preload line, without the directory. */
+static gchar *
+rpm_basename_in (const gchar *line)
+{
+	const gchar *hit;
+	const gchar *start;
+
+	hit = strstr (line, ".rpm");
+	if (hit == NULL)
+		return NULL;
+	start = hit;
+	while (start > line && start[-1] != ' ' && start[-1] != '/' &&
+	       start[-1] != '\'' && start[-1] != '"')
+		start--;
+	return g_strndup (start, (gsize) (hit - start) + 4);
+}
+
+static gboolean
+names_have (GPtrArray *names, const gchar *rpm)
+{
+	guint i;
+
+	for (i = 0; i < names->len; i++) {
+		if (g_strcmp0 (g_ptr_array_index (names, i), rpm) == 0)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/*
+ * Discover keeps the tail of a long error. A 404 during preload is then
+ * hidden behind "use --interactive" and the snapshot cleanup. Name the
+ * missing files instead.
+ */
+static gchar *
+missing_download_text (const gchar *text)
+{
+	gchar **lines;
+	guint i;
+	guint shown;
+	GPtrArray *names;
+	GString *msg;
+
+	if (!output_has_hard_404 (text))
+		return NULL;
+	lines = g_strsplit (text, "\n", -1);
+	names = g_ptr_array_new_with_free_func (g_free);
+	for (i = 0; lines[i] != NULL; i++) {
+		gchar *rpm;
+
+		if (!line_is_hard_404 (lines[i]))
+			continue;
+		rpm = rpm_basename_in (lines[i]);
+		if (rpm == NULL || names_have (names, rpm)) {
+			g_free (rpm);
+			continue;
+		}
+		g_ptr_array_add (names, rpm);
+	}
+	g_strfreev (lines);
+
+	msg = g_string_new ("A package file is missing from the repository (HTTP 404). "
+			    "The repository metadata was published before the file, "
+			    "which happens during a rebuild. Nothing was installed. "
+			    "Try the update again in a few minutes.");
+	if (names->len > 0)
+		g_string_append (msg, " Missing:");
+	shown = MIN (names->len, 8);
+	for (i = 0; i < shown; i++)
+		g_string_append_printf (msg, " %s", (const gchar *) g_ptr_array_index (names, i));
+	if (names->len > shown)
+		g_string_append_printf (msg, " and %u more", names->len - shown);
+	g_ptr_array_free (names, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
 static void
 fail_job (PkBackendJob *job, PkErrorEnum code, const gchar *text)
 {
@@ -709,7 +823,9 @@ fail_command (PkBackendJob *job, const AtroposRun *run)
 		fail_job (job, PK_ERROR_ENUM_TRANSACTION_CANCELLED, "Cancelled");
 		return;
 	}
-	text = atropos_error_text (raw, run->exit_code);
+	text = missing_download_text (raw);
+	if (text == NULL)
+		text = atropos_error_text (raw, run->exit_code);
 	fail_job (job, zypper_error_code (run->exit_code, raw), text);
 	g_free (text);
 }
@@ -1300,6 +1416,39 @@ main (void)
 		g_free (blank);
 		g_free (spaces);
 		g_free (kept);
+	}
+	{
+		const gchar *log =
+			"Preloading: zsh-autosuggestions-0.7.1-1.1.noarch.rpm "
+			"[Error: \"The requested URL returned error: 404\", trying next mirror.]\n"
+			"Preloading: zsh-autosuggestions-0.7.1-1.1.noarch.rpm [done]\n"
+			"Preloading: patterns-atropos-base-0.4.0-23.1.x86_64.rpm "
+			"[The requested URL returned error: 404]\n"
+			"Preloading: zsh-completions-0.36.0-1.1.noarch.rpm "
+			"[The requested URL returned error: 404]\n"
+			"ERROR: zypper failed with exit code 4!\n"
+			"Use '--interactive' for manual problem resolution.\n"
+			"Removing snapshot #5...\n";
+		gchar *missing = missing_download_text (log);
+
+		if (missing == NULL || strstr (missing, "HTTP 404") == NULL ||
+		    strstr (missing, "patterns-atropos-base-0.4.0-23.1.x86_64.rpm") == NULL ||
+		    strstr (missing, "zsh-completions-0.36.0-1.1.noarch.rpm") == NULL ||
+		    strstr (missing, "zsh-autosuggestions") != NULL ||
+		    strlen (missing) > 2000) {
+			g_printerr ("404 error text mapping failed: %s\n",
+				    missing != NULL ? missing : "none");
+			return 1;
+		}
+		if (zypper_error_code (4, log) != PK_ERROR_ENUM_PACKAGE_DOWNLOAD_FAILED) {
+			g_printerr ("404 exit code mapping failed\n");
+			return 1;
+		}
+		g_free (missing);
+		if (missing_download_text ("mirror down\n") != NULL) {
+			g_printerr ("404 error text matched a normal failure\n");
+			return 1;
+		}
 	}
 	if (zypper_error_code (7, NULL) != PK_ERROR_ENUM_CANNOT_GET_LOCK ||
 	    zypper_error_code (106, NULL) != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||

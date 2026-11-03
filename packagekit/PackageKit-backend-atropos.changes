@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 03 00:33:19 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- When a repository file returns HTTP 404, name the missing packages.
+  Discover keeps the tail of a long error, which was the snapshot
+  cleanup, so a rebuild in progress looked like a silent failure.
+- Release 8. The repository already has 0.1.0-7.1.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.
