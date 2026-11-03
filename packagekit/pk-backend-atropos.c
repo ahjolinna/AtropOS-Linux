@@ -23,10 +23,10 @@
  * transactional-update exits 1 for every zypper failure. The zypper
  * code is the number in "failed with exit code".
  *
- * After the snapshot is staged, Discover shows one "System update" row
- * whose version is "Installed. Reboot to apply." The user who started
- * the update is notified once. The solved list stays until reboot so
- * that row can still show the download size.
+ * After the snapshot is staged, a check returns no packages and asks
+ * for a reboot. Discover then shows its reboot page instead of Update
+ * All. The user who started the update is notified once. That stamp is
+ * written only after the notification command exits 0.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -70,14 +70,7 @@ guint pk_backend_job_get_uid (PkBackendJob *job);
 #define ATROPOS_PERCENTAGE_INVALID 101
 /* Discover shows this single row instead of one row per RPM. */
 #define ATROPOS_BUNDLE_NAME "System updates"
-/*
- * Discover's update row shows the package name and the version, not the
- * summary. The version is the sentence under the name.
- */
-#define ATROPOS_REBOOT_NAME "System update"
-#define ATROPOS_REBOOT_VERSION "Installed. Reboot to apply."
-#define ATROPOS_REBOOT_SUMMARY "The update was installed. It will be applied after you reboot."
-#define ATROPOS_REBOOT_DETAIL "The update was installed into the next snapshot. Reboot to start it. This session stays as it is until then."
+#define ATROPOS_NOTIFY_BODY "The update was installed. It will be applied after you reboot."
 
 typedef struct {
 	gchar *section;
@@ -727,18 +720,6 @@ static gchar *
 bundle_package_id (void)
 {
 	return pk_package_id_build (ATROPOS_BUNDLE_NAME, "pending", "noarch", "slowroll");
-}
-
-static gchar *
-reboot_package_id (void)
-{
-	return pk_package_id_build (ATROPOS_REBOOT_NAME, ATROPOS_REBOOT_VERSION, "noarch", "reboot");
-}
-
-static gboolean
-is_reboot_package (gchar **parts)
-{
-	return parts != NULL && g_strcmp0 (parts[PK_PACKAGE_ID_DATA], "reboot") == 0;
 }
 
 static gchar *
@@ -1502,18 +1483,53 @@ collect_updates (PkBackendJob *job, GPtrArray **pkgs_out)
 	return TRUE;
 }
 
+typedef struct {
+	gchar *stamp;
+} AtroposNotify;
+
+/* One notification is in flight. The file is written only after success. */
+static GMutex atropos_notify_lock;
+static gboolean atropos_notify_inflight;
+
+static void
+notify_release (void)
+{
+	g_mutex_lock (&atropos_notify_lock);
+	atropos_notify_inflight = FALSE;
+	g_mutex_unlock (&atropos_notify_lock);
+}
+
+static gboolean
+notify_claim (void)
+{
+	gboolean claimed;
+
+	g_mutex_lock (&atropos_notify_lock);
+	claimed = !atropos_notify_inflight;
+	if (claimed)
+		atropos_notify_inflight = TRUE;
+	g_mutex_unlock (&atropos_notify_lock);
+	return claimed;
+}
+
 static void
 reap_notify (GPid pid, gint status, gpointer user_data)
 {
-	(void) status;
-	(void) user_data;
+	AtroposNotify *note = user_data;
+
+	if (WIFEXITED (status) && WEXITSTATUS (status) == 0)
+		g_file_set_contents (ATROPOS_NOTIFIED_FILE, note->stamp, -1, NULL);
+	g_free (note->stamp);
+	g_free (note);
 	g_spawn_close_pid (pid);
+	notify_release ();
 }
 
 /*
  * Tell the session that clicked Update. packagekitd is root, and the
  * session bus rejects a root connection, so this is a short-lived
- * process running as that user. A failure leaves the update staged.
+ * process running as that user. A failure leaves the update staged and
+ * leaves the stamp unset, so the next check tries again.
  */
 static void
 notify_update_installed (PkBackendJob *job)
@@ -1532,9 +1548,11 @@ notify_update_installed (PkBackendJob *job)
 	gchar *env_home = NULL;
 	gchar *argv[24];
 	gchar *envp[5];
+	AtroposNotify *note = NULL;
 	GPid pid = 0;
 	GError *error = NULL;
 	guint n = 0;
+	gboolean claimed = FALSE;
 
 	if (uid < 1000)
 		return;
@@ -1548,6 +1566,9 @@ notify_update_installed (PkBackendJob *job)
 	if (g_file_get_contents (ATROPOS_NOTIFIED_FILE, &previous, NULL, NULL) &&
 	    g_strcmp0 (previous, stamp) == 0)
 		goto out;
+	if (!notify_claim ())
+		goto out;
+	claimed = TRUE;
 	pw = getpwuid (uid);
 	if (pw == NULL || pw->pw_name == NULL || pw->pw_name[0] == '\0')
 		goto out;
@@ -1575,7 +1596,7 @@ notify_update_installed (PkBackendJob *job)
 	argv[n++] = "0";
 	argv[n++] = "system-software-update";
 	argv[n++] = "Update installed";
-	argv[n++] = ATROPOS_REBOOT_SUMMARY;
+	argv[n++] = ATROPOS_NOTIFY_BODY;
 	argv[n++] = "[]";
 	argv[n++] = "{'resident': <true>}";
 	argv[n++] = "0";
@@ -1591,9 +1612,14 @@ notify_update_installed (PkBackendJob *job)
 		g_clear_error (&error);
 		goto out;
 	}
-	g_child_watch_add (pid, reap_notify, NULL);
-	g_file_set_contents (ATROPOS_NOTIFIED_FILE, stamp, -1, NULL);
+	note = g_new0 (AtroposNotify, 1);
+	note->stamp = stamp;
+	stamp = NULL;
+	claimed = FALSE;
+	g_child_watch_add (pid, reap_notify, note);
 out:
+	if (claimed)
+		notify_release ();
 	g_free (stamp);
 	g_free (previous);
 	g_free (username);
@@ -1649,17 +1675,19 @@ pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filter
 	(void) backend;
 	(void) filters;
 	if (atropos_reboot_pending ()) {
-		gchar *package_id = reboot_package_id ();
+		gchar *package_id = bundle_package_id ();
 
 		/*
-		 * The snapshot is already installed. Keep one row so the
-		 * Updates page explains that, and ask for a reboot. This
-		 * does not reboot and does not start another dup.
+		 * Discover shows its reboot page only when this check
+		 * returns no packages. A row here keeps Update All.
+		 * require_restart marks the page. This does not reboot
+		 * and does not start another dup.
 		 */
-		pk_backend_job_package (job, PK_INFO_ENUM_NORMAL, package_id, ATROPOS_REBOOT_SUMMARY);
+		notify_update_installed (job);
+		pk_backend_job_set_status (job, PK_STATUS_ENUM_FINISHED);
 		pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
-		g_free (package_id);
 		pk_backend_job_finished (job);
+		g_free (package_id);
 		return;
 	}
 
@@ -1684,16 +1712,10 @@ pk_backend_refresh_cache (PkBackend *backend, PkBackendJob *job, gboolean force)
 {
 	(void) backend;
 	(void) force;
-	/*
-	 * Discover refreshes before it asks for updates. Deleting the solved
-	 * list while a reboot is waiting dropped the download size, and the
-	 * row fell back to a nameless placeholder. Keep it until reboot.
-	 */
-	if (!atropos_reboot_pending ()) {
-		g_unlink (ATROPOS_CACHE_FILE);
-		g_unlink (ATROPOS_CACHE_TMP);
-		g_unlink (ATROPOS_SIZE_FILE);
-	}
+	/* The waiting reboot does not read this list. The next check solves again. */
+	g_unlink (ATROPOS_CACHE_FILE);
+	g_unlink (ATROPOS_CACHE_TMP);
+	g_unlink (ATROPOS_SIZE_FILE);
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_REFRESH_CACHE);
 	pk_backend_job_finished (job);
 }
@@ -1711,23 +1733,6 @@ pk_backend_get_details (PkBackend *backend, PkBackendJob *job, gchar **package_i
 		const gchar *summary = "System update";
 		guint j;
 
-		if (is_reboot_package (parts)) {
-			guint64 download_size = read_download_size ();
-			GString *desc = g_string_new (ATROPOS_REBOOT_DETAIL);
-
-			if (pkgs != NULL && pkgs->len > 0)
-				g_string_append_printf (desc, "\n\nIncludes %u packages.", pkgs->len);
-			/*
-			 * Discover's size column reads the installed-size field and
-			 * prints Unknown when it is 0. The download total is that size.
-			 */
-			pk_backend_job_details (job, package_ids[i], ATROPOS_REBOOT_SUMMARY, "unknown",
-						PK_GROUP_ENUM_UNKNOWN, desc->str, NULL,
-						(gulong) download_size, download_size);
-			g_string_free (desc, TRUE);
-			g_strfreev (parts);
-			continue;
-		}
 		if (parts != NULL && g_strcmp0 (parts[PK_PACKAGE_ID_NAME], ATROPOS_BUNDLE_NAME) == 0) {
 			GString *desc;
 			guint64 download_size = read_download_size ();
@@ -1788,20 +1793,11 @@ pk_backend_get_update_detail (PkBackend *backend, PkBackendJob *job, gchar **pac
 
 	(void) backend;
 	for (i = 0; package_ids != NULL && package_ids[i] != NULL; i++) {
-		gchar **parts = pk_package_id_split (package_ids[i]);
-		const gchar *text = "Reboot to start the new snapshot.";
-		const gchar *changelog = "Staged with transactional-update dup. The reboot is left to you.";
-
-		/* The waiting row is already installed. A pending check is not. */
-		if (is_reboot_package (parts)) {
-			text = ATROPOS_REBOOT_SUMMARY;
-			changelog = ATROPOS_REBOOT_DETAIL;
-		}
 		pk_backend_job_update_detail (job, package_ids[i], none, none, none, none, none,
 					      PK_RESTART_ENUM_SYSTEM,
-					      text, changelog,
+					      "Reboot to start the new snapshot.",
+					      "Staged with transactional-update dup. The reboot is left to you.",
 					      PK_UPDATE_STATE_ENUM_STABLE, "", "");
-		g_strfreev (parts);
 	}
 	pk_backend_job_finished (job);
 }
@@ -2049,7 +2045,7 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 	if (package_ids != NULL && package_ids[0] != NULL)
 		package_id = package_ids[0];
 	else {
-		owned_id = reboot_package_id ();
+		owned_id = bundle_package_id ();
 		package_id = owned_id;
 	}
 
@@ -2373,22 +2369,9 @@ main (void)
 			g_free (from_id);
 		}
 	}
-	{
-		gchar *id = reboot_package_id ();
-		gchar **parts = pk_package_id_split (id);
-
-		if (parts == NULL || !is_reboot_package (parts) ||
-		    g_strcmp0 (parts[PK_PACKAGE_ID_NAME], ATROPOS_REBOOT_NAME) != 0 ||
-		    g_strcmp0 (parts[PK_PACKAGE_ID_VERSION], ATROPOS_REBOOT_VERSION) != 0 ||
-		    strstr (ATROPOS_REBOOT_SUMMARY, "will be applied after you reboot") == NULL ||
-		    strstr (id, "staged") != NULL) {
-			g_printerr ("reboot package id failed: %s\n", id != NULL ? id : "none");
-			g_strfreev (parts);
-			g_free (id);
-			return 1;
-		}
-		g_strfreev (parts);
-		g_free (id);
+	if (strstr (ATROPOS_NOTIFY_BODY, "will be applied after you reboot") == NULL) {
+		g_printerr ("notification body failed\n");
+		return 1;
 	}
 	g_print ("parse ok\n");
 	return 0;

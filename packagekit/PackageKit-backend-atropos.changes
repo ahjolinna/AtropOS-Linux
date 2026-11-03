@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Nov 03 02:48:33 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- While a snapshot is waiting, a check returns no packages and asks
+  for a reboot. Discover then shows its reboot page instead of Update
+  All. The notification stamp is written only after gdbus exits 0, so
+  a failed notification is tried again on the next check.
+- Release 12. The repository already has 0.1.0-11.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 02:25:39 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - After an update is staged, Discover shows "System update" with
