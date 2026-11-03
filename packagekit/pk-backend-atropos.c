@@ -25,8 +25,10 @@
  *
  * After the snapshot is staged, a check returns no packages and asks
  * for a reboot. Discover then shows its reboot page instead of Update
- * All. The user who started the update is notified once. That stamp is
- * written only after the notification command exits 0.
+ * All. The user who started the update is notified once, from that
+ * update, and the popup is allowed to expire. A later check does not
+ * notify again. The stamp is written only after the notification
+ * command exits 0.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -70,7 +72,17 @@ guint pk_backend_job_get_uid (PkBackendJob *job);
 #define ATROPOS_PERCENTAGE_INVALID 101
 /* Discover shows this single row instead of one row per RPM. */
 #define ATROPOS_BUNDLE_NAME "System updates"
+#define ATROPOS_NOTIFY_APP "AtropOS"
 #define ATROPOS_NOTIFY_BODY "The update was installed. It will be applied after you reboot."
+/*
+ * Expire with the server default. 0 means never expire. An untyped 0 is
+ * also an int, and Notify's replaces-id is a uint, so the call is rejected
+ * when plasmashell has not published introspection yet.
+ */
+#define ATROPOS_NOTIFY_REPLACES "@u 0"
+#define ATROPOS_NOTIFY_ACTIONS "@as []"
+#define ATROPOS_NOTIFY_HINTS "@a{sv} {}"
+#define ATROPOS_NOTIFY_EXPIRE "@i -1"
 
 typedef struct {
 	gchar *section;
@@ -1529,7 +1541,8 @@ reap_notify (GPid pid, gint status, gpointer user_data)
  * Tell the session that clicked Update. packagekitd is root, and the
  * session bus rejects a root connection, so this is a short-lived
  * process running as that user. A failure leaves the update staged and
- * leaves the stamp unset, so the next check tries again.
+ * leaves the stamp unset. Only the update transaction calls this. A
+ * later check must not, or the popup appears after Discover is closed.
  */
 static void
 notify_update_installed (PkBackendJob *job)
@@ -1592,14 +1605,14 @@ notify_update_installed (PkBackendJob *job)
 	argv[n++] = "/org/freedesktop/Notifications";
 	argv[n++] = "--method";
 	argv[n++] = "org.freedesktop.Notifications.Notify";
-	argv[n++] = "Discover";
-	argv[n++] = "0";
+	argv[n++] = ATROPOS_NOTIFY_APP;
+	argv[n++] = ATROPOS_NOTIFY_REPLACES;
 	argv[n++] = "system-software-update";
 	argv[n++] = "Update installed";
 	argv[n++] = ATROPOS_NOTIFY_BODY;
-	argv[n++] = "[]";
-	argv[n++] = "{'resident': <true>}";
-	argv[n++] = "0";
+	argv[n++] = ATROPOS_NOTIFY_ACTIONS;
+	argv[n++] = ATROPOS_NOTIFY_HINTS;
+	argv[n++] = ATROPOS_NOTIFY_EXPIRE;
 	argv[n++] = NULL;
 	envp[0] = env_bus;
 	envp[1] = env_runtime;
@@ -1680,10 +1693,10 @@ pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filter
 		/*
 		 * Discover shows its reboot page only when this check
 		 * returns no packages. A row here keeps Update All.
-		 * require_restart marks the page. This does not reboot
-		 * and does not start another dup.
+		 * require_restart marks the page. This does not reboot,
+		 * does not start another dup, and does not notify. The
+		 * notifier calls this after Discover has closed.
 		 */
-		notify_update_installed (job);
 		pk_backend_job_set_status (job, PK_STATUS_ENUM_FINISHED);
 		pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
 		pk_backend_job_finished (job);
@@ -2369,7 +2382,10 @@ main (void)
 			g_free (from_id);
 		}
 	}
-	if (strstr (ATROPOS_NOTIFY_BODY, "will be applied after you reboot") == NULL) {
+	if (strstr (ATROPOS_NOTIFY_BODY, "will be applied after you reboot") == NULL ||
+	    g_strcmp0 (ATROPOS_NOTIFY_APP, "AtropOS") != 0 ||
+	    g_strcmp0 (ATROPOS_NOTIFY_EXPIRE, "@i -1") != 0 ||
+	    g_strcmp0 (ATROPOS_NOTIFY_REPLACES, "@u 0") != 0) {
 		g_printerr ("notification body failed\n");
 		return 1;
 	}

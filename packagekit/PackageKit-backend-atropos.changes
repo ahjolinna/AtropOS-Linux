@@ -1,4 +1,17 @@
 -------------------------------------------------------------------
+Tue Nov 03 09:20:08 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Send the reboot notification when the update is staged, not when a
+  later check runs. That check runs after Discover is closed, and the
+  popup was appearing then.
+- Let the notification expire, and name it AtropOS. It was set to
+  never expire under the name Discover, so it stayed up after the
+  window closed.
+- Give Notify its argument types explicitly. An untyped 0 is an int,
+  and plasmashell rejected the call while it was still starting.
+- Release 13. The repository already has 0.1.0-12.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 02:48:33 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - While a snapshot is waiting, a check returns no packages and asks

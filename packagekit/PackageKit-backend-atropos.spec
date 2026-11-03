@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        12
+Release:        13
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
@@ -34,7 +34,8 @@ zypper dup --dry-run and reports one System updates row with that
 download size. Update All runs transactional-update dup in a new
 snapshot and does not reboot. While that snapshot is waiting, a check
 returns no packages and asks for a reboot, so Discover does not offer
-Update All again. The user who started the update gets one notification.
+Update All again. The user who started the update gets one notification
+then, and a later check does not send another.
 Resolve reports installed packages and staged updates from the last
 check, so Discover can open. Installing or removing individual RPM
 packages is refused. Flatpak updates stay on Discover's Flatpak backend.
