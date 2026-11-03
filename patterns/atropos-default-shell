@@ -1,0 +1,67 @@
+#!/bin/bash
+# Move login accounts that are still on the previous bash default to zsh.
+# Runs once, from atropos-default-shell.service, after the account exists.
+# A later choice of another shell is left alone.
+set -eu
+
+marker=/var/lib/atropos/default-shell-migrated
+if [ -e "$marker" ]; then
+    exit 0
+fi
+if [ ! -x /bin/zsh ] || [ ! -x /usr/bin/chsh ]; then
+    exit 1
+fi
+
+uid_min=1000
+uid_max=60000
+apply_defs() {
+    local file=$1 key value
+    [ -r "$file" ] || return 0
+    while read -r key value _; do
+        case $key in
+            ''|\#*) continue ;;
+        esac
+        case $key in
+            UID_MIN) uid_min=$value ;;
+            UID_MAX) uid_max=$value ;;
+        esac
+    done < "$file"
+}
+apply_defs /usr/etc/login.defs
+apply_defs /etc/login.defs
+for file in /usr/etc/login.defs.d/* /etc/login.defs.d/*; do
+    [ -f "$file" ] || continue
+    apply_defs "$file"
+done
+case $uid_min in
+    ''|*[!0-9]*) uid_min=1000 ;;
+esac
+case $uid_max in
+    ''|*[!0-9]*) uid_max=60000 ;;
+esac
+
+failed=0
+while IFS=: read -r user _ uid _ _ _ shell _; do
+    case $uid in
+        ''|*[!0-9]*) continue ;;
+    esac
+    if [ "$uid" -ge "$uid_min" ] && [ "$uid" -le "$uid_max" ]; then
+        case $shell in
+            /bin/bash|/usr/bin/bash)
+                if ! chsh -s /bin/zsh "$user"; then
+                    failed=1
+                fi
+                ;;
+        esac
+    fi
+done < <(getent passwd)
+
+if [ "$failed" -ne 0 ]; then
+    exit 1
+fi
+install -d -m 0755 /var/lib/atropos
+# The package script used to write this while the packages were being
+# installed, before Agama created the account, and then never tried again.
+# Leaving it in place must not block the new marker.
+rm -f /etc/atropos/default-shell-zsh || :
+touch "$marker"

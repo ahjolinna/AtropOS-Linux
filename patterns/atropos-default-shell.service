@@ -1,0 +1,12 @@
+[Unit]
+Description=Switch existing login accounts to zsh
+After=local-fs.target
+Before=display-manager.service plasmalogin.service
+ConditionPathExists=!/var/lib/atropos/default-shell-migrated
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/atropos-default-shell
+
+[Install]
+WantedBy=multi-user.target

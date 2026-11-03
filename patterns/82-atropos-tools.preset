@@ -1,3 +1,6 @@
 # plocate ships no preset, so its updatedb timer stays off unless a
 # preset enables it. This file sorts before 87-default-MicroOS.preset.
 enable plocate-updatedb.timer
+# The wants symlink ships in the package. This line keeps preset-all,
+# whose last match is disable *, from turning the migration back off.
+enable atropos-default-shell.service

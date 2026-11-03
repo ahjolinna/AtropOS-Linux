@@ -310,7 +310,7 @@ for name in $apps; do
     fi
 done
 flatpak=$root/performance/flatpak-preinstall.txt
-for id in org.kde.koko io.github.mpc_qt.mpc-qt org.kde.kcalc org.kde.kolourpaint io.github.slgobinath.SafeEyes; do
+for id in org.kde.koko io.github.mpc_qt.mpc-qt org.kde.kcalc org.kde.kolourpaint org.kde.merkuro org.kde.elisa org.kde.skanlite org.kde.kmahjongg io.github.slgobinath.SafeEyes; do
     if ! grep -qx "$id" "$flatpak"; then
         missing="$missing $id"
     fi
@@ -323,6 +323,14 @@ if [[ -z $missing ]]; then
     ok "pattern requires Ark and the desktop tools, and the Flatpak list matches"
 else
     bad "desktop packages or Flatpak ids are wrong:${missing}"
+fi
+if grep -q 'atropos-seed-flatpaks --missing' "$root/performance/atropos-performance.spec" \
+    && ! grep -q 'atropos-seed-flatpaks ||' "$root/performance/atropos-performance.spec" \
+    && grep -q -- '--missing' "$root/performance/atropos-seed-flatpaks" \
+    && bash -n "$root/performance/atropos-seed-flatpaks"; then
+    ok "Flatpak seeding waits for first boot, and an upgrade only reports missing apps"
+else
+    bad "Flatpak seeding still runs during package install"
 fi
 bootloader=$root/performance/atropos-bootloader
 boot_body=$(grep -v '^[[:space:]]*#' "$bootloader" || true)
@@ -511,7 +519,10 @@ else
 fi
 if grep -q 'LayoutName coverswitch' "$root/performance/atropos-cover-switch" \
     && grep -q 'Applications are still installing' "$root/performance/01-flatpaks.qml" \
-    && grep -q 'readonly property string phase' "$root/performance/01-flatpaks.qml"; then
+    && grep -q 'readonly property string phase' "$root/performance/01-flatpaks.qml" \
+    && grep -q 'property bool sawDownload: false' "$root/performance/01-flatpaks.qml" \
+    && grep -B4 'onTriggered: page.beginPoll()' "$root/performance/01-flatpaks.qml" | grep -q 'running: true' \
+    && ! grep -B4 'onTriggered: page.beginPoll()' "$root/performance/01-flatpaks.qml" | grep -q 'running: page.downloading'; then
     ok "Cover Switch oneshot and the Flatpak welcome page are present"
 else
     bad "Cover Switch oneshot or the Flatpak welcome page is missing"
@@ -568,7 +579,21 @@ if [[ -f $root/patterns/bash.bashrc.local ]] \
     && grep -q 'zsh-syntax-highlighting.zsh' "$root/patterns/zsh.zshrc.local" \
     && grep -q 'zsh-autosuggestions.zsh' "$root/patterns/zsh.zshrc.local" \
     && grep -q 'history-substring-search-up' "$root/patterns/zsh.zshrc.local" \
-    && grep -q 'SHELL=/bin/zsh' "$root/patterns/patterns-atropos.spec" \
+    && grep -q 'complete-word' "$root/patterns/zsh.zshrc.local" \
+    && grep -q 'backward-kill-word' "$root/patterns/zsh.zshrc.local" \
+    && grep -q 'unsetopt nomatch' "$root/patterns/zsh.zshrc.local" \
+    && grep -q '^SHELL=/bin/zsh$' "$root/patterns/useradd.default" \
+    && bash -n "$root/patterns/atropos-default-shell" \
+    && grep -q 'chsh -s /bin/zsh' "$root/patterns/atropos-default-shell" \
+    && grep -q 'default-shell-migrated' "$root/patterns/atropos-default-shell" \
+    && grep -q 'ConditionPathExists=!/var/lib/atropos/default-shell-migrated' \
+        "$root/patterns/atropos-default-shell.service" \
+    && grep -q 'Before=display-manager.service' \
+        "$root/patterns/atropos-default-shell.service" \
+    && grep -q 'enable atropos-default-shell.service' \
+        "$root/patterns/82-atropos-tools.preset" \
+    && grep -q 'atropos-default-shell.service' "$root/patterns/patterns-atropos.spec" \
+    && ! grep -q '/etc/atropos/default-shell-zsh' "$root/patterns/patterns-atropos.spec" \
     && grep -q '%attr(0750,root,root) %{_sysconfdir}/sudoers.d' "$root/atychia/atychia.spec"; then
     ok "mcfly hook and shell helpers parse"
 else

@@ -1,0 +1,5 @@
+# AtropOS login shell. useradd reads this file when it exists and keeps
+# its compiled defaults for every key that is not set here. AccountsService
+# creates users through useradd without its own shell, so this is the shell
+# Agama uses unless it passes one. shadow does not ship this file.
+SHELL=/bin/zsh

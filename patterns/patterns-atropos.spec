@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        25
+Release:        26
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -39,7 +39,14 @@ Source6:        atropos-oss-debug.repo
 Source7:        bash.bashrc.local
 Source8:        82-atropos-tools.preset
 Source9:        zsh.zshrc.local
+# shadow does not ship /etc/default/useradd. useradd keeps its compiled
+# defaults for keys this file does not set. SHELL=/bin/bash is compiled in,
+# so the file has to exist or new accounts stay on bash.
+Source10:       useradd.default
+Source11:       atropos-default-shell
+Source12:       atropos-default-shell.service
 ExclusiveArch:  x86_64 aarch64
+BuildRequires:  systemd-rpm-macros
 
 %description
 This is an internal package that is used to create the patterns as part
@@ -70,8 +77,8 @@ Requires:       zsh-autosuggestions
 Requires:       zsh-syntax-highlighting
 Requires:       zsh-history-substring-search
 Requires:       zsh-completions
-Requires(post): zsh
-Requires(post): shadow
+# chsh is used by atropos-default-shell.service, not by the package script.
+Requires:       shadow
 Requires:       branding
 Requires:       build-key
 Requires:       busybox
@@ -568,6 +575,12 @@ install -D -m 0644 %{SOURCE5} %{buildroot}%{_datadir}/atropos/applications/org.q
 install -D -m 0644 %{SOURCE6} %{buildroot}%{_sysconfdir}/zypp/repos.d/atropos-oss-debug.repo
 install -D -m 0644 %{SOURCE7} %{buildroot}%{_sysconfdir}/bash.bashrc.local
 install -D -m 0644 %{SOURCE9} %{buildroot}%{_sysconfdir}/zsh.zshrc.local
+install -D -m 0644 %{SOURCE10} %{buildroot}%{_sysconfdir}/default/useradd
+install -D -m 0755 %{SOURCE11} %{buildroot}%{_libexecdir}/atropos-default-shell
+install -D -m 0644 %{SOURCE12} %{buildroot}%{_unitdir}/atropos-default-shell.service
+mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
+ln -s ../atropos-default-shell.service \
+    %{buildroot}%{_unitdir}/multi-user.target.wants/atropos-default-shell.service
 install -D -m 0644 %{SOURCE8} %{buildroot}%{_prefix}/lib/systemd/system-preset/82-atropos-tools.preset
 install -D -m 0644 %{SOURCE5} %{buildroot}%{_sysconfdir}/skel/.local/share/applications/org.qt.qdbusviewer6.desktop
 
@@ -581,29 +594,6 @@ if [ -x /usr/bin/systemctl ]; then
     systemctl --no-reload enable --force plasmalogin.service >/dev/null 2>&1 || :
     # plocate's own scriptlet runs before this package's preset is installed.
     systemctl --no-reload preset plocate-updatedb.timer >/dev/null 2>&1 || :
-fi
-# New accounts use zsh. Accounts still on the previous bash default
-# move once. A later choice of another shell is left alone.
-if [ ! -e /etc/atropos/default-shell-zsh ]; then
-    if [ -f /etc/default/useradd ]; then
-        sed -i 's|^SHELL=.*|SHELL=/bin/zsh|' /etc/default/useradd || :
-    fi
-    if [ -x /usr/bin/chsh ]; then
-        getent passwd | while IFS=: read -r user _ uid _ _ _ shell _; do
-            case $uid in
-                ''|*[!0-9]*) continue ;;
-            esac
-            if [ "$uid" -ge 1000 ] && [ "$uid" -lt 65534 ]; then
-                case $shell in
-                    /bin/bash|/usr/bin/bash)
-                        chsh -s /bin/zsh "$user" || :
-                        ;;
-                esac
-            fi
-        done || :
-    fi
-    mkdir -p /etc/atropos
-    : > /etc/atropos/default-shell-zsh
 fi
 # Aeon and MicroOS relabel a read-only root from /etc/selinux/.autorelabel.
 # /.autorelabel cannot be written on the snapshot. selinux-autorelabel
@@ -624,6 +614,11 @@ fi
 %{_prefix}/lib/systemd/system-preset/82-atropos-tools.preset
 %config(noreplace) %{_sysconfdir}/bash.bashrc.local
 %config(noreplace) %{_sysconfdir}/zsh.zshrc.local
+%config(noreplace) %{_sysconfdir}/default/useradd
+%{_libexecdir}/atropos-default-shell
+%{_unitdir}/atropos-default-shell.service
+%dir %{_unitdir}/multi-user.target.wants
+%{_unitdir}/multi-user.target.wants/atropos-default-shell.service
 %{_prefix}/lib/environment.d/99-atropos-applications.conf
 %{_sysconfdir}/profile.d/atropos-applications.sh
 %{_sysconfdir}/profile.d/atropos-applications.csh

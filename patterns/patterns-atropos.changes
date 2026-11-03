@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Tue Nov 03 08:53:30 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Make zsh the login shell after the account exists. The previous
+  switch ran while the package was installed, before Agama created
+  the user, and /etc/default/useradd was not there to edit.
+- New accounts get SHELL=/bin/zsh. Existing accounts that are still
+  on bash move once, at boot, before the display manager. A later
+  shell choice is left alone.
+- Konsole follows that login shell. zsh gets the KDE Linux word
+  movement, Ctrl+Backspace, and completion that does not expand globs.
+
+-------------------------------------------------------------------
 Tue Nov 03 06:08:27 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require the open signed G07 longterm module and its userspace, so

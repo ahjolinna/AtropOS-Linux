@@ -8,6 +8,38 @@ SAVEHIST=100000
 setopt HIST_IGNORE_ALL_DUPS
 setopt SHARE_HISTORY
 setopt INC_APPEND_HISTORY
+# KDE Linux terminal defaults that do not replace the openSUSE prompt.
+# /etc/zshrc already turns on autocd, colored ls, and the arrow-key history.
+setopt auto_cd
+setopt interactivecomments
+setopt hist_verify
+unsetopt nomatch
+
+# Stop at / and . so Ctrl+Left walks a path one component at a time.
+WORDCHARS=${WORDCHARS//[\/&.;]}
+ZLE_REMOVE_SUFFIX_CHARS=$' \t\n;&|'
+ZLE_SPACE_SUFFIX_CHARS=$';&|'
+
+zstyle ':completion:*' menu no
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+
+# Home, End, and Delete. Konsole sends these. Page Up and Page Down stay
+# on the openSUSE history search from /etc/zshrc.
+bindkey '\e[1~' beginning-of-line
+bindkey '\e[H'  beginning-of-line
+bindkey '\eOH'  beginning-of-line
+bindkey '\e[4~' end-of-line
+bindkey '\e[F'  end-of-line
+bindkey '\eOF'  end-of-line
+bindkey '\e[3~' delete-char
+bindkey '\e[2~' overwrite-mode
+bindkey '^[[1;5D' backward-word
+bindkey '^[[1;5C' forward-word
+# Ctrl+Backspace. Plain Backspace stays ^? from /etc/zshrc.
+bindkey '^H' backward-kill-word
+bindkey '^[[3;5~' kill-word
+# Tab completes. It does not expand a glob onto the command line.
+bindkey '^I' complete-word
 
 if [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
@@ -40,6 +72,11 @@ if [[ -r /usr/share/zsh-history-substring-search/zsh-history-substring-search.zs
     fi
     bindkey '^[[A' history-substring-search-up
     bindkey '^[[B' history-substring-search-down
+    bindkey '^[[1;5A' history-substring-search-up
+    bindkey '^[[1;5B' history-substring-search-down
     bindkey -M emacs '^P' history-substring-search-up
     bindkey -M emacs '^N' history-substring-search-down
 fi
+
+# journalctl pages in the terminal instead of cutting the line.
+export SYSTEMD_LESS=FRXMK
