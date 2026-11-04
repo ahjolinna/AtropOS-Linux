@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        30
+Release:        31
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -166,6 +166,8 @@ Requires:       efibootmgr
 %ifarch aarch64 x86_64
 Requires:       mokutil
 Requires:       shim
+# sbverify, used by atropos-check eac to read the kernel signature.
+Requires:       sbsigntools
 %endif
 Requires:       uefi_mbr
 # TPM-2.0 support (boo#1211835)

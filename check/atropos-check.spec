@@ -6,9 +6,9 @@
 
 Name:           atropos-check
 Version:        0.1.0
-Release:        6
+Release:        7
 Summary:        Check and repair an installed AtropOS system
-License:        MIT
+License:        MIT AND Apache-2.0
 Group:          System/Base
 URL:            https://github.com/ahjolinna/AtropOS-Linux
 BuildArch:      noarch
@@ -16,14 +16,20 @@ BuildRequires:  systemd-rpm-macros
 Source0:        atropos-check
 Source1:        atropos-check.service
 Source2:        81-atropos-check.preset
+Source3:        atropos-check-eac
 Requires:       systemd
+Requires:       mokutil
+Requires:       openssl
+Requires:       sbsigntools
+Requires:       tpm2.0-tools
 
 %description
 Reports whether an installed AtropOS system still matches the Kalpa and
 Slowroll layout: the btrfs root, the boot command line, the PackageKit
 backend, Discover, Baloo, and the systemd policy. The boot service repairs
 only writable /etc drift. It does not remount disks, rewrite fstab, rewrite
-boot entries, or change the display manager.
+boot entries, or change the display manager. atropos-check eac reports
+Easy Anti-Cheat Linux v2 readiness and changes nothing.
 
 %prep
 
@@ -31,6 +37,7 @@ boot entries, or change the display manager.
 
 %install
 install -D -m 0755 %{SOURCE0} %{buildroot}%{_sbindir}/atropos-check
+install -D -m 0755 %{SOURCE3} %{buildroot}%{_sbindir}/atropos-check-eac
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/atropos-check.service
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system-preset/81-atropos-check.preset
 
@@ -48,6 +55,7 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system-preset/8
 
 %files
 %{_sbindir}/atropos-check
+%{_sbindir}/atropos-check-eac
 %{_unitdir}/atropos-check.service
 %{_prefix}/lib/systemd/system-preset/81-atropos-check.preset
 

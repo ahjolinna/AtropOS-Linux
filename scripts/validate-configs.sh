@@ -455,6 +455,13 @@ if [[ -f "$root/check/atropos-check" ]]; then
         bad "check/atropos-check failed bash -n"
     fi
 fi
+if [[ -f "$root/check/atropos-check-eac" ]]; then
+    if bash -n "$root/check/atropos-check-eac"; then
+        ok "check/atropos-check-eac"
+    else
+        bad "check/atropos-check-eac failed bash -n"
+    fi
+fi
 
 section "open issues"
 if grep -q 'default.target.wants/atychiad.service' "$root/atychia/atychia.spec" \
@@ -607,6 +614,7 @@ if [[ -f $root/patterns/bash.bashrc.local ]] \
     && bash -n "$root/patterns/bash.bashrc.local" \
     && bash -n "$root/performance/atropos-cover-switch" \
     && bash -n "$root/check/atropos-check" \
+    && bash -n "$root/check/atropos-check-eac" \
     && grep -q 'mcfly init zsh' "$root/patterns/zsh.zshrc.local" \
     && grep -q 'zsh-syntax-highlighting.zsh' "$root/patterns/zsh.zshrc.local" \
     && grep -q 'zsh-autosuggestions.zsh' "$root/patterns/zsh.zshrc.local" \

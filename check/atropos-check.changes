@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Nov 04 05:36:33 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Report Easy Anti-Cheat Linux v2 readiness with atropos-check eac.
+  The report changes nothing. Hints use the AtropOS boot command line.
+  Require sbsigntools so sbverify can read the kernel signature.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.

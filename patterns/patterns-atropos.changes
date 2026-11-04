@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 04 05:45:59 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require sbsigntools. atropos-check eac reads the kernel signature
+  with sbverify.
+
+-------------------------------------------------------------------
 Tue Nov 03 23:12:15 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require the open G07 packages again so Agama installs the driver

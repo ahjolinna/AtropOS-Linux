@@ -20,11 +20,16 @@ case "${1:-}" in
     "") ;;
     --fix) apply=1 ;;
     --boot) apply=1; boot=1 ;;
+    eac)
+        here=$(dirname "$(readlink -f "$0")")
+        exec "$here/atropos-check-eac"
+        ;;
     -h|--help)
-        echo "Usage: atropos-check [--fix|--boot]"
+        echo "Usage: atropos-check [--fix|--boot|eac]"
         echo "  default   report, change nothing, exit 1 when something is wrong"
         echo "  --fix     apply the safe repairs, then report"
         echo "  --boot    same repairs, always exit 0 so a miss does not fail boot"
+        echo "  eac       report Easy Anti-Cheat Linux v2 readiness and change nothing"
         exit 0
         ;;
     *)
