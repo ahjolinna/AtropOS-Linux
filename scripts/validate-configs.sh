@@ -397,7 +397,7 @@ fi
 section "boot command line"
 cmdline_file=$root/performance/00-atropos-cmdline.conf
 cmdline_line=$(grep -E '^[^#]' "$cmdline_file" | tr '\n' ' ')
-for token in quiet splash=silent plymouth.ignore-serial-consoles loglevel=3 vt.global_cursor_default=0 nowatchdog systemd.show_status=auto rd.udev.log_level=1 psi=1 security=selinux selinux=1; do
+for token in quiet splash=silent plymouth.ignore-serial-consoles loglevel=3 vt.global_cursor_default=0 nowatchdog systemd.show_status=auto rd.udev.log_level=1 psi=1 security=selinux selinux=1 iommu.passthrough=0 kexec_load_disabled=1; do
     case " $cmdline_line " in
         *" $token "*) ok "cmdline has $token" ;;
         *) bad "cmdline is missing $token" ;;

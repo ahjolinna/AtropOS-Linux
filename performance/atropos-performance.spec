@@ -9,7 +9,7 @@
 
 Name:           atropos-performance
 Version:        0.4.0
-Release:        16
+Release:        17
 Summary:        AtropOS desktop performance defaults
 License:        (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND Apache-2.0 AND ISC AND CC0-1.0 AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later
 Group:          System/Base
