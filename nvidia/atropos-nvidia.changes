@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Sat Nov 07 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Set autoAgreeWithLicenses = yes in /etc/zypp/zypper.conf. Every
+  package on download.nvidia.com carries a EULA, and transactional-update
+  dup only passes --auto-agree-with-product-licenses. zypper answered
+  "no" to the license and aborted with exit 4, so updates failed from
+  Discover and from the command line.
+- Release 6.
+
+-------------------------------------------------------------------
 Tue Nov 03 23:01:47 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Ship the NVIDIA Tumbleweed repository at priority 200, and only with

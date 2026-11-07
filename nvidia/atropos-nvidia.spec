@@ -10,7 +10,7 @@
 
 Name:           atropos-nvidia
 Version:        0.1.0
-Release:        5
+Release:        6
 Summary:        AtropOS open NVIDIA G07 driver setup
 License:        GPL-2.0-or-later AND (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND CC0-1.0
 Group:          System/Base
@@ -67,6 +67,23 @@ install -D -m 0644 %{SOURCE9} %{buildroot}%{_prefix}/lib/rpm/gnupg/keys/gpg-pubk
 # Agama drops the agama-nvidia alias before it copies repos.d.
 # This package is what keeps the URL on the installed system.
 rpm --import %{_prefix}/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc || :
+# Every package on download.nvidia.com carries a EULA. transactional-update
+# dup passes only --auto-agree-with-product-licenses, so zypper answers
+# "no" to the package license and the update aborts with exit 4. That
+# breaks Discover, the CLI and the timer alike. Agree at commit, as the
+# installer and atropos-nvidia-apply already do with
+# --auto-agree-with-licenses. zypper reads this file from the running
+# system, so it takes effect after the snapshot carrying it is booted.
+conf=%{_sysconfdir}/zypp/zypper.conf
+if [ -f "$conf" ] && ! grep -Eq '^[[:space:]]*autoAgreeWithLicenses[[:space:]]*=[[:space:]]*(yes|1|true|on)[[:space:]]*$' "$conf"; then
+    if grep -Eq '^[[:space:]]*autoAgreeWithLicenses[[:space:]]*=' "$conf"; then
+        sed -i -E 's/^[[:space:]]*autoAgreeWithLicenses[[:space:]]*=.*/autoAgreeWithLicenses = yes/' "$conf" || :
+    elif grep -Eq '^#[[:space:]]*autoAgreeWithLicenses[[:space:]]*=' "$conf"; then
+        sed -i -E '0,/^#[[:space:]]*autoAgreeWithLicenses[[:space:]]*=.*/s//autoAgreeWithLicenses = yes/' "$conf" || :
+    else
+        printf '\n[commit]\nautoAgreeWithLicenses = yes\n' >> "$conf" || :
+    fi
+fi
 
 %preun
 %service_del_preun atropos-nvidia-setup.service
