@@ -1,4 +1,42 @@
 -------------------------------------------------------------------
+Sat Nov 07 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Run checks, updates and Resolve in a job thread. packagekitd calls
+  the backend on its main thread, and during an update every D-Bus call
+  to it timed out after 25 seconds: no progress, no Cancel, and other
+  clients hung.
+- Add pk_backend_cancel. Without it PackageKit answered "Cancel not
+  supported by backend". Cancel turns off once zypper has finished and
+  transactional-update is closing the snapshot.
+- Wait up to 45 seconds for the network before a check. The check at
+  login ran before the network was up and failed in under a second.
+  A check that still cannot reach the servers says so in one sentence,
+  and every failure is written to the journal.
+- Check with the zypper options transactional-update uses, so a check
+  that passes means the update will too.
+- Name the license abort. transactional-update dup does not agree to
+  package licenses, so an NVIDIA driver update aborted with exit 4.
+  Discover now says which zypper.conf setting fixes it.
+- Show the last lines of a long failure log. The first eight were the
+  transactional-update banner and the package list, and the reason was
+  in "and 21 more". The backend's own messages are no longer cut.
+- A missing repomd.xml is reported as a repository that cannot be
+  read, not as packages that are still being published.
+- Report the System updates row during an update, so pkcon no longer
+  prints "There are no updates available" after staging one.
+- Progress only moves forward: downloads fill 0-50, installs 50-100.
+- Stop reading a command's output five seconds after it exits. A child
+  that kept the pipe open could hang the job.
+- Keep the update list on a non-forced refresh. Discover refreshes
+  before every check, which made the ten-minute cache useless.
+- Cache rpm -qa until Packages.db changes. Resolve went from 0.86 to
+  0.01 seconds.
+- Run the source tests in %check. Drop %systemd_post and
+  %systemd_postun for packagekit.service, which this package does not
+  own.
+- Release 15. The repository already has 0.1.0-14.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 20:01:02 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Make Flathub the Discover application source. With the distro

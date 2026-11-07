@@ -1,34 +1,24 @@
 /*
  * PackageKit backend that stages AtropOS updates with transactional-update.
  *
- * Discover talks to PackageKit. This backend never commits into the running
- * snapshot. A check is zypper dup --dry-run. Update All runs
- * transactional-update dup, which leaves the booted system untouched and
- * boots the new snapshot on the next reboot.
+ * Discover talks to PackageKit. A check is zypper dup --dry-run with the
+ * options transactional-update uses, reported as one "System updates" row.
+ * Update All runs transactional-update dup, which builds a new snapshot and
+ * leaves the running system alone until the next reboot. While that
+ * snapshot waits, a check returns no packages and asks for a reboot, and
+ * the user who started the update is notified once.
  *
- * Package installs and removals are refused. Resolve answers from the
- * installed RPM database and the update cache so Discover can ask whether
- * a name is installed. An unknown name is not an error. Flatpak stays on
- * Discover's Flatpak backend.
+ * Package installs and removals are refused; applications come from
+ * Flathub. Resolve answers from the RPM database and the last check, so
+ * Discover can match names.
  *
- * A successful check parses zypper's stdout only. stderr stays separate
- * and is joined only after the command has failed, so a plugin warning
- * cannot break the update list. Discover's simulate call finishes with
- * no packages; the following call is the real dup. Cancel sends one
- * SIGTERM and waits ten seconds on the monotonic clock before SIGKILL.
- * A failed update names the file conflict, the missing dependency, the
- * package file that returned HTTP 404, a setup script, a full disk, or
- * an ERROR: line from the snapshot tools. Exit 4 without a dependency
- * sentence is a transaction error. Snapshot cleanup is not the reason.
- * transactional-update exits 1 for every zypper failure. The zypper
- * code is the number in "failed with exit code".
+ * packagekitd calls every entry point on its main thread. Anything that
+ * runs a command does it in a job thread. Otherwise the daemon stops
+ * answering D-Bus (progress, Cancel, other clients) until the command ends.
  *
- * After the snapshot is staged, a check returns no packages and asks
- * for a reboot. Discover then shows its reboot page instead of Update
- * All. The user who started the update is notified once, from that
- * update, and the popup is allowed to expire. A later check does not
- * notify again. The stamp is written only after the notification
- * command exits 0.
+ * A failed command becomes one readable reason: a license, a file
+ * conflict, a setup script, a full disk, a dependency, a missing download,
+ * an unreachable server, or the last lines of the log.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -37,6 +27,7 @@
 #include <poll.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -47,6 +38,12 @@
 #include <glib/gstdio.h>
 #include <packagekit-glib2/packagekit.h>
 
+/*
+ * PackageKit installs no backend header. These match src/pk-backend-job.h
+ * and src/pk-backend.h in PackageKit 1.4.0. A wrong prototype still links
+ * and then crashes at run time, so check them when PackageKit changes
+ * version.
+ */
 typedef struct _PkBackend PkBackend;
 typedef struct _PkBackendJob PkBackendJob;
 
@@ -61,15 +58,23 @@ void pk_backend_job_set_allow_cancel (PkBackendJob *job, gboolean allow_cancel);
 void pk_backend_job_set_percentage (PkBackendJob *job, guint percentage);
 gboolean pk_backend_job_is_cancelled (PkBackendJob *job);
 guint pk_backend_job_get_uid (PkBackendJob *job);
+typedef void (*PkBackendJobThreadFunc) (PkBackendJob *job, GVariant *params, gpointer user_data);
+gboolean pk_backend_job_thread_create (PkBackendJob *job, PkBackendJobThreadFunc func, gpointer user_data, GDestroyNotify destroy_func);
+gboolean pk_backend_is_online (PkBackend *backend);
 
 #define ATROPOS_CACHE_DIR "/var/cache/atropos-packagekit"
 #define ATROPOS_CACHE_FILE ATROPOS_CACHE_DIR "/updates.tsv"
-#define ATROPOS_CACHE_TMP ATROPOS_CACHE_FILE ".tmp"
 #define ATROPOS_SIZE_FILE ATROPOS_CACHE_DIR "/download-size"
 #define ATROPOS_REBOOT_FILE "/run/reboot-needed"
 /* One notification per staged update. /run is cleared on reboot. */
 #define ATROPOS_NOTIFIED_FILE "/run/atropos-packagekit-notified"
 #define ATROPOS_PERCENTAGE_INVALID 101
+/* openSUSE's rpm uses the ndb backend. sqlite is the upstream default. */
+static const gchar *const atropos_rpmdb_files[] = {
+	"/usr/lib/sysimage/rpm/Packages.db",
+	"/usr/lib/sysimage/rpm/rpmdb.sqlite",
+	NULL,
+};
 /* Discover shows this single row instead of one row per RPM. */
 #define ATROPOS_BUNDLE_NAME "System updates"
 #define ATROPOS_NOTIFY_APP "AtropOS"
@@ -143,6 +148,10 @@ typedef struct {
 	gint exit_code;
 	gboolean cancelled;
 	gchar *error;		/* spawn failure. The child never ran. */
+	GString *line;		/* output after the last newline */
+	guint percentage;	/* last value sent. It never goes down. */
+	gboolean installing;	/* rpm has started in the snapshot */
+	gboolean committed;	/* zypper is done. Only snapshot steps remain. */
 } AtroposRun;
 
 static void
@@ -157,24 +166,79 @@ atropos_run_clear (AtroposRun *run)
 }
 
 static void
-note_progress (PkBackendJob *job, const gchar *chunk)
+set_progress (PkBackendJob *job, AtroposRun *run, guint percentage)
+{
+	/* PackageKit rejects a percentage that goes down. */
+	if (percentage > 100 || percentage <= run->percentage)
+		return;
+	run->percentage = percentage;
+	pk_backend_job_set_percentage (job, percentage);
+}
+
+/*
+ * zypper counts downloads and installs separately, each from 1 to N.
+ * Downloads fill 0-50 and installs 50-100, so the bar only moves forward.
+ * Once zypper has returned after installing, transactional-update is
+ * closing the snapshot and setting the default. A kill then can leave a
+ * half-finished snapshot, so Cancel is turned off.
+ */
+static void
+note_line (PkBackendJob *job, AtroposRun *run, const gchar *line)
 {
 	const gchar *p;
+	gboolean install;
+	gboolean download;
 
-	if (chunk == NULL)
+	if (run->installing && strstr (line, "Application returned with exit status") != NULL) {
+		run->committed = TRUE;
+		pk_backend_job_set_allow_cancel (job, FALSE);
 		return;
-	if (strstr (chunk, "Retrieving") != NULL || strstr (chunk, "Downloading") != NULL)
-		pk_backend_job_set_status (job, PK_STATUS_ENUM_DOWNLOAD);
-	else if (strstr (chunk, "Installing") != NULL || strstr (chunk, "Updating") != NULL)
+	}
+	install = strstr (line, "Installing:") != NULL || strstr (line, "Removing:") != NULL ||
+		strstr (line, "Cleaning up:") != NULL;
+	download = !install && (strstr (line, "Retrieving") != NULL ||
+				strstr (line, "Downloading") != NULL ||
+				strstr (line, "Preloading") != NULL ||
+				g_str_has_prefix (line, "In cache"));
+	if (!install && !download)
+		return;
+	if (install && !run->installing) {
+		run->installing = TRUE;
 		pk_backend_job_set_status (job, PK_STATUS_ENUM_UPDATE);
+	} else if (download && !run->installing) {
+		pk_backend_job_set_status (job, PK_STATUS_ENUM_DOWNLOAD);
+	}
 
-	for (p = chunk; (p = strchr (p, '(')) != NULL; p++) {
+	for (p = line; (p = strchr (p, '(')) != NULL; p++) {
 		guint done = 0;
 		guint total = 0;
-		if (sscanf (p, "(%u/%u)", &done, &total) == 2 && total > 0) {
-			pk_backend_job_set_percentage (job, (done * 100) / total);
+
+		if (sscanf (p, "(%u/%u)", &done, &total) == 2 && total > 0 && done <= total) {
+			guint half = (done * 50) / total;
+
+			set_progress (job, run, install ? 50 + half : half);
 			break;
 		}
+	}
+}
+
+static void
+note_output (PkBackendJob *job, AtroposRun *run, const gchar *chunk, gboolean flush)
+{
+	gchar *nl;
+
+	if (run->line == NULL)
+		run->line = g_string_new (NULL);
+	if (chunk != NULL)
+		g_string_append (run->line, chunk);
+	while ((nl = strchr (run->line->str, '\n')) != NULL) {
+		*nl = '\0';
+		note_line (job, run, run->line->str);
+		g_string_erase (run->line, 0, (nl - run->line->str) + 1);
+	}
+	if (flush && run->line->len > 0) {
+		note_line (job, run, run->line->str);
+		g_string_truncate (run->line, 0);
 	}
 }
 
@@ -185,7 +249,7 @@ note_progress (PkBackendJob *job, const gchar *chunk)
  * after the command has already failed.
  */
 static void
-read_pipe (gint fd, GString *buf, PkBackendJob *job, gboolean *eof)
+read_pipe (gint fd, GString *buf, PkBackendJob *job, AtroposRun *run, gboolean *eof)
 {
 	gchar tmp[4096];
 	ssize_t n;
@@ -194,7 +258,7 @@ read_pipe (gint fd, GString *buf, PkBackendJob *job, gboolean *eof)
 	if (n > 0) {
 		tmp[n] = '\0';
 		g_string_append_len (buf, tmp, n);
-		note_progress (job, tmp);
+		note_output (job, run, tmp, FALSE);
 		return;
 	}
 	if (n == 0 || (n < 0 && errno != EINTR))
@@ -216,6 +280,7 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	gboolean termed = FALSE;
 	gint status = 0;
 	gint64 term_at = 0;
+	gint64 exited_at = 0;
 
 	memset (run, 0, sizeof *run);
 	run->exit_code = -1;
@@ -268,7 +333,7 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 		 * transactional-update's snapshot cleanup and can leave a
 		 * zypp lock. Ten seconds lets the process group exit cleanly.
 		 */
-		if (pk_backend_job_is_cancelled (job)) {
+		if (!run->committed && pk_backend_job_is_cancelled (job)) {
 			run->cancelled = TRUE;
 			if (!termed) {
 				kill (-pid, SIGTERM);
@@ -297,26 +362,40 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 		 */
 		if (poll (npfd > 0 ? pfd : NULL, npfd, 200) > 0) {
 			if (out_slot >= 0 && (pfd[out_slot].revents & (POLLIN | POLLHUP | POLLERR)) != 0)
-				read_pipe (out_fd, out_buf, job, &out_eof);
+				read_pipe (out_fd, out_buf, job, run, &out_eof);
 			if (err_slot >= 0 && (pfd[err_slot].revents & (POLLIN | POLLHUP | POLLERR)) != 0)
-				read_pipe (err_fd, err_buf, job, &err_eof);
+				read_pipe (err_fd, err_buf, job, run, &err_eof);
 		}
 
 		if (!exited) {
 			pid_t got = waitpid (pid, &status, WNOHANG);
 			if (got == pid) {
 				exited = TRUE;
+				exited_at = g_get_monotonic_time ();
 				if (WIFEXITED (status))
 					run->exit_code = WEXITSTATUS (status);
 				else if (WIFSIGNALED (status))
 					run->exit_code = 128 + WTERMSIG (status);
 			} else if (got < 0 && errno == ECHILD) {
 				exited = TRUE;
+				exited_at = g_get_monotonic_time ();
 			}
 		}
 
 		if (run->cancelled && exited)
 			break;
+		/*
+		 * Something the command started can keep the pipe open after
+		 * the command itself has exited. Waiting for EOF then never
+		 * ends and the job hangs. Five seconds is enough to drain it.
+		 */
+		if (exited && g_get_monotonic_time () - exited_at >= 5 * G_USEC_PER_SEC)
+			break;
+	}
+	note_output (job, run, NULL, TRUE);
+	if (run->line != NULL) {
+		g_string_free (run->line, TRUE);
+		run->line = NULL;
 	}
 
 	if (!exited) {
@@ -354,6 +433,7 @@ text_has (const gchar *lower, const gchar *needle)
 static gboolean output_has_hard_404 (const gchar *text);
 static gboolean output_has_file_conflict (const gchar *text);
 static gboolean output_has_dep_problem (const gchar *text);
+static gboolean output_has_license_abort (const gchar *text);
 
 /*
  * transactional-update exits 1 for every zypper failure. The real code is
@@ -412,7 +492,9 @@ zypper_error_code (gint exit_code, const gchar *output)
 	}
 
 	lower = output != NULL ? g_ascii_strdown (output, -1) : NULL;
-	if (output_has_hard_404 (output))
+	if (output_has_license_abort (output))
+		code = PK_ERROR_ENUM_NO_LICENSE_AGREEMENT;
+	else if (output_has_hard_404 (output))
 		code = PK_ERROR_ENUM_PACKAGE_DOWNLOAD_FAILED;
 	else if (text_has (lower, "is locked") || text_has (lower, "zypp lock"))
 		code = PK_ERROR_ENUM_CANNOT_GET_LOCK;
@@ -420,11 +502,15 @@ zypper_error_code (gint exit_code, const gchar *output)
 		code = PK_ERROR_ENUM_PACKAGE_CONFLICTS;
 	else if (output_has_dep_problem (output))
 		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
-	else if (text_has (lower, "please insert") || text_has (lower, "medium"))
+	else if (text_has (lower, "please insert"))
 		code = PK_ERROR_ENUM_MEDIA_CHANGE_REQUIRED;
 	else if (text_has (lower, "no network") || text_has (lower, "network is unreachable"))
 		code = PK_ERROR_ENUM_NO_NETWORK;
 	else if (text_has (lower, "valid metadata not found") ||
+		 text_has (lower, "not found on medium") ||
+		 text_has (lower, "couldn't resolve host") ||
+		 text_has (lower, "connection refused") ||
+		 text_has (lower, "connection timed out") ||
 		 text_has (lower, "timeout exceeded") ||
 		 text_has (lower, "no more mirrors") ||
 		 text_has (lower, "could not resolve") ||
@@ -598,7 +684,7 @@ write_cache (GPtrArray *pkgs)
 {
 	GString *text;
 	guint i;
-	gchar *tmp;
+	gboolean ok;
 
 	if (g_mkdir_with_parents (ATROPOS_CACHE_DIR, 0755) != 0)
 		return FALSE;
@@ -609,22 +695,10 @@ write_cache (GPtrArray *pkgs)
 					pkg->section, pkg->name, pkg->edition,
 					pkg->arch, pkg->repo, pkg->summary);
 	}
-	tmp = g_strdup (ATROPOS_CACHE_TMP);
-	/*
-	 * g_file_set_contents replaces the .tmp only after its own write
-	 * finishes. A failed write or a failed rename must remove that .tmp,
-	 * or a partial file stays in the cache directory.
-	 */
-	if (g_file_set_contents (tmp, text->str, text->len, NULL) &&
-	    g_rename (tmp, ATROPOS_CACHE_FILE) == 0) {
-		g_free (tmp);
-		g_string_free (text, TRUE);
-		return TRUE;
-	}
-	g_unlink (tmp);
-	g_free (tmp);
+	/* Writes a temporary file and renames it over the old one. */
+	ok = g_file_set_contents (ATROPOS_CACHE_FILE, text->str, text->len, NULL);
 	g_string_free (text, TRUE);
-	return FALSE;
+	return ok;
 }
 
 static gboolean
@@ -794,8 +868,13 @@ line_is_hard_404 (const gchar *line)
 	gchar *lower;
 	gboolean hard;
 
+	/*
+	 * Only a package file. A missing repomd.xml is a repository that
+	 * cannot be read, not a package that is still being published.
+	 */
 	lower = g_ascii_strdown (line, -1);
 	hard = (strstr (lower, "404") != NULL || strstr (lower, "not found on medium") != NULL) &&
+		strstr (lower, ".rpm") != NULL &&
 		strstr (lower, "trying next mirror") == NULL;
 	g_free (lower);
 	return hard;
@@ -897,6 +976,36 @@ missing_download_text (const gchar *text)
 	return g_string_free (msg, FALSE);
 }
 
+/*
+ * transactional-update dup passes -y --auto-agree-with-product-licenses,
+ * never --auto-agree-with-licenses, and dup takes no extra zypper options.
+ * A package with a EULA (everything on download.nvidia.com) is then
+ * answered "no" and zypper aborts with exit 4. The dry-run check agrees to
+ * licenses, so it did not see this. autoAgreeWithLicenses in zypper.conf
+ * is the only switch transactional-update honours.
+ */
+static gboolean
+output_has_license_abort (const gchar *text)
+{
+	return text != NULL &&
+		(strstr (text, "Aborting installation due to the need for license confirmation") != NULL ||
+		 strstr (text, "use the --auto-agree-with-licenses option") != NULL);
+}
+
+static gchar *
+license_abort_text (const gchar *text)
+{
+	if (!output_has_license_abort (text))
+		return NULL;
+	return g_strdup ("The update was not installed. Nothing was changed.\n"
+			 "A package in this update has a license that must be accepted "
+			 "(the NVIDIA driver packages do), and transactional-update does "
+			 "not accept package licenses on its own.\n"
+			 "Set \"autoAgreeWithLicenses = yes\" under [commit] in "
+			 "/etc/zypp/zypper.conf, or run \"sudo transactional-update dup\" "
+			 "in a terminal once and accept the license there.");
+}
+
 /* Download progress and the snapshot cleanup. Discover was showing these. */
 static gboolean
 failure_line_is_noise (const gchar *line)
@@ -914,7 +1023,18 @@ failure_line_is_noise (const gchar *line)
 		strstr (line, "Use '--interactive'") != NULL ||
 		strstr (line, "Removing snapshot") != NULL ||
 		strstr (line, "Discarding snapshot") != NULL ||
-		strstr (line, "Using 'snapper'") != NULL;
+		strstr (line, "Using 'snapper'") != NULL ||
+		g_str_has_prefix (line, "transactional-update ") ||
+		g_str_has_prefix (line, "Separate /var detected") ||
+		g_str_has_prefix (line, "Using snapshot ") ||
+		g_str_has_prefix (line, "ID: ") ||
+		g_str_has_prefix (line, "Calling zypper") ||
+		g_str_has_prefix (line, "Executing `zypper") ||
+		g_str_has_prefix (line, "Refreshing service") ||
+		g_str_has_prefix (line, "Loading repository data") ||
+		g_str_has_prefix (line, "Reading installed packages") ||
+		g_str_has_prefix (line, "Computing distribution upgrade") ||
+		g_str_has_prefix (line, "Warning: You are about to do a distribution upgrade");
 }
 
 /* Solver menus and the transactional-update summary. Not a reason. */
@@ -1343,6 +1463,17 @@ plain_reason_text (const gchar *text)
 		return NULL;
 	}
 	msg = g_string_new ("The update was not installed. Nothing was changed.");
+	/*
+	 * The reason is at the end of the log. The head is the
+	 * transactional-update banner and zypper's package list, and showing
+	 * that with "and 21 more" hid the actual error.
+	 */
+	if (rows->len > 8) {
+		guint skipped = rows->len - 8;
+
+		g_ptr_array_remove_range (rows, 0, skipped);
+		g_string_append_printf (msg, "\n(%u earlier lines not shown)", skipped);
+	}
 	append_capped (msg, rows);
 	g_ptr_array_free (rows, TRUE);
 	return g_string_free (msg, FALSE);
@@ -1359,6 +1490,9 @@ friendly_failure_text (const gchar *text, gint exit_code)
 	gchar *lower;
 	gint code;
 
+	shown = license_abort_text (text);
+	if (shown != NULL)
+		return shown;
 	shown = file_conflict_text (text);
 	if (shown != NULL)
 		return shown;
@@ -1390,18 +1524,30 @@ friendly_failure_text (const gchar *text, gint exit_code)
 			 "The updater failed and did not give a reason.");
 }
 
+/*
+ * The journal gets the same text. A check that fails at login is
+ * otherwise only seen by the notifier, and nobody can tell why later.
+ */
 static void
 fail_job (PkBackendJob *job, PkErrorEnum code, const gchar *text)
 {
 	gchar *shown = atropos_error_text (text, -1);
-	gsize len = strlen (shown);
-	const gchar *tail = shown;
 
-	if (len > 2000)
-		tail = shown + (len - 2000);
-	pk_backend_job_error_code (job, code, "%s", tail);
+	g_warning ("atropos: %s: %s", pk_error_enum_to_string (code), shown);
+	pk_backend_job_error_code (job, code, "%s", shown);
 	pk_backend_job_finished (job);
 	g_free (shown);
+}
+
+/* A raw log keeps its end, where the reason is. */
+static gchar *
+log_tail (const gchar *text, gsize max)
+{
+	gsize len = text != NULL ? strlen (text) : 0;
+
+	if (len <= max)
+		return g_strdup (text != NULL ? text : "");
+	return g_strdup (text + (len - max));
 }
 
 /* stdout, then stderr. The XML parser must not see this joined buffer. */
@@ -1431,15 +1577,97 @@ fail_command (PkBackendJob *job, const AtroposRun *run)
 	text = missing_download_text (raw);
 	if (text == NULL)
 		text = friendly_failure_text (raw, run->exit_code);
-	if (text == NULL)
-		text = atropos_error_text (raw, run->exit_code);
+	if (text == NULL) {
+		gchar *tail = log_tail (raw, 2000);
+
+		text = atropos_error_text (tail, run->exit_code);
+		g_free (tail);
+	}
 	fail_job (job, zypper_error_code (run->exit_code, raw), text);
 	g_free (text);
 	g_free (raw);
 }
 
+/* The last line that is not progress or a wrapper. */
+static gchar *
+last_reason_line (const gchar *text)
+{
+	gchar **lines;
+	gchar *found = NULL;
+	gint i;
+
+	if (text == NULL)
+		return NULL;
+	lines = g_strsplit (text, "\n", -1);
+	for (i = (gint) g_strv_length (lines) - 1; i >= 0 && found == NULL; i--) {
+		gchar *line = g_strstrip (g_strdup (lines[i]));
+
+		if (line[0] != '\0' && !failure_line_is_wrapper (line) &&
+		    !g_str_has_prefix (line, "Use '--interactive'"))
+			found = line;
+		else
+			g_free (line);
+	}
+	g_strfreev (lines);
+	return found;
+}
+
+/*
+ * At login the notifier checks before the network is up, and zypper
+ * fails in under a second. Wait for a route first. If the monitor still
+ * says offline, try anyway: it can be wrong behind some VPN and static
+ * setups, and zypper gives the real answer.
+ */
+static void
+wait_for_network (PkBackendJob *job, PkBackend *backend)
+{
+	gint64 until = g_get_monotonic_time () + 45 * G_USEC_PER_SEC;
+
+	while (!pk_backend_is_online (backend) && g_get_monotonic_time () < until &&
+	       !pk_backend_job_is_cancelled (job))
+		g_usleep (G_USEC_PER_SEC / 2);
+}
+
+/*
+ * A check that cannot reach the servers says so in one sentence. The
+ * zypper log about mirrors and repository aliases is not useful to
+ * someone whose Wi-Fi is off.
+ */
+static void
+fail_check (PkBackendJob *job, PkBackend *backend, const AtroposRun *run)
+{
+	gchar *raw;
+	PkErrorEnum code;
+
+	if (run->cancelled || run->error != NULL) {
+		fail_command (job, run);
+		return;
+	}
+	raw = command_log (run);
+	code = zypper_error_code (run->exit_code, raw);
+	if (!pk_backend_is_online (backend)) {
+		fail_job (job, PK_ERROR_ENUM_NO_NETWORK,
+			  "Could not check for updates because this computer is not "
+			  "connected to the internet. Connect to a network and check again.");
+	} else if (code == PK_ERROR_ENUM_NO_NETWORK || code == PK_ERROR_ENUM_REPO_NOT_AVAILABLE) {
+		gchar *reason = last_reason_line (raw);
+		gchar *text = g_strdup_printf ("Could not check for updates because the update "
+					       "servers could not be reached. This is usually "
+					       "temporary. Try again in a few minutes.%s%s",
+					       reason != NULL ? "\nDetails: " : "",
+					       reason != NULL ? reason : "");
+
+		fail_job (job, code, text);
+		g_free (text);
+		g_free (reason);
+	} else {
+		fail_command (job, run);
+	}
+	g_free (raw);
+}
+
 static gboolean
-collect_updates (PkBackendJob *job, GPtrArray **pkgs_out)
+collect_updates (PkBackendJob *job, PkBackend *backend, GPtrArray **pkgs_out)
 {
 	AtroposRun refresh;
 	AtroposRun dup;
@@ -1447,13 +1675,16 @@ collect_updates (PkBackendJob *job, GPtrArray **pkgs_out)
 		"/usr/bin/zypper", "--non-interactive", "--gpg-auto-import-keys", "refresh", NULL,
 	};
 	/*
-	 * -y and --auto-agree-with-licenses are dist-upgrade options on
-	 * zypper 1.14. Slowroll has no delta RPMs; do not ask for them.
+	 * The same options transactional-update dup gives zypper, so a
+	 * check that passes means the update will too. In particular no
+	 * --auto-agree-with-licenses: transactional-update never passes it,
+	 * and a package license is then refused here instead of after the
+	 * user has clicked Update. -y is a command option on zypper 1.14.
 	 */
 	gchar *dup_argv[] = {
 		"/usr/bin/zypper", "--xmlout", "--non-interactive",
-		"--gpg-auto-import-keys",
-		"dist-upgrade", "--dry-run", "-y", "--auto-agree-with-licenses",
+		"--gpg-auto-import-keys", "--no-cd",
+		"dup", "--dry-run", "-y", "--auto-agree-with-product-licenses",
 		NULL,
 	};
 	gchar *parse_error = NULL;
@@ -1461,8 +1692,9 @@ collect_updates (PkBackendJob *job, GPtrArray **pkgs_out)
 	GPtrArray *pkgs;
 
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_REFRESH_CACHE);
+	wait_for_network (job, backend);
 	if (!run_command (job, refresh_argv, &refresh)) {
-		fail_command (job, &refresh);
+		fail_check (job, backend, &refresh);
 		atropos_run_clear (&refresh);
 		return FALSE;
 	}
@@ -1653,6 +1885,39 @@ finish_reboot_required (PkBackendJob *job, const gchar *package_id)
 	pk_backend_job_finished (job);
 }
 
+/* Copies of the call arguments, owned by the job thread. */
+typedef struct {
+	PkBackend *backend;
+	PkBitfield filters;
+	PkBitfield flags;
+	gchar **ids;
+} AtroposJob;
+
+static void
+atropos_job_free (gpointer data)
+{
+	AtroposJob *aj = data;
+
+	g_strfreev (aj->ids);
+	g_free (aj);
+}
+
+static void
+start_thread (PkBackendJob *job, PkBackendJobThreadFunc func, PkBackend *backend,
+	      PkBitfield filters, PkBitfield flags, gchar **ids)
+{
+	AtroposJob *aj = g_new0 (AtroposJob, 1);
+
+	aj->backend = backend;
+	aj->filters = filters;
+	aj->flags = flags;
+	aj->ids = g_strdupv (ids);
+	if (!pk_backend_job_thread_create (job, func, aj, atropos_job_free)) {
+		atropos_job_free (aj);
+		fail_job (job, PK_ERROR_ENUM_INTERNAL_ERROR, "Could not start the backend thread.");
+	}
+}
+
 const gchar *
 pk_backend_get_description (PkBackend *backend)
 {
@@ -1680,13 +1945,25 @@ pk_backend_destroy (PkBackend *backend)
 	(void) backend;
 }
 
+/*
+ * PackageKit advertises Cancel only when this symbol exists. It has
+ * already cancelled the job's GCancellable by the time it calls here, and
+ * run_command polls that, so there is nothing more to do.
+ */
 void
-pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filters)
+pk_backend_cancel (PkBackend *backend, PkBackendJob *job)
 {
+	(void) backend;
+	(void) job;
+}
+
+static void
+get_updates_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
+{
+	AtroposJob *aj = user_data;
 	GPtrArray *pkgs = NULL;
 
-	(void) backend;
-	(void) filters;
+	(void) params;
 	if (atropos_reboot_pending ()) {
 		gchar *package_id = bundle_package_id ();
 
@@ -1712,7 +1989,7 @@ pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filter
 	 */
 	if (cache_is_fresh (600))
 		pkgs = read_cache ();
-	if (pkgs == NULL && !collect_updates (job, &pkgs))
+	if (pkgs == NULL && !collect_updates (job, aj->backend, &pkgs))
 		return;
 	emit_system_updates (job, pkgs, read_download_size ());
 	g_ptr_array_free (pkgs, TRUE);
@@ -1721,14 +1998,24 @@ pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filter
 }
 
 void
+pk_backend_get_updates (PkBackend *backend, PkBackendJob *job, PkBitfield filters)
+{
+	start_thread (job, get_updates_thread, backend, filters, 0, NULL);
+}
+
+void
 pk_backend_refresh_cache (PkBackend *backend, PkBackendJob *job, gboolean force)
 {
 	(void) backend;
-	(void) force;
-	/* The waiting reboot does not read this list. The next check solves again. */
-	g_unlink (ATROPOS_CACHE_FILE);
-	g_unlink (ATROPOS_CACHE_TMP);
-	g_unlink (ATROPOS_SIZE_FILE);
+	/*
+	 * Discover refreshes before every check. Dropping the list each time
+	 * made the ten-minute cache useless. A forced refresh, or a newer zypp
+	 * marker (see cache_is_fresh), still solves again.
+	 */
+	if (force) {
+		g_unlink (ATROPOS_CACHE_FILE);
+		g_unlink (ATROPOS_SIZE_FILE);
+	}
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_REFRESH_CACHE);
 	pk_backend_job_finished (job);
 }
@@ -1908,7 +2195,7 @@ parse_rpm_qa (const gchar *text)
 		if (list == NULL)
 			g_hash_table_insert (table, g_strdup (fields[0]), g_slist_append (NULL, pkg));
 		else
-			list = g_slist_append (list, pkg);
+			list = g_slist_append (list, pkg);	/* same head; the table keeps it */
 		g_strfreev (fields);
 	}
 	g_strfreev (lines);
@@ -1946,23 +2233,73 @@ emit_id (PkBackendJob *job, PkInfoEnum info, const gchar *name, const gchar *evr
  * Unknown names finish successfully: this backend still refuses install
  * and remove. One rpm -qa covers every name. The update cache is optional.
  */
-void
-pk_backend_resolve (PkBackend *backend, PkBackendJob *job, PkBitfield filters, gchar **packages)
+/*
+ * The booted RPM database only changes on reboot here: updates go into the
+ * next snapshot. Keep one rpm -qa until the database file changes.
+ */
+static GMutex atropos_rpm_lock;
+static gchar *atropos_rpm_text;
+static gint64 atropos_rpm_mtime;
+static gint64 atropos_rpm_size;
+
+static gchar *
+cached_rpm_qa (PkBackendJob *job, gboolean *cancelled)
 {
 	AtroposRun rpm;
-	GHashTable *installed = NULL;
-	GHashTable *seen;
-	GPtrArray *cached;
-	gboolean want_installed;
-	gboolean want_available;
-	guint i;
+	GStatBuf st;
+	gboolean have_stat;
+	gchar *text = NULL;
 	gchar *rpm_argv[] = {
 		"/usr/bin/rpm", "--query", "--all",
 		"--queryformat", "%{NAME}\t%{EVR}\t%{ARCH}\t%{SUMMARY}\n",
 		NULL,
 	};
 
-	(void) backend;
+	*cancelled = FALSE;
+	have_stat = FALSE;
+	for (guint i = 0; atropos_rpmdb_files[i] != NULL && !have_stat; i++)
+		have_stat = g_stat (atropos_rpmdb_files[i], &st) == 0;
+	g_mutex_lock (&atropos_rpm_lock);
+	if (have_stat && atropos_rpm_text != NULL &&
+	    atropos_rpm_mtime == (gint64) st.st_mtime && atropos_rpm_size == (gint64) st.st_size)
+		text = g_strdup (atropos_rpm_text);
+	g_mutex_unlock (&atropos_rpm_lock);
+	if (text != NULL)
+		return text;
+
+	if (!run_command (job, rpm_argv, &rpm)) {
+		*cancelled = rpm.cancelled;
+		atropos_run_clear (&rpm);
+		return NULL;
+	}
+	text = rpm.output;
+	rpm.output = NULL;
+	atropos_run_clear (&rpm);
+	if (have_stat) {
+		g_mutex_lock (&atropos_rpm_lock);
+		g_free (atropos_rpm_text);
+		atropos_rpm_text = g_strdup (text);
+		atropos_rpm_mtime = (gint64) st.st_mtime;
+		atropos_rpm_size = (gint64) st.st_size;
+		g_mutex_unlock (&atropos_rpm_lock);
+	}
+	return text;
+}
+
+static void
+resolve_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
+{
+	AtroposJob *aj = user_data;
+	PkBitfield filters = aj->filters;
+	gchar **packages = aj->ids;
+	GHashTable *installed = NULL;
+	GHashTable *seen;
+	GPtrArray *cached;
+	gboolean want_installed;
+	gboolean want_available;
+	guint i;
+
+	(void) params;
 	want_installed = resolve_wants_installed (filters);
 	want_available = resolve_wants_available (filters);
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_QUERY);
@@ -1974,20 +2311,19 @@ pk_backend_resolve (PkBackend *backend, PkBackendJob *job, PkBitfield filters, g
 
 	cached = read_cache ();
 	if (want_installed) {
-		memset (&rpm, 0, sizeof rpm);
-		if (!run_command (job, rpm_argv, &rpm)) {
-			if (rpm.cancelled) {
-				fail_job (job, PK_ERROR_ENUM_TRANSACTION_CANCELLED, "Cancelled");
-				atropos_run_clear (&rpm);
-				if (cached != NULL)
-					g_ptr_array_free (cached, TRUE);
-				return;
-			}
-			/* rpm failed. Still answer from the cache, if any. */
-		} else {
-			installed = parse_rpm_qa (rpm.output);
+		gboolean cancelled = FALSE;
+		gchar *text = cached_rpm_qa (job, &cancelled);
+
+		if (cancelled) {
+			fail_job (job, PK_ERROR_ENUM_TRANSACTION_CANCELLED, "Cancelled");
+			if (cached != NULL)
+				g_ptr_array_free (cached, TRUE);
+			return;
 		}
-		atropos_run_clear (&rpm);
+		/* If rpm failed, still answer from the update cache. */
+		if (text != NULL)
+			installed = parse_rpm_qa (text);
+		g_free (text);
 	}
 
 	seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -2039,8 +2375,16 @@ pk_backend_resolve (PkBackend *backend, PkBackendJob *job, PkBitfield filters, g
 }
 
 void
-pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield transaction_flags, gchar **package_ids)
+pk_backend_resolve (PkBackend *backend, PkBackendJob *job, PkBitfield filters, gchar **packages)
 {
+	start_thread (job, resolve_thread, backend, filters, 0, packages);
+}
+
+static void
+update_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
+{
+	AtroposJob *aj = user_data;
+	gchar **package_ids = aj->ids;
 	AtroposRun dup;
 	/* No "reboot" argument. The new snapshot stays staged until the user reboots. */
 	gchar *argv[] = {
@@ -2050,11 +2394,7 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 	gchar *owned_id = NULL;
 	const gchar *package_id = NULL;
 
-	(void) backend;
-	if (pk_bitfield_contain (transaction_flags, PK_TRANSACTION_FLAG_ENUM_SIMULATE)) {
-		pk_backend_job_finished (job);
-		return;
-	}
+	(void) params;
 	if (package_ids != NULL && package_ids[0] != NULL)
 		package_id = package_ids[0];
 	else {
@@ -2068,6 +2408,13 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 		return;
 	}
 
+	/*
+	 * Report the row being updated. A transaction with no package
+	 * signal reads as "There are no updates available" to pkcon, which
+	 * also exits 5, even when the update was staged.
+	 */
+	pk_backend_job_package (job, PK_INFO_ENUM_UPDATING, package_id,
+				"Installing the update into a new snapshot");
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_UPDATE);
 	if (!run_command (job, argv, &dup)) {
 		fail_command (job, &dup);
@@ -2087,6 +2434,17 @@ pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield tr
 		pk_backend_job_finished (job);
 	g_free (owned_id);
 	atropos_run_clear (&dup);
+}
+
+void
+pk_backend_update_packages (PkBackend *backend, PkBackendJob *job, PkBitfield transaction_flags, gchar **package_ids)
+{
+	/* Discover's simulate call finishes with no packages; the next call is the real dup. */
+	if (pk_bitfield_contain (transaction_flags, PK_TRANSACTION_FLAG_ENUM_SIMULATE)) {
+		pk_backend_job_finished (job);
+		return;
+	}
+	start_thread (job, update_thread, backend, 0, transaction_flags, package_ids);
 }
 
 void
@@ -2119,10 +2477,27 @@ void pk_backend_job_details (PkBackendJob *job, const gchar *package_id, const g
 void pk_backend_job_update_detail (PkBackendJob *job, const gchar *package_id, gchar **updates, gchar **obsoletes, gchar **vendor_urls, gchar **bugzilla_urls, gchar **cve_urls, PkRestartEnum restart, const gchar *update_text, const gchar *changelog, PkUpdateStateEnum state, const gchar *issued, const gchar *updated) { (void) job; (void) package_id; (void) updates; (void) obsoletes; (void) vendor_urls; (void) bugzilla_urls; (void) cve_urls; (void) restart; (void) update_text; (void) changelog; (void) state; (void) issued; (void) updated; }
 void pk_backend_job_require_restart (PkBackendJob *job, PkRestartEnum restart, const gchar *package_id) { (void) job; (void) restart; (void) package_id; }
 guint pk_backend_job_get_uid (PkBackendJob *job) { (void) job; return 0; }
-void pk_backend_job_error_code (PkBackendJob *job, PkErrorEnum code, const gchar *details, ...) { (void) job; (void) code; (void) details; }
+static PkErrorEnum test_error_code;
+static gchar *test_error_text;
+void pk_backend_job_error_code (PkBackendJob *job, PkErrorEnum code, const gchar *details, ...)
+{
+	va_list args;
+
+	(void) job;
+	test_error_code = code;
+	g_free (test_error_text);
+	va_start (args, details);
+	test_error_text = g_strdup_vprintf (details, args);
+	va_end (args);
+}
 void pk_backend_job_set_status (PkBackendJob *job, PkStatusEnum status) { (void) job; (void) status; }
-void pk_backend_job_set_allow_cancel (PkBackendJob *job, gboolean allow_cancel) { (void) job; (void) allow_cancel; }
-void pk_backend_job_set_percentage (PkBackendJob *job, guint percentage) { (void) job; (void) percentage; }
+static gboolean test_allow_cancel = TRUE;
+static guint test_percentage;
+void pk_backend_job_set_allow_cancel (PkBackendJob *job, gboolean allow_cancel) { (void) job; test_allow_cancel = allow_cancel; }
+void pk_backend_job_set_percentage (PkBackendJob *job, guint percentage) { (void) job; test_percentage = percentage; }
+gboolean pk_backend_job_thread_create (PkBackendJob *job, PkBackendJobThreadFunc func, gpointer user_data, GDestroyNotify destroy_func) { func (job, NULL, user_data); if (destroy_func != NULL) destroy_func (user_data); return TRUE; }
+static gboolean test_online = TRUE;
+gboolean pk_backend_is_online (PkBackend *backend) { (void) backend; return test_online; }
 gboolean pk_backend_job_is_cancelled (PkBackendJob *job) { (void) job; return FALSE; }
 
 int
@@ -2324,6 +2699,126 @@ main (void)
 			g_printerr ("generic exit 4 was reported as a dependency error\n");
 			return 1;
 		}
+	}
+	{
+		/* The 2026-11-05 Discover failure, from transactional-update.log. */
+		const gchar *log =
+			"transactional-update 6.1.3 started\n"
+			"Separate /var detected.\n"
+			"Using snapshot 6 as base for new snapshot 7.\n"
+			"ID: 7\n"
+			"Calling zypper --gpg-auto-import-keys --no-cd dup\n"
+			"Executing `zypper -R /tmp/transactional-update-pyoXnO --gpg-auto-import-keys --no-cd dup -y --auto-agree-with-product-licenses`:\n"
+			"Refreshing service 'openSUSE'.\n"
+			"Loading repository data...\n"
+			"Reading installed packages...\n"
+			"Computing distribution upgrade...\n"
+			"The following 8 packages are going to be upgraded:\n"
+			"curl libcurl4 libheif1 libimobiledevice-1_0-6 libjpeg8 libnfs16 nvidia-open-driver-G07-signed-kmp-longterm nvidia-open-driver-G07-signed-kmp-meta\n"
+			"8 packages to upgrade, 3 new.\n"
+			"Package download size:   234.5 MiB\n"
+			"Continue? [y/n/v/...? shows all options] (y): y\n"
+			"Do you agree with the terms of the license? [yes/no] (no): no\n"
+			"Aborting installation due to the need for license confirmation.\n"
+			"Please restart the operation in interactive mode and confirm your agreement with required licenses, or use the --auto-agree-with-licenses option.\n"
+			"Application returned with exit status 4.\n"
+			"ERROR: zypper --gpg-auto-import-keys --no-cd dup on /.snapshots/7/snapshot failed with exit code 4!\n"
+			"Use '--interactive' for manual problem resolution.\n"
+			"Removing snapshot #7...\n"
+			"Discarding snapshot 7.\n"
+			"transactional-update finished\n";
+		gchar *shown = friendly_failure_text (log, 1);
+		gchar *tail;
+		GString *long_log = g_string_new (NULL);
+		guint k;
+
+		if (shown == NULL || strstr (shown, "autoAgreeWithLicenses") == NULL ||
+		    strstr (shown, "Separate /var") != NULL ||
+		    zypper_error_code (1, log) != PK_ERROR_ENUM_NO_LICENSE_AGREEMENT) {
+			g_printerr ("license abort mapping failed: %s\n", shown != NULL ? shown : "none");
+			g_free (shown);
+			return 1;
+		}
+		g_free (shown);
+		for (k = 0; k < 20; k++)
+			g_string_append_printf (long_log, "package line %u\n", k);
+		g_string_append (long_log, "ERROR: snapper close failed: the real reason\n"
+					   "Discarding snapshot 7.\n");
+		tail = plain_reason_text (long_log->str);
+		if (tail == NULL || strstr (tail, "the real reason") == NULL ||
+		    strstr (tail, "package line 0\n") != NULL ||
+		    strstr (tail, "earlier lines not shown") == NULL) {
+			g_printerr ("tail selection failed: %s\n", tail != NULL ? tail : "none");
+			g_free (tail);
+			g_string_free (long_log, TRUE);
+			return 1;
+		}
+		g_free (tail);
+		g_string_free (long_log, TRUE);
+	}
+	{
+		/* Progress only moves forward, and Cancel stops after zypper returns. */
+		AtroposRun run;
+		guint after_download;
+
+		memset (&run, 0, sizeof run);
+		note_output (NULL, &run, "Retrieving: a (repo-oss) (1/2), 1 KiB\nRetrieving: b (repo-oss) (2/", FALSE);
+		note_output (NULL, &run, "2), 1 KiB\n", FALSE);
+		after_download = test_percentage;
+		note_output (NULL, &run, "( 1/2) Installing: a [..done]\n", FALSE);
+		if (after_download != 50 || test_percentage != 75 || !test_allow_cancel) {
+			g_printerr ("progress mapping failed: %u then %u\n", after_download, test_percentage);
+			return 1;
+		}
+		note_output (NULL, &run, "( 2/2) Installing: b [..done]\nApplication returned with exit status 0.", TRUE);
+		if (test_percentage != 100 || test_allow_cancel || !run.committed) {
+			g_printerr ("commit detection failed\n");
+			return 1;
+		}
+		g_string_free (run.line, TRUE);
+	}
+	{
+		/* A missing repomd.xml is a repository problem, not an unpublished package. */
+		const gchar *repo = "File './repodata/repomd.xml' not found on medium 'http://download.opensuse.org/slowroll/repo/oss/'\n";
+		gchar *reason = last_reason_line ("Retrieving repository 'x' metadata [error]\n"
+						  "Repository 'x' is invalid.\n"
+						  "Use '--interactive' for manual problem resolution.\n");
+
+		if (zypper_error_code (4, repo) != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||
+		    missing_download_text (repo) != NULL ||
+		    g_strcmp0 (reason, "Repository 'x' is invalid.") != 0) {
+			g_printerr ("repository failure mapping failed: %s\n", reason != NULL ? reason : "none");
+			g_free (reason);
+			return 1;
+		}
+		g_free (reason);
+	}
+	{
+		/* A check without a network says so in one sentence. */
+		AtroposRun run;
+
+		memset (&run, 0, sizeof run);
+		run.exit_code = 4;
+		run.stderr_text = g_strdup ("Retrieving repository 'repo-oss' metadata [error]\n"
+					    "Download (curl) error for 'http://download.opensuse.org/slowroll/repo/oss/repodata/repomd.xml':\n"
+					    "Error code: Connection failed\n"
+					    "Error message: Could not resolve host: download.opensuse.org\n");
+		test_online = FALSE;
+		fail_check (NULL, NULL, &run);
+		if (test_error_code != PK_ERROR_ENUM_NO_NETWORK ||
+		    strstr (test_error_text, "not connected to the internet") == NULL) {
+			g_printerr ("offline check failed: %s\n", test_error_text);
+			return 1;
+		}
+		test_online = TRUE;
+		fail_check (NULL, NULL, &run);
+		if (test_error_code != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||
+		    strstr (test_error_text, "servers could not be reached") == NULL ||
+		    strstr (test_error_text, "Could not resolve host") == NULL) {
+			g_printerr ("unreachable server check failed: %s\n", test_error_text);
+			return 1;
+		}
+		atropos_run_clear (&run);
 	}
 	if (zypper_error_code (7, NULL) != PK_ERROR_ENUM_CANNOT_GET_LOCK ||
 	    zypper_error_code (106, NULL) != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||

@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        14
+Release:        15
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
@@ -51,6 +51,14 @@ gcc -shared -fPIC %{optflags} -Wall -Wextra \
 	-o libpk_backend_atropos.so %{SOURCE0} \
 	$(pkg-config --libs glib-2.0 packagekit-glib2)
 
+%check
+# The parser and error-text tests in the source. A failure stops the build.
+gcc %{optflags} -Wall -Wextra -DATROPOS_PK_TEST \
+	$(pkg-config --cflags glib-2.0 packagekit-glib2) \
+	-o atropos-pk-test %{SOURCE0} \
+	$(pkg-config --libs glib-2.0 packagekit-glib2)
+./atropos-pk-test
+
 %install
 install -D -m 0755 libpk_backend_atropos.so %{buildroot}%{_libdir}/packagekit-backend/libpk_backend_atropos.so
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/packagekit.service.d/atropos.conf
@@ -58,7 +66,6 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/packagekit-offline-update.
 install -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/xdg/discoverrc
 
 %post
-%systemd_post packagekit.service
 # transactional-update runs this scriptlet in the new snapshot while
 # packagekitd is waiting on that dup. tukit bind-mounts /run, so a
 # restart stops the live daemon and Discover loses the bus. The new
@@ -68,7 +75,6 @@ if [ -z "${TRANSACTIONAL_UPDATE:-}" ] && [ -x /usr/bin/systemctl ]; then
 fi
 
 %postun
-%systemd_postun packagekit.service
 if [ "$1" -eq 0 ] && [ -z "${TRANSACTIONAL_UPDATE:-}" ] && [ -x /usr/bin/systemctl ]; then
     systemctl try-restart packagekit.service >/dev/null 2>&1 || :
 fi
