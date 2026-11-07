@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Start Atychia only for a user with an active local session on seat0,
+  as upstream's polkit policy does. The sudo rule allows any account,
+  so an SSH login could switch the physical console to another VT.
+- Do not forward extra arguments to atychia-launch.
+- Release 11. The repository already has 0.19-10.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 00:15:32 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Own /etc/sudoers.d as mode 0750, the same mode as sudo. Mode 0755

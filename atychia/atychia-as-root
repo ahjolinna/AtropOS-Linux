@@ -3,18 +3,47 @@
 # password. It runs the same program pkexec would. logind emits
 # SecureAttentionKey again for every Esc repeat, so a second start
 # within 10 seconds, or while Atychia is already up, is ignored.
+#
+# Upstream's polkit policy allows only the active local session. sudoers
+# cannot express that, so the check is here: the caller must own an
+# active, local session on seat0. Otherwise an SSH login could switch
+# the physical console to another VT.
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-if [[ "${1:-}" != "/usr/bin/atychia-launch" ]]; then
+set -u
+
+if [[ "${1:-}" != "/usr/bin/atychia-launch" || $# -ne 1 ]]; then
     echo "atychia-as-root: refused" >&2
     exit 1
 fi
-if [[ -z "${SUDO_UID:-}" ]]; then
-    echo "atychia-as-root: SUDO_UID missing" >&2
+case "${SUDO_UID:-}" in
+    ''|*[!0-9]*)
+        echo "atychia-as-root: SUDO_UID missing" >&2
+        exit 1
+        ;;
+esac
+
+has_active_seat_session() {
+    local uid=$1 session props
+    while read -r session _; do
+        [[ -n $session ]] || continue
+        props=$(loginctl show-session "$session" -p User -p Active -p Remote -p Seat -p Class 2>/dev/null) || continue
+        if grep -qx "User=$uid" <<<"$props" \
+            && grep -qx 'Active=yes' <<<"$props" \
+            && grep -qx 'Remote=no' <<<"$props" \
+            && grep -qx 'Seat=seat0' <<<"$props" \
+            && grep -qx 'Class=user' <<<"$props"; then
+            return 0
+        fi
+    done < <(loginctl list-sessions --no-legend 2>/dev/null)
+    return 1
+}
+
+if ! has_active_seat_session "$SUDO_UID"; then
+    echo "atychia-as-root: uid $SUDO_UID has no active local session on seat0" >&2
     exit 1
 fi
 export PKEXEC_UID="$SUDO_UID"
-shift
 
 exec 9>/run/atychia-sak.lock
 flock 9
@@ -31,4 +60,4 @@ if pgrep -x atychia >/dev/null; then
 fi
 printf '%s\n' "$now" > /run/atychia-sak.stamp
 flock -u 9
-exec /usr/bin/atychia-launch "$@"
+exec /usr/bin/atychia-launch
