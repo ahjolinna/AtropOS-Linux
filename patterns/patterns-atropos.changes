@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require shadow once.
+- Release 32. The repository already has 0.4.0-31.1.
+
+-------------------------------------------------------------------
 Wed Nov 04 05:45:59 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require sbsigntools. atropos-check eac reads the kernel signature

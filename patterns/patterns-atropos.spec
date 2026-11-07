@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        31
+Release:        32
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -125,7 +125,6 @@ Requires:       pam-config
 Requires:       polkit-default-privs
 Requires:       procps
 Requires:       rpm
-Requires:       shadow
 Requires:       snapper
 Requires:       wtmpdb
 # people are addicted to sudo
