@@ -19,8 +19,32 @@ ok() { printf '  ok    %s\n' "$1"; pass=$((pass + 1)); }
 bad() { printf '  miss  %s\n' "$1"; miss=$((miss + 1)); }
 skipped() { printf '  skip  %s\n' "$1"; skip=$((skip + 1)); }
 
+# The checks themselves need these. Optional tools (ruby, appstreamcli,
+# udevadm, the PackageKit headers) are skipped one by one instead.
+for tool in awk grep sed tar xz python3; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "validate-configs: $tool is required" >&2
+        exit 2
+    fi
+done
+
+# Sources that ship as tarballs, unpacked once for the content checks.
+src=$(mktemp -d)
+trap 'rm -rf "$src"' EXIT
+for tarball in "$root"/aether/plasma6-theme-aether-dark-*.tar.xz \
+               "$root"/wallpapers/atropos-wallpapers-*.tar.xz \
+               "$root"/splash/plasma6-lookandfeel-atropos-*.tar.xz \
+               "$root"/atychia/atychia-*.tar.xz; do
+    [[ -f $tarball ]] || continue
+    pkg=$(basename "$(dirname "$tarball")")
+    mkdir -p "$src/$pkg"
+    tar -xJf "$tarball" -C "$src/$pkg"
+done
+
 section "Agama product"
-if ruby -ryaml -e '
+if ! command -v ruby >/dev/null 2>&1; then
+    skipped "atropos.yaml product check (ruby is not installed)"
+elif ruby -ryaml -e '
   data = YAML.load_file(ARGV[0])
   template = data.dig("storage", "volume_templates", 0)
   abort "no volume template" if template.nil?
@@ -52,7 +76,7 @@ else
     bad "operating-system metainfo id is not com.github.atropos at version 20261020"
 fi
 if command -v appstreamcli >/dev/null; then
-    if appstreamcli validate --no-net "$meta" > /tmp/atropos-metainfo.txt 2>&1; then
+    if appstreamcli validate --no-net "$meta" > "$src/metainfo.txt" 2>&1; then
         ok "com.github.atropos.metainfo.xml validates"
     else
         bad "com.github.atropos.metainfo.xml failed appstreamcli validate"
@@ -102,10 +126,10 @@ else
     mapfile -t rules < <(find "$root" -type f -name '*.rules')
     if ((${#rules[@]} == 0)); then
         skipped "no udev rules"
-    elif udevadm verify "${rules[@]}" >/tmp/atropos-udev-verify.txt 2>&1; then
+    elif udevadm verify "${rules[@]}" >"$src/udev-verify.txt" 2>&1; then
         ok "${#rules[@]} udev rules"
     else
-        bad "udev rules failed: $(tr '\n' ' ' < /tmp/atropos-udev-verify.txt)"
+        bad "udev rules failed: $(tr '\n' ' ' < "$src/udev-verify.txt")"
     fi
 fi
 
@@ -184,16 +208,16 @@ if grep -q '^LookAndFeelPackage=org.atropos.desktop$' "$root/performance/kdeglob
 else
     bad "skel kdeglobals is missing the AtropOS dark theme, Kora, or Source fonts"
 fi
-if grep -q '^Theme=kora$' "$root/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults"; then
+if grep -q '^Theme=kora$' "$src/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults"; then
     ok "global theme defaults select Kora"
 else
     bad "global theme defaults do not select Kora"
 fi
-splash=$root/splash/plasma6-lookandfeel-atropos-0.5
+splash=$src/splash/plasma6-lookandfeel-atropos-0.5
 if grep -q '^Theme=org.atropos.desktop$' "$root/performance/ksplashrc" \
-    && grep -q '^Theme=org.atropos.desktop$' "$root/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults" \
+    && grep -q '^Theme=org.atropos.desktop$' "$src/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults" \
     && grep -q '^LayoutName=coverswitch$' "$root/performance/kwinrc" \
-    && grep -q '^LayoutName=coverswitch$' "$root/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults" \
+    && grep -q '^LayoutName=coverswitch$' "$src/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults" \
     && grep -q '^Requires:[[:space:]]*plasma6-lookandfeel-atropos$' "$root/patterns/patterns-atropos.spec" \
     && grep -q '^Requires:[[:space:]]*plasma6-lookandfeel-atropos$' "$root/aether/plasma6-theme-aether-dark.spec" \
     && grep -q '^Requires:[[:space:]]*kdeplasma6-addons$' "$root/patterns/patterns-atropos.spec" \
@@ -211,8 +235,8 @@ if grep -q '^Theme=org.atropos.desktop$' "$root/performance/ksplashrc" \
 else
     bad "splash theme, splash background, Cover Switch, or AtropOS package metadata is missing"
 fi
-lnf_defaults=$root/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults
-wp=$root/wallpapers/atropos-wallpapers-0.1.0
+lnf_defaults=$src/aether/plasma6-theme-aether-dark-0.0.3a/look-and-feel/org.atropos.aether.desktop/contents/defaults
+wp=$src/wallpapers/atropos-wallpapers-0.1.0
 if grep -q '^Image=atropos-02$' "$lnf_defaults" \
     && [[ -f $wp/atropos-02/contents/images/1376x768.jpg ]] \
     && [[ -f $wp/wallpaper-animated.webm ]] \
@@ -261,9 +285,7 @@ if printf '%s\n' "$aether_defaults_in_tar" | grep -q '^Image=atropos-02$' \
     && [[ -f $splash_tar ]] && tar -xJOf "$splash_tar" \
         plasma6-lookandfeel-atropos-0.5/metadata.json \
         | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["KPlugin"]["Id"]=="org.atropos.desktop"' \
-    && tar -xJOf "$splash_tar" \
-        plasma6-lookandfeel-atropos-0.5/contents/splash/images/background.png \
-        | cmp -s - "$splash/contents/splash/images/background.png" \
+    && tar -tJf "$splash_tar" | grep -q 'plasma6-lookandfeel-atropos-0.5/contents/splash/images/background.png' \
     && tar -xJOf "$splash_tar" \
         plasma6-lookandfeel-atropos-0.5/contents/defaults \
         | grep -q '^Image=atropos-02$' \
@@ -279,9 +301,9 @@ if printf '%s\n' "$aether_defaults_in_tar" | grep -q '^Image=atropos-02$' \
     && tar -xJOf "$aether_tar" \
         plasma6-theme-aether-dark-0.0.3a/widgets/tasks.svg \
         | grep -q 'atropos-task-hints'; then
-    ok "aether, wallpaper, and splash tarballs match the unpacked trees"
+    ok "aether, wallpaper, and splash tarballs carry the AtropOS defaults"
 else
-    bad "aether, wallpaper, or splash tarball is missing or stale"
+    bad "aether, wallpaper, or splash tarball is missing or lacks the AtropOS defaults"
 fi
 if grep -q '^name=aetherdark$' "$root/performance/plasmarc"; then
     ok "skel plasmarc selects aetherdark"
@@ -289,12 +311,12 @@ else
     bad "skel plasmarc does not select aetherdark"
 fi
 if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["KPlugin"]["Id"]=="aetherdark"' \
-    "$root/aether/plasma6-theme-aether-dark-0.0.3a/metadata.json"; then
+    "$src/aether/plasma6-theme-aether-dark-0.0.3a/metadata.json"; then
     ok "aether metadata.json id is aetherdark"
 else
     bad "aether metadata.json is missing or has the wrong id"
 fi
-if grep -q '^Name=AetherDark$' "$root/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
+if grep -q '^Name=AetherDark$' "$src/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
     && grep -q '^Requires:[[:space:]]*plasma6-theme-aether-dark$' "$root/patterns/patterns-atropos.spec" \
     && grep -q '^Requires:[[:space:]]*kora-icon-theme$' "$root/patterns/patterns-atropos.spec" \
     && grep -q '^Requires:[[:space:]]*papirus-icon-theme$' "$root/patterns/patterns-atropos.spec"; then
@@ -336,8 +358,10 @@ bootloader=$root/performance/atropos-bootloader
 boot_body=$(grep -v '^[[:space:]]*#' "$bootloader" || true)
 if [[ -x $bootloader ]] \
     && bash -n "$bootloader" \
-    && printf '%s\n' "$boot_body" | grep -q 'set-timeout 7' \
-    && printf '%s\n' "$boot_body" | grep -q 'set-timeout 0' \
+    && printf '%s\n' "$boot_body" | grep -q 'set_timeout 7' \
+    && printf '%s\n' "$boot_body" | grep -q 'set_timeout 0' \
+    && printf '%s\n' "$boot_body" | grep -q '"$bootctl" set-timeout "$1"' \
+    && printf '%s\n' "$boot_body" | grep -q 'LoaderConfigTimeout-' \
     && printf '%s\n' "$boot_body" | grep -q 'bootctl' \
     && ! printf '%s\n' "$boot_body" | grep -q 'sdbootutil' \
     && ! printf '%s\n' "$boot_body" | grep -q 'menu-disabled' \
@@ -571,13 +595,34 @@ if grep -q '^ExecStart=/usr/sbin/powertop --auto-tune$' "$root/performance/atrop
 else
     bad "powertop path, tuned log label, hidden system disk, or Discover RPM label is missing"
 fi
-if grep -q 'no output' "$root/packagekit/pk-backend-atropos.c" \
-    && grep -q 'ATROPOS_BUNDLE_NAME' "$root/packagekit/pk-backend-atropos.c" \
-    && grep -q 'auto-agree-with-licenses' "$root/packagekit/pk-backend-atropos.c" \
-    && ! grep -q 'auto-agree-with-product-licenses' "$root/packagekit/pk-backend-atropos.c"; then
-    ok "PackageKit errors are not blank and updates are one System updates row"
+pk=$root/packagekit/pk-backend-atropos.c
+# The check passes the options transactional-update dup passes:
+# --auto-agree-with-product-licenses, never --auto-agree-with-licenses.
+if grep -q 'no output' "$pk" \
+    && grep -q 'ATROPOS_BUNDLE_NAME' "$pk" \
+    && grep -q '"--auto-agree-with-product-licenses"' "$pk" \
+    && ! grep -q '"--auto-agree-with-licenses"' "$pk" \
+    && grep -q '^pk_backend_cancel (' "$pk" \
+    && grep -q 'pk_backend_job_thread_create (job' "$pk"; then
+    ok "PackageKit errors are not blank, updates are one row, jobs run in threads, Cancel exists"
 else
-    bad "PackageKit can still report an empty transaction error or list every RPM"
+    bad "PackageKit backend lost its error text, its thread, Cancel, or the transactional-update options"
+fi
+perf=$root/performance
+if grep -q '%{_sysconfdir}/sysctl.d/11-atropos-performance.conf' "$perf/atropos-performance.spec" \
+    && grep -q '^ExecStart=/usr/bin/ssh-agent -D -a %t/ssh-agent.socket$' "$perf/atropos-ssh-agent.service" \
+    && grep -q -- '--show-runtime' "$perf/atropos-configure-firefox" \
+    && grep -q '^expected_qmldir=[0-9a-f]\{64\}$' "$perf/atropos-formcard-overlay" \
+    && ! grep -q 'klipper' "$perf/atropos-AboutPage.qml" \
+    && grep -q '^Restart=on-failure$' "$perf/atropos-seed-flatpaks.service" \
+    && grep -q '^ExecCondition=' "$perf/atropos-powertop.service" \
+    && grep -q 'has_active_seat_session' "$root/atychia/atychia-as-root" \
+    && ! grep -q 'exit 1' <(grep -v '^#' "$root/plymouth/99atropos-plymouth-label.module-setup.sh") \
+    && bash -n "$root/installer/atropos-agama-post" \
+    && grep -q 'scripts: {post:' "$root/installer/config.sh"; then
+    ok "swappiness survives tuned, ssh-agent runs, Firefox setup is locale-proof, the About overlay is version-checked"
+else
+    bad "one of the 2026-11-07 review fixes is missing (sysctl, ssh-agent, Firefox, overlay, Flatpak retry, powertop, atychia, plymouth, installer)"
 fi
 if grep -q '^UseOfflineUpdates=false$' "$root/packagekit/discoverrc" \
     && grep -q '^Sources=flathub$' "$root/packagekit/discoverrc" \
@@ -586,8 +631,8 @@ if grep -q '^UseOfflineUpdates=false$' "$root/packagekit/discoverrc" \
 else
     bad "Discover is not set to Flathub"
 fi
-if grep -q '/usr/libexec/atychia-as-root' "$root/atychia/src/atychiad/main.cpp" \
-    && ! grep -q 'u"pkexec"' "$root/atychia/src/atychiad/main.cpp" \
+if grep -q '/usr/libexec/atychia-as-root' "$src/atychia/atychia-0.19/src/atychiad/main.cpp" \
+    && ! grep -q 'u"pkexec"' "$src/atychia/atychia-0.19/src/atychiad/main.cpp" \
     && bash -n "$root/atychia/atychia-as-root" \
     && grep -q 'NOPASSWD: /usr/libexec/atychia-as-root' "$root/atychia/atropos-atychia.sudoers" \
     && grep -q 'SecureAttentionKey' "$root/atychia/z-atropos-atychia.conf"; then
@@ -600,11 +645,11 @@ if awk '
     /^\[/ { view=0 }
     view && $0 == "BackgroundNormal=27,30,32" { dark=1 }
     END { exit !dark }
-' "$root/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
-    && grep -q '^DecorationFocus=199,8,11$' "$root/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
-    && grep -q '^Name=AetherDark$' "$root/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
-    && ! grep -q '0,164,137' "$root/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
-    && ! grep -q '61,174,233' "$root/aether/plasma6-theme-aether-dark-0.0.3a/colors"; then
+' "$src/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
+    && grep -q '^DecorationFocus=199,8,11$' "$src/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
+    && grep -q '^Name=AetherDark$' "$src/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
+    && ! grep -q '0,164,137' "$src/aether/plasma6-theme-aether-dark-0.0.3a/colors" \
+    && ! grep -q '61,174,233' "$src/aether/plasma6-theme-aether-dark-0.0.3a/colors"; then
     ok "AetherDark is openSUSE dark with rose accent 199,8,11"
 else
     bad "AetherDark is not the openSUSE dark scheme with rose accent"
@@ -645,16 +690,17 @@ pk_src=$root/packagekit/pk-backend-atropos.c
 if ! pkg-config --exists glib-2.0 packagekit-glib2; then
     skipped "PackageKit headers are not installed (ATROPOS_PK_TEST)"
 else
-    pk_bin=$(mktemp /tmp/atropos-pk-test.XXXXXX)
+    pk_bin=$(mktemp "$src/pk-test.XXXXXX")
+    # shellcheck disable=SC2046  # pkg-config flags must split into words
     if gcc -DATROPOS_PK_TEST -Wall -Wextra \
         $(pkg-config --cflags glib-2.0 packagekit-glib2) \
         -o "$pk_bin" "$pk_src" \
-        $(pkg-config --libs glib-2.0 packagekit-glib2) >/tmp/atropos-pk-build.txt 2>&1 \
+        $(pkg-config --libs glib-2.0 packagekit-glib2) >"$src/pk-build.txt" 2>&1 \
         && "$pk_bin"
     then
         ok "ATROPOS_PK_TEST"
     else
-        bad "ATROPOS_PK_TEST failed ($(tr '\n' ' ' < /tmp/atropos-pk-build.txt))"
+        bad "ATROPOS_PK_TEST failed ($(tr '\n' ' ' < "$src/pk-build.txt"))"
     fi
     rm -f "$pk_bin"
 fi

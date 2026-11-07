@@ -1,10 +1,9 @@
 #!/bin/bash
 # Read-only post-install check for the AtropOS ports of KDE Linux.
 # Run it on the installed desktop. It does not change the system.
-#sed -i 's/\r$//' ~/Downloads/test.sh
-# Mount options are written by Agama from products/atropos.yaml. An
-# install made before that change keeps its old fstab, so those two
-# lines stay missing until the next install.
+# The root mount options are added to fstab by installer/atropos-agama-post.
+# Agama itself does not write the product's mount_options. An older install
+# keeps its fstab, so those two lines stay missing until they are added.
 
 set -u
 
