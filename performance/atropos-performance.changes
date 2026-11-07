@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Nov 07 19:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Un-blacklist rndis_host, so a phone in USB tethering mode gets a
+  network link and SSH to it over USB works. openSUSE blacklists it in
+  /usr/lib/modprobe.d/50-blacklist-rndis.conf, and a file of the same
+  name in /etc/modprobe.d masks that one.
+- Release 21. The repository already has 0.4.0-20.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Make nano the default EDITOR, in environment.d for the desktop and in

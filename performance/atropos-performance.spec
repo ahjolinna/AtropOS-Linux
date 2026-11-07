@@ -9,7 +9,7 @@
 
 Name:           atropos-performance
 Version:        0.4.0
-Release:        20
+Release:        21
 Summary:        AtropOS desktop performance defaults
 License:        (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND Apache-2.0 AND ISC AND CC0-1.0 AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later
 Group:          System/Base
@@ -97,6 +97,7 @@ Source70:       10-atropos-thermald-intel.conf
 Source71:       40-atropos-editor.conf
 Source72:       atropos-editor.sh
 Source73:       49-atropos-desktop.rules
+Source74:       50-blacklist-rndis.conf
 Requires:       zram-generator
 Requires:       flatpak
 Requires:       systemd-experimental
@@ -134,7 +135,8 @@ wallpaper. Cover Switch is applied once for an account still on KWin's
 default switcher. tuned.service and tuned-ppd.service are enabled
 together. Also the remaining KDE Linux desktop drop-ins: ntsync,
 BFQ for spinning disks, USB writeback cap, HDA power save, watchdog
-module blacklist, PAM memlock, logout process cleanup, no shutdown wall,
+module blacklist, rndis_host un-blacklisted for USB tethering, PAM
+memlock, logout process cleanup, no shutdown wall,
 Baloo snapshot skip, quieter Qt logging, the AMD texture workaround,
 ksshaskpass, an ssh-agent user service behind SSH_AUTH_SOCK, Wi-Fi country from the timezone,
 network hardening, thermald, BeaconDB location, and Firefox Flatpak setup.
@@ -188,6 +190,9 @@ install -D -m 0755 %{SOURCE24} %{buildroot}%{_prefix}/lib/atropos-usb-dirty-page
 install -D -m 0644 %{SOURCE25} %{buildroot}%{_prefix}/lib/modprobe.d/20-audio-pm.conf
 install -D -m 0644 %{SOURCE26} %{buildroot}%{_prefix}/lib/udev/rules.d/20-audio-pm.rules
 install -D -m 0644 %{SOURCE27} %{buildroot}%{_prefix}/lib/modprobe.d/98-atropos-watchdog.conf
+# /etc, not /usr/lib: only a file of the same name in /etc masks
+# suse-module-tools' rndis_host blacklist.
+install -D -m 0644 %{SOURCE74} %{buildroot}%{_sysconfdir}/modprobe.d/50-blacklist-rndis.conf
 install -D -m 0644 %{SOURCE28} %{buildroot}%{_sysconfdir}/security/limits.d/00-atropos.conf
 install -D -m 0644 %{SOURCE29} %{buildroot}%{_prefix}/lib/systemd/logind.conf.d/00-atropos-killuserprocesses.conf
 install -D -m 0644 %{SOURCE30} %{buildroot}%{_prefix}/lib/systemd/logind.conf.d/00-atropos-nowall.conf
@@ -357,6 +362,8 @@ fi
 %dir %{_prefix}/lib/modprobe.d
 %{_prefix}/lib/modprobe.d/20-audio-pm.conf
 %{_prefix}/lib/modprobe.d/98-atropos-watchdog.conf
+%dir %{_sysconfdir}/modprobe.d
+%config(noreplace) %{_sysconfdir}/modprobe.d/50-blacklist-rndis.conf
 %dir %{_prefix}/lib/udev
 %dir %{_prefix}/lib/udev/rules.d
 %{_prefix}/lib/udev/rules.d/20-audio-pm.rules
