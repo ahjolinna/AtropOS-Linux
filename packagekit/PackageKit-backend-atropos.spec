@@ -6,7 +6,7 @@
 
 Name:           PackageKit-backend-atropos
 Version:        0.1.0
-Release:        16
+Release:        17
 Summary:        PackageKit backend that stages AtropOS updates
 License:        GPL-2.0-or-later
 Group:          System/Packages
@@ -23,8 +23,10 @@ Source3:        discoverrc
 Requires:       PackageKit
 Requires:       transactional-update
 Requires:       zypper
-Requires:       /usr/bin/gdbus
-Requires:       /usr/sbin/runuser
+# gdbus sends the "update installed" notification; runuser runs it as the user.
+# Package names, not file paths: the OBS image solver cannot resolve those.
+Requires:       glib2-tools
+Requires:       util-linux
 Provides:       PackageKit-backend
 Conflicts:      PackageKit-backend-zypp
 

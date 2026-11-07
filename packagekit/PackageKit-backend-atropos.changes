@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require glib2-tools and util-linux instead of /usr/bin/gdbus and
+  /usr/sbin/runuser. The OBS image solver does not resolve file paths,
+  so the offline installer ISO was unresolvable.
+- Release 17. The repository already has 0.1.0-16.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 14:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Split a failure log into lines once and read every reason from
