@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Sun Nov 08 02:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship /usr/etc/zypp/zypp.conf.d/atropos-dup.conf, which sets
+  solver.dupAllowVendorChange = true. AtropOS packages and openSUSE
+  packages have different vendors, so dup stopped at a solver question
+  whenever one vendor's package obsoleted the other's, and Discover and
+  transactional-update cancelled the update. In the other direction
+  dup silently kept the old package. Repository priority still decides
+  which package wins.
+- Release 7.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set the project URL to https://github.com/ahjolinna/AtropOS-Linux.

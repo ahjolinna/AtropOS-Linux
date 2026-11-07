@@ -421,6 +421,18 @@ else
     bad "pattern is missing hardware support:${missing}"
 fi
 
+section "update policy"
+# Without this drop-in, dup stops at a solver question whenever an AtropOS
+# package and an openSUSE package replace each other, and Discover and
+# transactional-update cancel the update.
+if grep -qx 'solver.dupAllowVendorChange = true' "$root/release/atropos-dup.conf" \
+    && grep -q '^Source5:[[:space:]]*atropos-dup.conf$' "$root/release/atropos-release.spec" \
+    && grep -q '^%{_prefix}%{_sysconfdir}/zypp/zypp.conf.d/atropos-dup.conf$' "$root/release/atropos-release.spec"; then
+    ok "AtropOS-release allows vendor changes in dup"
+else
+    bad "AtropOS-release does not ship the dupAllowVendorChange drop-in"
+fi
+
 section "boot command line"
 cmdline_file=$root/performance/00-atropos-cmdline.conf
 cmdline_line=$(grep -E '^[^#]' "$cmdline_file" | tr '\n' ' ')

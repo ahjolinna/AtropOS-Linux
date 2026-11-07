@@ -7,7 +7,7 @@
 
 Name:           AtropOS-release
 Version:        20261020
-Release:        6
+Release:        7
 Summary:        AtropOS
 License:        GPL-2.0-or-later
 Group:          System/Fhs
@@ -16,6 +16,7 @@ Source1:        LICENSE
 Source2:        gpg-pubkey-home-ahjolinna.asc
 Source3:        atropos.repo
 Source4:        com.github.atropos.metainfo.xml
+Source5:        atropos-dup.conf
 Conflicts:      distribution-release
 Provides:       distribution-release
 Provides:       suse-release = %{version}-%{release}
@@ -71,6 +72,9 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/zypp/repos.d/atropos.re
 # github.com plus ID=atropos is com.github.atropos. The repository path is not part of that id.
 # The release version matches VERSION_ID so Discover does not offer an upgrade.
 install -D -m 0644 %{SOURCE4} %{buildroot}%{_datadir}/metainfo/com.github.atropos.metainfo.xml
+# Vendor changes are allowed in dup. libzypp merges /usr/etc/zypp/zypp.conf.d
+# under /etc/zypp/zypp.conf.d, so an admin can still override it.
+install -D -m 0644 %{SOURCE5} %{buildroot}%{_prefix}%{_sysconfdir}/zypp/zypp.conf.d/atropos-dup.conf
 
 %post
 # Agama imports this file itself. The installed system uses the rpm keyring.
@@ -96,6 +100,11 @@ rpm --import %{_prefix}/lib/rpm/gnupg/keys/gpg-pubkey-home-ahjolinna.asc || :
 %dir %{_sysconfdir}/zypp
 %dir %{_sysconfdir}/zypp/repos.d
 %config(noreplace) %{_sysconfdir}/zypp/repos.d/atropos.repo
+# libzypp owns these on an installed system. The OBS build root does not.
+%dir %{_prefix}%{_sysconfdir}
+%dir %{_prefix}%{_sysconfdir}/zypp
+%dir %{_prefix}%{_sysconfdir}/zypp/zypp.conf.d
+%{_prefix}%{_sysconfdir}/zypp/zypp.conf.d/atropos-dup.conf
 # appstream may own this directory. The OBS build root for this package
 # does not, so own it here too.
 %dir %{_datadir}/metainfo
