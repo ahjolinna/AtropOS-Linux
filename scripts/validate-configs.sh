@@ -123,7 +123,10 @@ section "udev rules"
 if ! command -v udevadm >/dev/null || ! udevadm verify --help >/dev/null 2>&1; then
     skipped "udevadm verify is not available"
 else
-    mapfile -t rules < <(find "$root" -type f -name '*.rules')
+    # polkit rules share the .rules suffix but are JavaScript; they start
+    # with a // comment, which udev does not use.
+    mapfile -t rules < <(find "$root" -type f -name '*.rules' ! -path '*/.git/*' \
+        -exec sh -c 'head -n 1 "$1" | grep -q "^//" || echo "$1"' _ {} \;)
     if ((${#rules[@]} == 0)); then
         skipped "no udev rules"
     elif udevadm verify "${rules[@]}" >"$src/udev-verify.txt" 2>&1; then
