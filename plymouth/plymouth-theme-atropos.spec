@@ -8,7 +8,7 @@
 
 Name:           plymouth-theme-atropos
 Version:        0.1.0
-Release:        13
+Release:        14
 Summary:        AtropOS Plymouth boot splash
 License:        GPL-2.0-or-later
 Group:          System/Base

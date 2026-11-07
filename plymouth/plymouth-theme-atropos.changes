@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Warn instead of failing the dracut run when the label plugin, a Sans
+  font or fonts.conf cannot be added. A failure there stopped the
+  initrd build, so a kernel update failed and transactional-update
+  discarded the snapshot. The splash only loses its text.
+- Release 14. The repository already has 0.1.0-13.1.
+
+-------------------------------------------------------------------
 Tue Nov 03 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Install label-pango.so and a Sans font into the initrd. The script
