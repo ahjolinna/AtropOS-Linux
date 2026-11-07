@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sat Nov 07 14:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Split a failure log into lines once and read every reason from
+  that. Each check used to split, strip and lower-case the whole log
+  again. The messages and error codes are unchanged: the old and new
+  code give the same output for every failed run in
+  transactional-update.log and for each kind of reason.
+- Shorten comments that described earlier behaviour.
+- Release 16. The repository already has 0.1.0-15.
+
+-------------------------------------------------------------------
 Sat Nov 07 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Run checks, updates and Resolve in a job thread. packagekitd calls

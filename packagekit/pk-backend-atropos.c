@@ -418,124 +418,6 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 		(run->exit_code == 0 || run->exit_code == 102 || run->exit_code == 103);
 }
 
-static gboolean
-text_has (const gchar *lower, const gchar *needle)
-{
-	return lower != NULL && strstr (lower, needle) != NULL;
-}
-
-/*
- * Codes below 100 are errors. 7 is the lock. 106 is a repository that
- * failed to refresh. Code 4 is the generic ZYPP failure, so the message
- * has to separate a dead mirror, a media change, a lock, and a conflict.
- * PackageKit has no PK_ERROR_ENUM_LOCKED; the lock code is CANNOT_GET_LOCK.
- */
-static gboolean output_has_hard_404 (const gchar *text);
-static gboolean output_has_file_conflict (const gchar *text);
-static gboolean output_has_dep_problem (const gchar *text);
-static gboolean output_has_license_abort (const gchar *text);
-
-/*
- * transactional-update exits 1 for every zypper failure. The real code is
- * in "failed with exit code N" or "exit status N".
- */
-static gint
-embedded_command_exit (const gchar *text, gint fallback)
-{
-	const gchar *hit;
-	gint code;
-
-	if (text == NULL)
-		return fallback;
-	hit = strstr (text, "failed with exit code ");
-	if (hit == NULL)
-		hit = strstr (text, "exit status ");
-	if (hit == NULL)
-		return fallback;
-	while (*hit != '\0' && !g_ascii_isdigit (*hit))
-		hit++;
-	if (*hit == '\0')
-		return fallback;
-	code = (gint) g_ascii_strtoll (hit, NULL, 10);
-	if (code <= 0)
-		return fallback;
-	return code;
-}
-
-static PkErrorEnum
-zypper_error_code (gint exit_code, const gchar *output)
-{
-	gchar *lower;
-	PkErrorEnum code;
-	gint reported;
-
-	if (exit_code < 0)
-		return PK_ERROR_ENUM_FAILED_INITIALIZATION;
-
-	reported = embedded_command_exit (output, exit_code);
-
-	switch (reported) {
-	case 5: /* ZYPPER_EXIT_ERR_PRIVILEGES */
-		return PK_ERROR_ENUM_NOT_AUTHORIZED;
-	case 6: /* ZYPPER_EXIT_NO_REPOS */
-		return PK_ERROR_ENUM_REPO_CONFIGURATION_ERROR;
-	case 7: /* ZYPPER_EXIT_ZYPP_LOCKED */
-		return PK_ERROR_ENUM_CANNOT_GET_LOCK;
-	case 105: /* ZYPPER_EXIT_ON_SIGNAL */
-		return PK_ERROR_ENUM_TRANSACTION_CANCELLED;
-	case 106: /* ZYPPER_EXIT_INF_REPOS_SKIPPED */
-		return PK_ERROR_ENUM_REPO_NOT_AVAILABLE;
-	case 107: /* ZYPPER_EXIT_INF_RPM_SCRIPT_FAILED */
-		return PK_ERROR_ENUM_PACKAGE_FAILED_TO_CONFIGURE;
-	default:
-		break;
-	}
-
-	lower = output != NULL ? g_ascii_strdown (output, -1) : NULL;
-	if (output_has_license_abort (output))
-		code = PK_ERROR_ENUM_NO_LICENSE_AGREEMENT;
-	else if (output_has_hard_404 (output))
-		code = PK_ERROR_ENUM_PACKAGE_DOWNLOAD_FAILED;
-	else if (text_has (lower, "is locked") || text_has (lower, "zypp lock"))
-		code = PK_ERROR_ENUM_CANNOT_GET_LOCK;
-	else if (output_has_file_conflict (output))
-		code = PK_ERROR_ENUM_PACKAGE_CONFLICTS;
-	else if (output_has_dep_problem (output))
-		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
-	else if (text_has (lower, "please insert"))
-		code = PK_ERROR_ENUM_MEDIA_CHANGE_REQUIRED;
-	else if (text_has (lower, "no network") || text_has (lower, "network is unreachable"))
-		code = PK_ERROR_ENUM_NO_NETWORK;
-	else if (text_has (lower, "valid metadata not found") ||
-		 text_has (lower, "not found on medium") ||
-		 text_has (lower, "couldn't resolve host") ||
-		 text_has (lower, "connection refused") ||
-		 text_has (lower, "connection timed out") ||
-		 text_has (lower, "timeout exceeded") ||
-		 text_has (lower, "no more mirrors") ||
-		 text_has (lower, "could not resolve") ||
-		 text_has (lower, "name or service not known"))
-		code = PK_ERROR_ENUM_REPO_NOT_AVAILABLE;
-	else if (text_has (lower, "conflict"))
-		code = PK_ERROR_ENUM_PACKAGE_CONFLICTS;
-	else if (text_has (lower, "unresolved") || text_has (lower, "solver"))
-		code = PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
-	else if (text_has (lower, "no space left") || text_has (lower, "not enough space"))
-		code = PK_ERROR_ENUM_NO_SPACE_ON_DEVICE;
-	else if (text_has (lower, "scriptlet failed"))
-		code = PK_ERROR_ENUM_PACKAGE_FAILED_TO_CONFIGURE;
-	else if (reported == 8) /* ZYPPER_EXIT_ERR_COMMIT */
-		code = PK_ERROR_ENUM_TRANSACTION_ERROR;
-	else if (reported == 1 || reported == 2 || reported == 3)
-		code = PK_ERROR_ENUM_INTERNAL_ERROR;
-	else if (reported > 128)
-		code = PK_ERROR_ENUM_PROCESS_KILL;
-	else
-		code = PK_ERROR_ENUM_TRANSACTION_ERROR;
-	g_free (lower);
-	return code;
-}
-
 static const gchar *
 attr_value (const gchar **names, const gchar **values, const gchar *key)
 {
@@ -840,6 +722,75 @@ emit_system_updates (PkBackendJob *job, GPtrArray *pkgs, guint64 download_size)
 	g_free (package_id);
 }
 
+/*
+ * Failure text
+ *
+ * A failed command's output is split once into stripped, non-empty lines
+ * with a lower-case copy of each. The checks below read that. run_command
+ * forces the C locale, so zypper's wording is stable enough to match.
+ * Each reason is one sentence for the user, followed by at most eight
+ * lines from the log.
+ */
+typedef struct {
+	GPtrArray *lines;
+	GPtrArray *lower;
+	gsize length;		/* of the whole text */
+} AtroposLog;
+
+#define LOG_LINE(log, i) ((const gchar *) g_ptr_array_index ((log)->lines, (i)))
+#define LOG_LOWER(log, i) ((const gchar *) g_ptr_array_index ((log)->lower, (i)))
+
+#define NOT_INSTALLED "The update was not installed."
+#define NOTHING_CHANGED NOT_INSTALLED " Nothing was changed."
+
+static AtroposLog *
+log_parse (const gchar *text)
+{
+	AtroposLog *log = g_new0 (AtroposLog, 1);
+	gchar **parts;
+	guint i;
+
+	log->lines = g_ptr_array_new_with_free_func (g_free);
+	log->lower = g_ptr_array_new_with_free_func (g_free);
+	if (text == NULL)
+		return log;
+	log->length = strlen (text);
+	parts = g_strsplit (text, "\n", -1);
+	for (i = 0; parts[i] != NULL; i++) {
+		const gchar *line = g_strstrip (parts[i]);
+
+		if (line[0] == '\0')
+			continue;
+		g_ptr_array_add (log->lines, g_strdup (line));
+		g_ptr_array_add (log->lower, g_ascii_strdown (line, -1));
+	}
+	g_strfreev (parts);
+	return log;
+}
+
+static void
+log_free (AtroposLog *log)
+{
+	if (log == NULL)
+		return;
+	g_ptr_array_free (log->lines, TRUE);
+	g_ptr_array_free (log->lower, TRUE);
+	g_free (log);
+}
+
+/* needle is lower case and must fall within one line. */
+static gboolean
+log_has (const AtroposLog *log, const gchar *needle)
+{
+	guint i;
+
+	for (i = 0; i < log->lower->len; i++) {
+		if (strstr (LOG_LOWER (log, i), needle) != NULL)
+			return TRUE;
+	}
+	return FALSE;
+}
+
 static gboolean
 text_is_blank (const gchar *text)
 {
@@ -850,9 +801,7 @@ text_is_blank (const gchar *text)
 	return *text == '\0';
 }
 
-/* Discover shows Transaction error: "" when the details string is empty.
- * A dead packagekitd also produces that string. This path at least never
- * sends a blank message of its own. */
+/* Discover shows Transaction error: "" for an empty string. Never send one. */
 static gchar *
 atropos_error_text (const gchar *text, gint exit_code)
 {
@@ -861,152 +810,7 @@ atropos_error_text (const gchar *text, gint exit_code)
 	return g_strdup_printf ("The update command failed with no output (exit %d).", exit_code);
 }
 
-/* "trying next mirror" is a retry. The line that gives up has no such note. */
-static gboolean
-line_is_hard_404 (const gchar *line)
-{
-	gchar *lower;
-	gboolean hard;
-
-	/*
-	 * Only a package file. A missing repomd.xml is a repository that
-	 * cannot be read, not a package that is still being published.
-	 */
-	lower = g_ascii_strdown (line, -1);
-	hard = (strstr (lower, "404") != NULL || strstr (lower, "not found on medium") != NULL) &&
-		strstr (lower, ".rpm") != NULL &&
-		strstr (lower, "trying next mirror") == NULL;
-	g_free (lower);
-	return hard;
-}
-
-static gboolean
-output_has_hard_404 (const gchar *text)
-{
-	gchar **lines;
-	guint i;
-	gboolean found = FALSE;
-
-	if (text == NULL)
-		return FALSE;
-	lines = g_strsplit (text, "\n", -1);
-	for (i = 0; lines[i] != NULL; i++) {
-		if (line_is_hard_404 (lines[i])) {
-			found = TRUE;
-			break;
-		}
-	}
-	g_strfreev (lines);
-	return found;
-}
-
-/* The rpm token on a preload line, without the directory. */
-static gchar *
-rpm_basename_in (const gchar *line)
-{
-	const gchar *hit;
-	const gchar *start;
-
-	hit = strstr (line, ".rpm");
-	if (hit == NULL)
-		return NULL;
-	start = hit;
-	while (start > line && start[-1] != ' ' && start[-1] != '/' &&
-	       start[-1] != '\'' && start[-1] != '"')
-		start--;
-	return g_strndup (start, (gsize) (hit - start) + 4);
-}
-
-static gboolean
-names_have (GPtrArray *names, const gchar *rpm)
-{
-	guint i;
-
-	for (i = 0; i < names->len; i++) {
-		if (g_strcmp0 (g_ptr_array_index (names, i), rpm) == 0)
-			return TRUE;
-	}
-	return FALSE;
-}
-
-/*
- * Discover keeps the tail of a long error. A 404 during preload is then
- * hidden behind "use --interactive" and the snapshot cleanup. Name the
- * missing files instead.
- */
-static gchar *
-missing_download_text (const gchar *text)
-{
-	gchar **lines;
-	guint i;
-	guint shown;
-	GPtrArray *names;
-	GString *msg;
-
-	if (!output_has_hard_404 (text))
-		return NULL;
-	lines = g_strsplit (text, "\n", -1);
-	names = g_ptr_array_new_with_free_func (g_free);
-	for (i = 0; lines[i] != NULL; i++) {
-		gchar *rpm;
-
-		if (!line_is_hard_404 (lines[i]))
-			continue;
-		rpm = rpm_basename_in (lines[i]);
-		if (rpm == NULL || names_have (names, rpm)) {
-			g_free (rpm);
-			continue;
-		}
-		g_ptr_array_add (names, rpm);
-	}
-	g_strfreev (lines);
-
-	msg = g_string_new ("The update was not installed. Some packages are listed "
-			    "but not available for download yet (HTTP 404). This happens "
-			    "while the repository is still being published. Nothing was "
-			    "changed. Wait a few minutes and try the update again.");
-	if (names->len > 0)
-		g_string_append (msg, " Missing:");
-	shown = MIN (names->len, 8);
-	for (i = 0; i < shown; i++)
-		g_string_append_printf (msg, " %s", (const gchar *) g_ptr_array_index (names, i));
-	if (names->len > shown)
-		g_string_append_printf (msg, " and %u more", names->len - shown);
-	g_ptr_array_free (names, TRUE);
-	return g_string_free (msg, FALSE);
-}
-
-/*
- * transactional-update dup passes -y --auto-agree-with-product-licenses,
- * never --auto-agree-with-licenses, and dup takes no extra zypper options.
- * A package with a EULA (everything on download.nvidia.com) is then
- * answered "no" and zypper aborts with exit 4. The dry-run check agrees to
- * licenses, so it did not see this. autoAgreeWithLicenses in zypper.conf
- * is the only switch transactional-update honours.
- */
-static gboolean
-output_has_license_abort (const gchar *text)
-{
-	return text != NULL &&
-		(strstr (text, "Aborting installation due to the need for license confirmation") != NULL ||
-		 strstr (text, "use the --auto-agree-with-licenses option") != NULL);
-}
-
-static gchar *
-license_abort_text (const gchar *text)
-{
-	if (!output_has_license_abort (text))
-		return NULL;
-	return g_strdup ("The update was not installed. Nothing was changed.\n"
-			 "A package in this update has a license that must be accepted "
-			 "(the NVIDIA driver packages do), and transactional-update does "
-			 "not accept package licenses on its own.\n"
-			 "Set \"autoAgreeWithLicenses = yes\" under [commit] in "
-			 "/etc/zypp/zypper.conf, or run \"sudo transactional-update dup\" "
-			 "in a terminal once and accept the license there.");
-}
-
-/* Download progress and the snapshot cleanup. Discover was showing these. */
+/* Download progress, the snapshot steps and zypper's preamble. */
 static gboolean
 failure_line_is_noise (const gchar *line)
 {
@@ -1037,7 +841,7 @@ failure_line_is_noise (const gchar *line)
 		g_str_has_prefix (line, "Warning: You are about to do a distribution upgrade");
 }
 
-/* Solver menus and the transactional-update summary. Not a reason. */
+/* Noise, solver menus and exit summaries. Never the reason. */
 static gboolean
 failure_line_is_wrapper (const gchar *line)
 {
@@ -1052,10 +856,111 @@ failure_line_is_wrapper (const gchar *line)
 		g_str_has_prefix (line, "Choose the");
 }
 
+/* Adds row unless an equal one is there. Takes ownership. */
+static void
+rows_add (GPtrArray *rows, gchar *row)
+{
+	guint i;
+
+	if (row == NULL)
+		return;
+	for (i = 0; i < rows->len; i++) {
+		if (g_strcmp0 (g_ptr_array_index (rows, i), row) == 0) {
+			g_free (row);
+			return;
+		}
+	}
+	g_ptr_array_add (rows, row);
+}
+
+/* head, at most eight rows, then foot. Frees rows. */
+static gchar *
+compose (const gchar *head, GPtrArray *rows, const gchar *foot)
+{
+	GString *msg = g_string_new (head);
+	guint added = 0;
+
+	while (added < rows->len && added < 8 && msg->len < 1700) {
+		g_string_append_c (msg, '\n');
+		g_string_append (msg, g_ptr_array_index (rows, added));
+		added++;
+	}
+	if (added < rows->len)
+		g_string_append_printf (msg, "\nand %u more", rows->len - added);
+	if (foot != NULL) {
+		g_string_append_c (msg, '\n');
+		g_string_append (msg, foot);
+	}
+	g_ptr_array_free (rows, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+static GPtrArray *
+rows_new (void)
+{
+	return g_ptr_array_new_with_free_func (g_free);
+}
+
 /*
- * "file PATH from install of NEW conflicts with file from package OLD"
- * rpm prints this when two packages own one path with different metadata.
+ * transactional-update exits 1 for every zypper failure. zypper's own
+ * code is in "failed with exit code N", or else "exit status N".
  */
+static gint
+embedded_command_exit (const AtroposLog *log, gint fallback)
+{
+	static const gchar *const needles[] = { "failed with exit code ", "exit status ", NULL };
+	guint n;
+	guint i;
+
+	for (n = 0; needles[n] != NULL; n++) {
+		for (i = 0; i < log->lines->len; i++) {
+			const gchar *hit = strstr (LOG_LINE (log, i), needles[n]);
+			gint code;
+
+			if (hit == NULL)
+				continue;
+			hit += strlen (needles[n]);
+			code = g_ascii_isdigit (*hit) ? (gint) g_ascii_strtoll (hit, NULL, 10) : 0;
+			return code > 0 ? code : fallback;
+		}
+	}
+	return fallback;
+}
+
+/* A package file that gave up. "trying next mirror" is only a retry. */
+static gboolean
+line_is_hard_404 (const gchar *lower)
+{
+	return (strstr (lower, "404") != NULL || strstr (lower, "not found on medium") != NULL) &&
+		strstr (lower, ".rpm") != NULL &&
+		strstr (lower, "trying next mirror") == NULL;
+}
+
+static gboolean
+has_hard_404 (const AtroposLog *log)
+{
+	guint i;
+
+	for (i = 0; i < log->lower->len; i++) {
+		if (line_is_hard_404 (LOG_LOWER (log, i)))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/*
+ * transactional-update dup never passes --auto-agree-with-licenses, so a
+ * package with a EULA (everything on download.nvidia.com) is refused.
+ * autoAgreeWithLicenses in zypper.conf is the only switch it honours.
+ */
+static gboolean
+has_license_abort (const AtroposLog *log)
+{
+	return log_has (log, "aborting installation due to the need for license confirmation") ||
+		log_has (log, "use the --auto-agree-with-licenses option");
+}
+
+/* rpm: "file PATH from install of NEW conflicts with file from package OLD" */
 static gboolean
 split_file_conflict (const gchar *line, gchar **path_out, gchar **newer_out, gchar **older_out)
 {
@@ -1090,71 +995,240 @@ split_file_conflict (const gchar *line, gchar **path_out, gchar **newer_out, gch
 }
 
 static gboolean
-output_has_file_conflict (const gchar *text)
+has_file_conflict (const AtroposLog *log)
 {
-	gchar **lines;
 	guint i;
-	gboolean found = FALSE;
 
-	if (text == NULL)
-		return FALSE;
-	lines = g_strsplit (text, "\n", -1);
-	for (i = 0; lines[i] != NULL && !found; i++) {
-		gchar *line = g_strdup (lines[i]);
-		gchar *lower;
-
-		g_strstrip (line);
-		lower = g_ascii_strdown (line, -1);
-		found = split_file_conflict (line, NULL, NULL, NULL) ||
-			strstr (lower, "file conflict") != NULL ||
-			strstr (lower, "conflicts between attempted") != NULL;
-		g_free (lower);
-		g_free (line);
+	for (i = 0; i < log->lines->len; i++) {
+		if (split_file_conflict (LOG_LINE (log, i), NULL, NULL, NULL))
+			return TRUE;
 	}
-	g_strfreev (lines);
-	return found;
+	return log_has (log, "file conflict") || log_has (log, "conflicts between attempted");
 }
 
 static gboolean
-line_is_dep_problem (const gchar *line)
+line_is_dep_problem (const gchar *lower)
 {
-	gchar *lower;
-	gboolean yes;
-
-	lower = g_ascii_strdown (line, -1);
-	yes = (g_str_has_prefix (lower, "problem:") &&
-	       !g_str_has_prefix (lower, "problem occurred")) ||
+	return (g_str_has_prefix (lower, "problem:") && !g_str_has_prefix (lower, "problem occurred")) ||
 		strstr (lower, "nothing provides") != NULL ||
 		strstr (lower, "requirement cannot be provided") != NULL ||
 		strstr (lower, "conflicting requests") != NULL ||
 		strstr (lower, "not installable providers") != NULL ||
 		strstr (lower, "unresolved") != NULL;
-	g_free (lower);
-	return yes;
 }
 
 static gboolean
-output_has_dep_problem (const gchar *text)
+has_dep_problem (const AtroposLog *log)
 {
-	gchar **lines;
 	guint i;
-	gboolean found = FALSE;
 
-	if (text == NULL)
-		return FALSE;
-	lines = g_strsplit (text, "\n", -1);
-	for (i = 0; lines[i] != NULL && !found; i++) {
-		gchar *line = g_strdup (lines[i]);
-
-		g_strstrip (line);
-		found = line[0] != '\0' && !failure_line_is_wrapper (line) &&
-			line_is_dep_problem (line);
-		g_free (line);
+	for (i = 0; i < log->lines->len; i++) {
+		if (!failure_line_is_wrapper (LOG_LINE (log, i)) && line_is_dep_problem (LOG_LOWER (log, i)))
+			return TRUE;
 	}
-	g_strfreev (lines);
-	return found;
+	return FALSE;
 }
 
+/*
+ * Exit codes below 100 are errors. Code 4 is zypper's generic failure,
+ * so the text decides between a dead mirror, a lock, a conflict and the
+ * rest. PackageKit's lock error is CANNOT_GET_LOCK.
+ */
+static PkErrorEnum
+log_error_code (const AtroposLog *log, gint exit_code)
+{
+	gint reported;
+
+	if (exit_code < 0)
+		return PK_ERROR_ENUM_FAILED_INITIALIZATION;
+	reported = embedded_command_exit (log, exit_code);
+	switch (reported) {
+	case 5: /* ZYPPER_EXIT_ERR_PRIVILEGES */
+		return PK_ERROR_ENUM_NOT_AUTHORIZED;
+	case 6: /* ZYPPER_EXIT_NO_REPOS */
+		return PK_ERROR_ENUM_REPO_CONFIGURATION_ERROR;
+	case 7: /* ZYPPER_EXIT_ZYPP_LOCKED */
+		return PK_ERROR_ENUM_CANNOT_GET_LOCK;
+	case 105: /* ZYPPER_EXIT_ON_SIGNAL */
+		return PK_ERROR_ENUM_TRANSACTION_CANCELLED;
+	case 106: /* ZYPPER_EXIT_INF_REPOS_SKIPPED */
+		return PK_ERROR_ENUM_REPO_NOT_AVAILABLE;
+	case 107: /* ZYPPER_EXIT_INF_RPM_SCRIPT_FAILED */
+		return PK_ERROR_ENUM_PACKAGE_FAILED_TO_CONFIGURE;
+	default:
+		break;
+	}
+
+	if (has_license_abort (log))
+		return PK_ERROR_ENUM_NO_LICENSE_AGREEMENT;
+	if (has_hard_404 (log))
+		return PK_ERROR_ENUM_PACKAGE_DOWNLOAD_FAILED;
+	if (log_has (log, "is locked") || log_has (log, "zypp lock"))
+		return PK_ERROR_ENUM_CANNOT_GET_LOCK;
+	if (has_file_conflict (log))
+		return PK_ERROR_ENUM_PACKAGE_CONFLICTS;
+	if (has_dep_problem (log))
+		return PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
+	if (log_has (log, "please insert"))
+		return PK_ERROR_ENUM_MEDIA_CHANGE_REQUIRED;
+	if (log_has (log, "no network") || log_has (log, "network is unreachable"))
+		return PK_ERROR_ENUM_NO_NETWORK;
+	if (log_has (log, "valid metadata not found") ||
+	    log_has (log, "not found on medium") ||
+	    log_has (log, "couldn't resolve host") ||
+	    log_has (log, "could not resolve") ||
+	    log_has (log, "name or service not known") ||
+	    log_has (log, "connection refused") ||
+	    log_has (log, "connection timed out") ||
+	    log_has (log, "timeout exceeded") ||
+	    log_has (log, "no more mirrors"))
+		return PK_ERROR_ENUM_REPO_NOT_AVAILABLE;
+	if (log_has (log, "conflict"))
+		return PK_ERROR_ENUM_PACKAGE_CONFLICTS;
+	if (log_has (log, "unresolved") || log_has (log, "solver"))
+		return PK_ERROR_ENUM_DEP_RESOLUTION_FAILED;
+	if (log_has (log, "no space left") || log_has (log, "not enough space"))
+		return PK_ERROR_ENUM_NO_SPACE_ON_DEVICE;
+	if (log_has (log, "scriptlet failed"))
+		return PK_ERROR_ENUM_PACKAGE_FAILED_TO_CONFIGURE;
+	if (reported == 8) /* ZYPPER_EXIT_ERR_COMMIT */
+		return PK_ERROR_ENUM_TRANSACTION_ERROR;
+	if (reported == 1 || reported == 2 || reported == 3)
+		return PK_ERROR_ENUM_INTERNAL_ERROR;
+	if (reported > 128)
+		return PK_ERROR_ENUM_PROCESS_KILL;
+	return PK_ERROR_ENUM_TRANSACTION_ERROR;
+}
+
+/* The rpm file name on a download line, without the directory. */
+static gchar *
+rpm_basename_in (const gchar *line)
+{
+	const gchar *hit;
+	const gchar *start;
+
+	hit = strstr (line, ".rpm");
+	if (hit == NULL)
+		return NULL;
+	start = hit;
+	while (start > line && start[-1] != ' ' && start[-1] != '/' &&
+	       start[-1] != '\'' && start[-1] != '"')
+		start--;
+	return g_strndup (start, (gsize) (hit - start) + 4);
+}
+
+/* Packages listed in the repository but not downloadable yet. */
+static gchar *
+missing_download_text (const AtroposLog *log)
+{
+	GPtrArray *names;
+	GString *msg;
+	guint i;
+	guint shown;
+
+	if (!has_hard_404 (log))
+		return NULL;
+	names = rows_new ();
+	for (i = 0; i < log->lines->len; i++) {
+		if (line_is_hard_404 (LOG_LOWER (log, i)))
+			rows_add (names, rpm_basename_in (LOG_LINE (log, i)));
+	}
+	msg = g_string_new (NOT_INSTALLED " Some packages are listed but not available for "
+			    "download yet (HTTP 404). This happens while the repository is "
+			    "still being published. Nothing was changed. Wait a few minutes "
+			    "and try the update again.");
+	if (names->len > 0)
+		g_string_append (msg, " Missing:");
+	shown = MIN (names->len, 8);
+	for (i = 0; i < shown; i++)
+		g_string_append_printf (msg, " %s", (const gchar *) g_ptr_array_index (names, i));
+	if (names->len > shown)
+		g_string_append_printf (msg, " and %u more", names->len - shown);
+	g_ptr_array_free (names, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+static gchar *
+license_abort_text (const AtroposLog *log)
+{
+	if (!has_license_abort (log))
+		return NULL;
+	return g_strdup (NOTHING_CHANGED "\n"
+			 "A package in this update has a license that must be accepted "
+			 "(the NVIDIA driver packages do), and transactional-update does "
+			 "not accept package licenses on its own.\n"
+			 "Set \"autoAgreeWithLicenses = yes\" under [commit] in "
+			 "/etc/zypp/zypper.conf, or run \"sudo transactional-update dup\" "
+			 "in a terminal once and accept the license there.");
+}
+
+static gchar *
+file_conflict_text (const AtroposLog *log)
+{
+	GPtrArray *rows;
+	guint i;
+
+	if (!has_file_conflict (log))
+		return NULL;
+	rows = rows_new ();
+	for (i = 0; i < log->lines->len; i++) {
+		gchar *path = NULL;
+		gchar *newer = NULL;
+		gchar *older = NULL;
+
+		if (!split_file_conflict (LOG_LINE (log, i), &path, &newer, &older))
+			continue;
+		rows_add (rows, g_strdup_printf ("%s is owned by both %s and %s.", path, newer, older));
+		g_free (path);
+		g_free (newer);
+		g_free (older);
+	}
+	if (rows->len == 0) {
+		g_ptr_array_free (rows, TRUE);
+		return NULL;
+	}
+	return compose (NOT_INSTALLED " Two packages own the same file, so nothing was changed.",
+			rows, "Updating again will fail until those packages are fixed.");
+}
+
+static gchar *
+scriptlet_failure_text (const AtroposLog *log)
+{
+	GPtrArray *names;
+	GString *msg;
+	guint i;
+
+	if (!log_has (log, "scriptlet failed"))
+		return NULL;
+	names = rows_new ();
+	for (i = 0; i < log->lines->len; i++) {
+		const gchar *line = LOG_LINE (log, i);
+		const gchar *open;
+		const gchar *close;
+		gchar *name;
+
+		if (strstr (LOG_LOWER (log, i), "scriptlet failed") == NULL)
+			continue;
+		open = strchr (line, '(');
+		close = open != NULL ? strchr (open + 1, ')') : NULL;
+		if (open == NULL || close == NULL)
+			continue;
+		name = g_strstrip (g_strndup (open + 1, (gsize) (close - open - 1)));
+		if (name[0] == '\0')
+			g_free (name);
+		else
+			rows_add (names, name);
+	}
+	msg = g_string_new (NOT_INSTALLED " A setup script failed, so nothing was changed.");
+	if (names->len > 0)
+		g_string_append_printf (msg, "\nScript: %s", (const gchar *) g_ptr_array_index (names, 0));
+	if (names->len > 1)
+		g_string_append_printf (msg, "\nand %u more", names->len - 1);
+	g_ptr_array_free (names, TRUE);
+	return g_string_free (msg, FALSE);
+}
+
+/* Replaces the first from in text. */
 static gchar *
 replace_literal (const gchar *text, const gchar *from, const gchar *to)
 {
@@ -1166,15 +1240,15 @@ replace_literal (const gchar *text, const gchar *from, const gchar *to)
 	return g_strdup_printf ("%.*s%s%s", (gint) (hit - text), text, to, hit + strlen (from));
 }
 
-/* Turn one zypper "Problem:" line into a sentence. */
+/* One zypper "Problem:" line as a sentence. */
 static gchar *
-friendly_problem_line (const gchar *stripped)
+friendly_problem_line (const gchar *line)
 {
-	const gchar *body = stripped;
-	gchar *step;
-	gchar *next;
+	const gchar *body = line;
 	const gchar *provides;
 	const gchar *needed;
+	gchar *step;
+	gchar *next;
 
 	if (g_str_has_prefix (body, "Problem:")) {
 		body += strlen ("Problem:");
@@ -1187,16 +1261,11 @@ friendly_problem_line (const gchar *stripped)
 	provides = strstr (body, "nothing provides ");
 	needed = provides != NULL ? strstr (provides, " needed by ") : NULL;
 	if (provides != NULL && needed != NULL) {
-		gchar *what;
-		gchar *who;
-		gchar *sentence;
+		const gchar *what_start = provides + strlen ("nothing provides ");
+		gchar *what = g_strstrip (g_strndup (what_start, (gsize) (needed - what_start)));
+		gchar *who = g_strstrip (g_strdup (needed + strlen (" needed by ")));
+		gchar *sentence = g_strdup_printf ("%s needs %s, and no repository provides it.", who, what);
 
-		what = g_strndup (provides + strlen ("nothing provides "),
-				  (gsize) (needed - (provides + strlen ("nothing provides "))));
-		who = g_strdup (needed + strlen (" needed by "));
-		g_strstrip (what);
-		g_strstrip (who);
-		sentence = g_strdup_printf ("%s needs %s, and no repository provides it.", who, what);
 		g_free (what);
 		g_free (who);
 		return sentence;
@@ -1210,323 +1279,139 @@ friendly_problem_line (const gchar *stripped)
 }
 
 static gchar *
-friendly_provider_line (const gchar *stripped)
+friendly_provider_line (const gchar *line)
 {
-	const gchar *what = stripped;
+	const gchar *what = line;
 
-	if (g_str_has_prefix (what, "not installable providers:")) {
-		what += strlen ("not installable providers:");
-		while (*what == ' ')
-			what++;
-		if (what[0] == '\0')
-			return g_strdup ("Nothing available provides the missing dependency.");
-		return g_strdup_printf ("Nothing available provides %s.", what);
-	}
-	return g_strdup (stripped);
-}
-
-static void
-append_capped (GString *msg, GPtrArray *lines)
-{
-	guint i;
-	guint shown;
-	guint added = 0;
-
-	shown = MIN (lines->len, 8);
-	for (i = 0; i < shown && msg->len < 1700; i++) {
-		g_string_append_c (msg, '\n');
-		g_string_append (msg, g_ptr_array_index (lines, i));
-		added++;
-	}
-	if (added < lines->len)
-		g_string_append_printf (msg, "\nand %u more", lines->len - added);
+	if (!g_str_has_prefix (what, "not installable providers:"))
+		return g_strdup (line);
+	what += strlen ("not installable providers:");
+	while (*what == ' ')
+		what++;
+	if (what[0] == '\0')
+		return g_strdup ("Nothing available provides the missing dependency.");
+	return g_strdup_printf ("Nothing available provides %s.", what);
 }
 
 static gchar *
-file_conflict_text (const gchar *text)
+dep_problem_text (const AtroposLog *log)
 {
-	gchar **lines;
-	guint i;
 	GPtrArray *rows;
-	GString *msg;
-
-	if (!output_has_file_conflict (text))
-		return NULL;
-	lines = g_strsplit (text, "\n", -1);
-	rows = g_ptr_array_new_with_free_func (g_free);
-	for (i = 0; lines[i] != NULL; i++) {
-		gchar *line = g_strdup (lines[i]);
-		gchar *path = NULL;
-		gchar *newer = NULL;
-		gchar *older = NULL;
-		gchar *sentence;
-
-		g_strstrip (line);
-		if (!split_file_conflict (line, &path, &newer, &older)) {
-			g_free (line);
-			continue;
-		}
-		sentence = g_strdup_printf ("%s is owned by both %s and %s.", path, newer, older);
-		g_free (path);
-		g_free (newer);
-		g_free (older);
-		g_free (line);
-		if (names_have (rows, sentence)) {
-			g_free (sentence);
-			continue;
-		}
-		g_ptr_array_add (rows, sentence);
-	}
-	g_strfreev (lines);
-	if (rows->len == 0) {
-		g_ptr_array_free (rows, TRUE);
-		return NULL;
-	}
-	msg = g_string_new ("The update was not installed. Two packages own the same file, "
-			    "so nothing was changed.");
-	append_capped (msg, rows);
-	g_string_append (msg, "\nUpdating again will fail until those packages are fixed.");
-	g_ptr_array_free (rows, TRUE);
-	return g_string_free (msg, FALSE);
-}
-
-static gchar *
-dep_problem_text (const gchar *text)
-{
-	gchar **lines;
 	guint i;
-	GPtrArray *rows;
-	GString *msg;
 
-	if (text == NULL || !output_has_dep_problem (text))
+	if (!has_dep_problem (log))
 		return NULL;
-	lines = g_strsplit (text, "\n", -1);
-	rows = g_ptr_array_new_with_free_func (g_free);
-	for (i = 0; lines[i] != NULL; i++) {
-		gchar *line = g_strdup (lines[i]);
-		gchar *sentence = NULL;
-		gchar *lower;
+	rows = rows_new ();
+	for (i = 0; i < log->lines->len; i++) {
+		const gchar *line = LOG_LINE (log, i);
+		const gchar *lower = LOG_LOWER (log, i);
 
-		g_strstrip (line);
-		if (line[0] == '\0' || failure_line_is_wrapper (line)) {
-			g_free (line);
+		if (failure_line_is_wrapper (line))
 			continue;
-		}
-		lower = g_ascii_strdown (line, -1);
 		if (g_str_has_prefix (lower, "problem:") || strstr (lower, "nothing provides") != NULL ||
 		    strstr (lower, "conflicting requests") != NULL)
-			sentence = friendly_problem_line (line);
+			rows_add (rows, friendly_problem_line (line));
 		else if (strstr (lower, "not installable providers") != NULL)
-			sentence = friendly_provider_line (line);
-		g_free (lower);
-		g_free (line);
-		if (sentence == NULL)
-			continue;
-		if (names_have (rows, sentence)) {
-			g_free (sentence);
-			continue;
-		}
-		g_ptr_array_add (rows, sentence);
+			rows_add (rows, friendly_provider_line (line));
 	}
-	g_strfreev (lines);
-	if (rows->len == 0) {
-		g_ptr_array_free (rows, TRUE);
-		return g_strdup ("The update was not installed. A dependency could not be "
-				 "satisfied, so nothing was changed.\n"
-				 "Try again in a few minutes. If this dependency is still "
-				 "missing, the packages need a fix.");
-	}
-	msg = g_string_new ("The update was not installed. A dependency could not be "
-			    "satisfied, so nothing was changed.");
-	append_capped (msg, rows);
-	g_string_append (msg, "\nTry again in a few minutes. If this dependency is still "
-			      "missing, the packages need a fix.");
-	g_ptr_array_free (rows, TRUE);
-	return g_string_free (msg, FALSE);
-}
-
-static gchar *
-scriptlet_failure_text (const gchar *text)
-{
-	gchar **lines;
-	guint i;
-	GPtrArray *names;
-	GString *msg;
-
-	if (text == NULL || strstr (text, "scriptlet failed") == NULL)
-		return NULL;
-	lines = g_strsplit (text, "\n", -1);
-	names = g_ptr_array_new_with_free_func (g_free);
-	for (i = 0; lines[i] != NULL; i++) {
-		const gchar *open;
-		const gchar *close;
-		gchar *name;
-
-		if (strstr (lines[i], "scriptlet failed") == NULL)
-			continue;
-		open = strchr (lines[i], '(');
-		close = open != NULL ? strchr (open + 1, ')') : NULL;
-		if (open == NULL || close == NULL || close == open + 1)
-			continue;
-		name = g_strndup (open + 1, (gsize) (close - open - 1));
-		g_strstrip (name);
-		if (name[0] == '\0' || names_have (names, name)) {
-			g_free (name);
-			continue;
-		}
-		g_ptr_array_add (names, name);
-	}
-	g_strfreev (lines);
-	if (names->len == 0) {
-		g_ptr_array_free (names, TRUE);
-		return g_strdup ("The update was not installed. A setup script failed, so "
-				 "nothing was changed.");
-	}
-	msg = g_string_new ("The update was not installed. A setup script failed, so "
-			    "nothing was changed.");
-	g_string_append_printf (msg, "\nScript: %s", (const gchar *) g_ptr_array_index (names, 0));
-	if (names->len > 1)
-		g_string_append_printf (msg, "\nand %u more", names->len - 1);
-	g_ptr_array_free (names, TRUE);
-	return g_string_free (msg, FALSE);
-}
-
-static gboolean
-log_is_only_noise (const gchar *text)
-{
-	gchar **lines;
-	guint i;
-	gboolean any = FALSE;
-	gboolean only = TRUE;
-
-	if (text == NULL)
-		return TRUE;
-	lines = g_strsplit (text, "\n", -1);
-	for (i = 0; lines[i] != NULL; i++) {
-		gchar *line = g_strdup (lines[i]);
-
-		g_strstrip (line);
-		if (line[0] == '\0') {
-			g_free (line);
-			continue;
-		}
-		any = TRUE;
-		if (!failure_line_is_wrapper (line))
-			only = FALSE;
-		g_free (line);
-	}
-	g_strfreev (lines);
-	return !any || only;
+	return compose (NOT_INSTALLED " A dependency could not be satisfied, so nothing was changed.",
+			rows, "Try again in a few minutes. If this dependency is still missing, "
+			"the packages need a fix.");
 }
 
 /*
- * A log that is only progress plus one ERROR: line used to be thrown away,
- * because ERROR: was treated as cleanup. Keep that sentence. A one-line
- * failure such as "mirror down" is already readable, so return NULL and
- * let that line through.
+ * Anything else: the last eight lines that are not noise. The head of
+ * the log is the transactional-update banner and the package list; the
+ * reason is at the end. A short log of one to three plain lines is
+ * already readable, so NULL lets it through unchanged.
  */
 static gchar *
-plain_reason_text (const gchar *text)
+plain_reason_text (const AtroposLog *log)
 {
-	gchar **lines;
-	guint i;
+	GPtrArray *rows = rows_new ();
 	gboolean noise = FALSE;
-	GPtrArray *rows;
-	GString *msg;
+	gchar *head;
+	gchar *text;
+	guint i;
 
-	if (text == NULL)
-		return NULL;
-	lines = g_strsplit (text, "\n", -1);
-	rows = g_ptr_array_new_with_free_func (g_free);
-	for (i = 0; lines[i] != NULL; i++) {
-		gchar *line = g_strdup (lines[i]);
-
-		g_strstrip (line);
-		if (line[0] == '\0') {
-			g_free (line);
-			continue;
-		}
-		if (failure_line_is_wrapper (line)) {
+	for (i = 0; i < log->lines->len; i++) {
+		if (failure_line_is_wrapper (LOG_LINE (log, i)))
 			noise = TRUE;
-			g_free (line);
-			continue;
-		}
-		if (names_have (rows, line)) {
-			g_free (line);
-			continue;
-		}
-		g_ptr_array_add (rows, line);
+		else
+			rows_add (rows, g_strdup (LOG_LINE (log, i)));
 	}
-	g_strfreev (lines);
-	if (rows->len == 0 || (!noise && strlen (text) < 400 && rows->len <= 3)) {
+	if (rows->len == 0 || (!noise && log->length < 400 && rows->len <= 3)) {
 		g_ptr_array_free (rows, TRUE);
 		return NULL;
 	}
-	msg = g_string_new ("The update was not installed. Nothing was changed.");
-	/*
-	 * The reason is at the end of the log. The head is the
-	 * transactional-update banner and zypper's package list, and showing
-	 * that with "and 21 more" hid the actual error.
-	 */
 	if (rows->len > 8) {
 		guint skipped = rows->len - 8;
 
 		g_ptr_array_remove_range (rows, 0, skipped);
-		g_string_append_printf (msg, "\n(%u earlier lines not shown)", skipped);
+		head = g_strdup_printf (NOTHING_CHANGED "\n(%u earlier lines not shown)", skipped);
+	} else {
+		head = g_strdup (NOTHING_CHANGED);
 	}
-	append_capped (msg, rows);
-	g_ptr_array_free (rows, TRUE);
-	return g_string_free (msg, FALSE);
+	text = compose (head, rows, NULL);
+	g_free (head);
+	return text;
 }
 
-/*
- * A long log whose tail is the download cache used to be the whole dialog.
- * Keep a short reason instead.
- */
+static gboolean
+log_is_only_noise (const AtroposLog *log)
+{
+	guint i;
+
+	for (i = 0; i < log->lines->len; i++) {
+		if (!failure_line_is_wrapper (LOG_LINE (log, i)))
+			return FALSE;
+	}
+	return TRUE;
+}
+
+/* The last line that is not noise, or NULL. */
 static gchar *
-friendly_failure_text (const gchar *text, gint exit_code)
+last_reason_line (const AtroposLog *log)
+{
+	guint i = log->lines->len;
+
+	while (i-- > 0) {
+		if (!failure_line_is_wrapper (LOG_LINE (log, i)))
+			return g_strdup (LOG_LINE (log, i));
+	}
+	return NULL;
+}
+
+/* One reason, most specific first. NULL means show the log itself. */
+static gchar *
+log_failure_text (const AtroposLog *log, gint exit_code)
 {
 	gchar *shown;
-	gchar *lower;
 	gint code;
 
-	shown = license_abort_text (text);
-	if (shown != NULL)
+	if ((shown = missing_download_text (log)) != NULL ||
+	    (shown = license_abort_text (log)) != NULL ||
+	    (shown = file_conflict_text (log)) != NULL ||
+	    (shown = scriptlet_failure_text (log)) != NULL)
 		return shown;
-	shown = file_conflict_text (text);
-	if (shown != NULL)
+	if (log_has (log, "no space left") || log_has (log, "not enough space"))
+		return g_strdup (NOT_INSTALLED " The disk ran out of space, so nothing was changed. "
+				 "Free some space and try the update again.");
+	if ((shown = dep_problem_text (log)) != NULL ||
+	    (shown = plain_reason_text (log)) != NULL)
 		return shown;
-	shown = scriptlet_failure_text (text);
-	if (shown != NULL)
-		return shown;
-	lower = text != NULL ? g_ascii_strdown (text, -1) : NULL;
-	if (text_has (lower, "no space left") || text_has (lower, "not enough space")) {
-		g_free (lower);
-		return g_strdup ("The update was not installed. The disk ran out of space, "
-				 "so nothing was changed. Free some space and try the update again.");
-	}
-	g_free (lower);
-	shown = dep_problem_text (text);
-	if (shown != NULL)
-		return shown;
-	shown = plain_reason_text (text);
-	if (shown != NULL)
-		return shown;
-	if (!log_is_only_noise (text))
+	if (!log_is_only_noise (log))
 		return NULL;
-
-	code = embedded_command_exit (text, exit_code);
+	code = embedded_command_exit (log, exit_code);
 	if (code > 0)
-		return g_strdup_printf ("The update was not installed. Nothing was changed. "
-					"The updater failed (exit %d) and did not give a clearer reason.",
-					code);
-	return g_strdup ("The update was not installed. Nothing was changed. "
-			 "The updater failed and did not give a reason.");
+		return g_strdup_printf (NOTHING_CHANGED " The updater failed (exit %d) and did not "
+					"give a clearer reason.", code);
+	return g_strdup (NOTHING_CHANGED " The updater failed and did not give a reason.");
 }
 
 /*
- * The journal gets the same text. A check that fails at login is
- * otherwise only seen by the notifier, and nobody can tell why later.
+ * The journal gets the same text, so a check that failed at login can
+ * still be explained later.
  */
 static void
 fail_job (PkBackendJob *job, PkErrorEnum code, const gchar *text)
@@ -1550,7 +1435,7 @@ log_tail (const gchar *text, gsize max)
 	return g_strdup (text + (len - max));
 }
 
-/* stdout, then stderr. The XML parser must not see this joined buffer. */
+/* stdout, then stderr. Only for failure text; the XML parser reads stdout alone. */
 static gchar *
 command_log (const AtroposRun *run)
 {
@@ -1566,50 +1451,27 @@ command_log (const AtroposRun *run)
 static void
 fail_command (PkBackendJob *job, const AtroposRun *run)
 {
-	gchar *text;
+	AtroposLog *log;
 	gchar *raw;
+	gchar *text;
 
 	if (run->cancelled) {
 		fail_job (job, PK_ERROR_ENUM_TRANSACTION_CANCELLED, "Cancelled");
 		return;
 	}
 	raw = command_log (run);
-	text = missing_download_text (raw);
-	if (text == NULL)
-		text = friendly_failure_text (raw, run->exit_code);
+	log = log_parse (raw);
+	text = log_failure_text (log, run->exit_code);
 	if (text == NULL) {
 		gchar *tail = log_tail (raw, 2000);
 
 		text = atropos_error_text (tail, run->exit_code);
 		g_free (tail);
 	}
-	fail_job (job, zypper_error_code (run->exit_code, raw), text);
+	fail_job (job, log_error_code (log, run->exit_code), text);
 	g_free (text);
+	log_free (log);
 	g_free (raw);
-}
-
-/* The last line that is not progress or a wrapper. */
-static gchar *
-last_reason_line (const gchar *text)
-{
-	gchar **lines;
-	gchar *found = NULL;
-	gint i;
-
-	if (text == NULL)
-		return NULL;
-	lines = g_strsplit (text, "\n", -1);
-	for (i = (gint) g_strv_length (lines) - 1; i >= 0 && found == NULL; i--) {
-		gchar *line = g_strstrip (g_strdup (lines[i]));
-
-		if (line[0] != '\0' && !failure_line_is_wrapper (line) &&
-		    !g_str_has_prefix (line, "Use '--interactive'"))
-			found = line;
-		else
-			g_free (line);
-	}
-	g_strfreev (lines);
-	return found;
 }
 
 /*
@@ -1629,13 +1491,14 @@ wait_for_network (PkBackendJob *job, PkBackend *backend)
 }
 
 /*
- * A check that cannot reach the servers says so in one sentence. The
- * zypper log about mirrors and repository aliases is not useful to
- * someone whose Wi-Fi is off.
+ * A check that cannot reach the servers says so in one sentence. zypper's
+ * text about mirrors and repository aliases does not help someone whose
+ * Wi-Fi is off.
  */
 static void
 fail_check (PkBackendJob *job, PkBackend *backend, const AtroposRun *run)
 {
+	AtroposLog *log;
 	gchar *raw;
 	PkErrorEnum code;
 
@@ -1644,13 +1507,14 @@ fail_check (PkBackendJob *job, PkBackend *backend, const AtroposRun *run)
 		return;
 	}
 	raw = command_log (run);
-	code = zypper_error_code (run->exit_code, raw);
+	log = log_parse (raw);
+	code = log_error_code (log, run->exit_code);
 	if (!pk_backend_is_online (backend)) {
 		fail_job (job, PK_ERROR_ENUM_NO_NETWORK,
 			  "Could not check for updates because this computer is not "
 			  "connected to the internet. Connect to a network and check again.");
 	} else if (code == PK_ERROR_ENUM_NO_NETWORK || code == PK_ERROR_ENUM_REPO_NOT_AVAILABLE) {
-		gchar *reason = last_reason_line (raw);
+		gchar *reason = last_reason_line (log);
 		gchar *text = g_strdup_printf ("Could not check for updates because the update "
 					       "servers could not be reached. This is usually "
 					       "temporary. Try again in a few minutes.%s%s",
@@ -1663,6 +1527,7 @@ fail_check (PkBackendJob *job, PkBackend *backend, const AtroposRun *run)
 	} else {
 		fail_command (job, run);
 	}
+	log_free (log);
 	g_free (raw);
 }
 
@@ -1675,11 +1540,10 @@ collect_updates (PkBackendJob *job, PkBackend *backend, GPtrArray **pkgs_out)
 		"/usr/bin/zypper", "--non-interactive", "--gpg-auto-import-keys", "refresh", NULL,
 	};
 	/*
-	 * The same options transactional-update dup gives zypper, so a
-	 * check that passes means the update will too. In particular no
-	 * --auto-agree-with-licenses: transactional-update never passes it,
-	 * and a package license is then refused here instead of after the
-	 * user has clicked Update. -y is a command option on zypper 1.14.
+	 * The options transactional-update dup gives zypper, so a check that
+	 * passes means the update will too. No --auto-agree-with-licenses:
+	 * transactional-update never passes it, so a license is refused here,
+	 * before the user clicks Update. -y is a command option on zypper 1.14.
 	 */
 	gchar *dup_argv[] = {
 		"/usr/bin/zypper", "--xmlout", "--non-interactive",
@@ -1968,11 +1832,10 @@ get_updates_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
 		gchar *package_id = bundle_package_id ();
 
 		/*
-		 * Discover shows its reboot page only when this check
-		 * returns no packages. A row here keeps Update All.
-		 * require_restart marks the page. This does not reboot,
-		 * does not start another dup, and does not notify. The
-		 * notifier calls this after Discover has closed.
+		 * Discover shows its reboot page only when the check returns
+		 * no packages; a row would bring Update All back. No
+		 * notification here: the notifier runs this after Discover
+		 * has closed.
 		 */
 		pk_backend_job_set_status (job, PK_STATUS_ENUM_FINISHED);
 		pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
@@ -2008,9 +1871,8 @@ pk_backend_refresh_cache (PkBackend *backend, PkBackendJob *job, gboolean force)
 {
 	(void) backend;
 	/*
-	 * Discover refreshes before every check. Dropping the list each time
-	 * made the ten-minute cache useless. A forced refresh, or a newer zypp
-	 * marker (see cache_is_fresh), still solves again.
+	 * Discover refreshes before every check, so only a forced refresh
+	 * drops the list. A newer zypp marker also does (cache_is_fresh).
 	 */
 	if (force) {
 		g_unlink (ATROPOS_CACHE_FILE);
@@ -2228,12 +2090,6 @@ emit_id (PkBackendJob *job, PkInfoEnum info, const gchar *name, const gchar *evr
 }
 
 /*
- * Discover calls Resolve for AppStream components it has not matched yet.
- * Missing this symbol is the "Resolve not supported by backend" error.
- * Unknown names finish successfully: this backend still refuses install
- * and remove. One rpm -qa covers every name. The update cache is optional.
- */
-/*
  * The booted RPM database only changes on reboot here: updates go into the
  * next snapshot. Keep one rpm -qa until the database file changes.
  */
@@ -2286,6 +2142,12 @@ cached_rpm_qa (PkBackendJob *job, gboolean *cancelled)
 	return text;
 }
 
+/*
+ * Discover resolves AppStream components it has not matched yet, and
+ * fails with "Resolve not supported by backend" without this. Unknown
+ * names finish successfully. Answers come from rpm -qa and, for names in
+ * the pending update, from the last check.
+ */
 static void
 resolve_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
 {
@@ -2500,6 +2362,57 @@ static gboolean test_online = TRUE;
 gboolean pk_backend_is_online (PkBackend *backend) { (void) backend; return test_online; }
 gboolean pk_backend_job_is_cancelled (PkBackendJob *job) { (void) job; return FALSE; }
 
+/* String entry points for the tests below. */
+static PkErrorEnum
+zypper_error_code (gint exit_code, const gchar *text)
+{
+	AtroposLog *log = log_parse (text);
+	PkErrorEnum code = log_error_code (log, exit_code);
+
+	log_free (log);
+	return code;
+}
+
+static gchar *
+friendly_failure_text (const gchar *text, gint exit_code)
+{
+	AtroposLog *log = log_parse (text);
+	gchar *shown = log_failure_text (log, exit_code);
+
+	log_free (log);
+	return shown;
+}
+
+static gchar *
+t_missing (const gchar *text)
+{
+	AtroposLog *log = log_parse (text);
+	gchar *shown = missing_download_text (log);
+
+	log_free (log);
+	return shown;
+}
+
+static gchar *
+t_plain (const gchar *text)
+{
+	AtroposLog *log = log_parse (text);
+	gchar *shown = plain_reason_text (log);
+
+	log_free (log);
+	return shown;
+}
+
+static gchar *
+t_last_reason (const gchar *text)
+{
+	AtroposLog *log = log_parse (text);
+	gchar *shown = last_reason_line (log);
+
+	log_free (log);
+	return shown;
+}
+
 int
 main (void)
 {
@@ -2557,7 +2470,7 @@ main (void)
 			"ERROR: zypper failed with exit code 4!\n"
 			"Use '--interactive' for manual problem resolution.\n"
 			"Removing snapshot #5...\n";
-		gchar *missing = missing_download_text (log);
+		gchar *missing = t_missing (log);
 
 		if (missing == NULL || strstr (missing, "HTTP 404") == NULL ||
 		    strstr (missing, "patterns-atropos-base-0.4.0-23.1.x86_64.rpm") == NULL ||
@@ -2573,7 +2486,7 @@ main (void)
 			return 1;
 		}
 		g_free (missing);
-		if (missing_download_text ("mirror down\n") != NULL) {
+		if (t_missing ("mirror down\n") != NULL) {
 			g_printerr ("404 error text matched a normal failure\n");
 			return 1;
 		}
@@ -2744,7 +2657,7 @@ main (void)
 			g_string_append_printf (long_log, "package line %u\n", k);
 		g_string_append (long_log, "ERROR: snapper close failed: the real reason\n"
 					   "Discarding snapshot 7.\n");
-		tail = plain_reason_text (long_log->str);
+		tail = t_plain (long_log->str);
 		if (tail == NULL || strstr (tail, "the real reason") == NULL ||
 		    strstr (tail, "package line 0\n") != NULL ||
 		    strstr (tail, "earlier lines not shown") == NULL) {
@@ -2780,12 +2693,12 @@ main (void)
 	{
 		/* A missing repomd.xml is a repository problem, not an unpublished package. */
 		const gchar *repo = "File './repodata/repomd.xml' not found on medium 'http://download.opensuse.org/slowroll/repo/oss/'\n";
-		gchar *reason = last_reason_line ("Retrieving repository 'x' metadata [error]\n"
+		gchar *reason = t_last_reason ("Retrieving repository 'x' metadata [error]\n"
 						  "Repository 'x' is invalid.\n"
 						  "Use '--interactive' for manual problem resolution.\n");
 
 		if (zypper_error_code (4, repo) != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||
-		    missing_download_text (repo) != NULL ||
+		    t_missing (repo) != NULL ||
 		    g_strcmp0 (reason, "Repository 'x' is invalid.") != 0) {
 			g_printerr ("repository failure mapping failed: %s\n", reason != NULL ? reason : "none");
 			g_free (reason);
