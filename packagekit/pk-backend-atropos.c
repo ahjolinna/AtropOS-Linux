@@ -1435,17 +1435,112 @@ log_tail (const gchar *text, gsize max)
 	return g_strdup (text + (len - max));
 }
 
+/* &lt; &gt; &amp; &quot; &apos; and numeric references, in place of the entity. */
+static void
+xml_unescape_into (GString *out, const gchar *text, gsize len)
+{
+	static const struct { const gchar *name; gchar c; } named[] = {
+		{ "&lt;", '<' }, { "&gt;", '>' }, { "&amp;", '&' }, { "&quot;", '"' }, { "&apos;", '\'' },
+	};
+	gsize i = 0;
+
+	while (i < len) {
+		gboolean done = FALSE;
+		guint n;
+
+		if (text[i] != '&') {
+			g_string_append_c (out, text[i++]);
+			continue;
+		}
+		for (n = 0; n < G_N_ELEMENTS (named) && !done; n++) {
+			gsize nl = strlen (named[n].name);
+
+			if (i + nl <= len && strncmp (text + i, named[n].name, nl) == 0) {
+				g_string_append_c (out, named[n].c);
+				i += nl;
+				done = TRUE;
+			}
+		}
+		if (!done && i + 2 < len && text[i + 1] == '#') {
+			const gchar *semi = memchr (text + i, ';', len - i);
+
+			if (semi != NULL && semi - (text + i) <= 10) {
+				gboolean hex = text[i + 2] == 'x' || text[i + 2] == 'X';
+				gunichar c = (gunichar) g_ascii_strtoull (text + i + (hex ? 3 : 2), NULL, hex ? 16 : 10);
+
+				if (c != 0 && g_unichar_validate (c))
+					g_string_append_unichar (out, c);
+				i = (gsize) (semi - text) + 1;
+				done = TRUE;
+			}
+		}
+		if (!done)
+			g_string_append_c (out, text[i++]);
+	}
+}
+
+/*
+ * A check runs zypper --xmlout, so a solver conflict arrives as
+ * <message type="info">Problem: ...</message> and a <prompt> whose
+ * <description> holds the problem and its solutions. The failure parser
+ * reads plain lines, so keep the text of each element and drop the tags,
+ * the declaration and the <option> menu. Plain text passes through.
+ */
+static gchar *
+xml_log_to_text (const gchar *text)
+{
+	GString *out;
+	const gchar *p;
+
+	if (text == NULL)
+		return g_strdup ("");
+	p = text;
+	while (g_ascii_isspace (*p))
+		p++;
+	if (!g_str_has_prefix (p, "<?xml") && !g_str_has_prefix (p, "<stream"))
+		return g_strdup (text);
+
+	out = g_string_new (NULL);
+	while (*p != '\0') {
+		if (*p == '<') {
+			const gchar *end = strchr (p, '>');
+
+			if (end == NULL)
+				break;
+			/* A tag ends a line, so <message>a</message><message>b</message> stays two lines. */
+			if (out->len > 0 && out->str[out->len - 1] != '\n')
+				g_string_append_c (out, '\n');
+			p = end + 1;
+		} else {
+			const gchar *end = strchr (p, '<');
+			gsize len = end != NULL ? (gsize) (end - p) : strlen (p);
+
+			xml_unescape_into (out, p, len);
+			p += len;
+		}
+	}
+	return g_string_free (out, FALSE);
+}
+
 /* stdout, then stderr. Only for failure text; the XML parser reads stdout alone. */
 static gchar *
 command_log (const AtroposRun *run)
 {
+	gchar *output;
+	gchar *joined;
+
 	if (run->error != NULL)
 		return g_strdup (run->error);
+	output = xml_log_to_text (run->output);
 	if (run->stderr_text == NULL || run->stderr_text[0] == '\0')
-		return g_strdup (run->output != NULL ? run->output : "");
-	if (run->output == NULL || run->output[0] == '\0')
+		return output;
+	if (output[0] == '\0') {
+		g_free (output);
 		return g_strdup (run->stderr_text);
-	return g_strconcat (run->output, "\n", run->stderr_text, NULL);
+	}
+	joined = g_strconcat (output, "\n", run->stderr_text, NULL);
+	g_free (output);
+	return joined;
 }
 
 static void
@@ -2796,6 +2891,55 @@ main (void)
 	    g_strcmp0 (ATROPOS_NOTIFY_REPLACES, "@u 0") != 0) {
 		g_printerr ("notification body failed\n");
 		return 1;
+	}
+	{
+		/* A check's solver conflict, as zypper --xmlout prints it. */
+		AtroposRun run = { 0 };
+		gchar *raw;
+		gchar *shown;
+
+		run.output = (gchar *)
+			"<?xml version='1.0'?>\n"
+			"<stream>\n"
+			"<message type=\"info\">Refreshing service &apos;openSUSE&apos;.</message>\n"
+			"<message type=\"info\">Computing distribution upgrade...</message>\n"
+			"<message type=\"info\">1 Problem:</message>\n"
+			"<message type=\"info\">Problem: 1: the installed foo-1-1.x86_64 requires &apos;libbar.so.2&apos;, "
+			"but this requirement cannot be provided</message>\n"
+			"<prompt id=\"6\">\n"
+			"<description>Problem: 1: the installed foo-1-1.x86_64 requires &apos;libbar.so.2&apos;, "
+			"but this requirement cannot be provided\n"
+			"Solution 1: deinstallation of foo-1-1.x86_64\n"
+			"Solution 2: keep obsolete bar-2-1.x86_64</description>\n"
+			"<text>Choose from above solutions by number or cancel</text>\n"
+			"<option value=\"1\" desc=\"Choose solution 1\"/>\n"
+			"<option default=\"1\" value=\"c\" desc=\"Choose no solution and cancel.\"/>\n"
+			"</prompt>\n"
+			"</stream>\n";
+		run.exit_code = 4;
+		raw = command_log (&run);
+		shown = friendly_failure_text (raw, 4);
+		if (shown == NULL || strstr (shown, "dependency could not be satisfied") == NULL ||
+		    strstr (shown, "foo-1-1.x86_64 requires 'libbar.so.2'") == NULL ||
+		    strstr (shown, "<option") != NULL || strstr (shown, "earlier lines") != NULL) {
+			g_printerr ("xml solver problem failed: %s\n", shown != NULL ? shown : "(null)");
+			return 1;
+		}
+		g_free (shown);
+		g_free (raw);
+
+		raw = xml_log_to_text ("plain &amp; text\n");
+		if (g_strcmp0 (raw, "plain &amp; text\n") != 0) {
+			g_printerr ("plain text was rewritten: %s\n", raw);
+			return 1;
+		}
+		g_free (raw);
+		raw = xml_log_to_text ("<stream><message>a &#233; &#x41;</message><message>b</message></stream>");
+		if (g_strcmp0 (raw, "a \xc3\xa9 A\nb\n") != 0) {
+			g_printerr ("xml entity or line split failed: %s\n", raw);
+			return 1;
+		}
+		g_free (raw);
 	}
 	g_print ("parse ok\n");
 	return 0;

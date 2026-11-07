@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Sun Nov 08 00:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Read the check's zypper --xmlout output as text before looking for
+  the reason. A solver conflict during a check came back as XML, so the
+  Problem: lines were missed and Discover showed the last eight lines:
+  the <option> menu, with the problem in "17 earlier lines not shown".
+  Discover now names the conflicting packages.
+- Release 18.
+
+-------------------------------------------------------------------
 Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require glib2-tools and util-linux instead of /usr/bin/gdbus and
