@@ -611,6 +611,13 @@ if grep -q 'no output' "$pk" \
 else
     bad "PackageKit backend lost its error text, its thread, Cancel, or the transactional-update options"
 fi
+qdv=$root/patterns/org.qt.qdbusviewer6.desktop
+# Hidden=true makes KService skip the override and show the original.
+if grep -qx 'NoDisplay=true' "$qdv" && ! grep -q '^Hidden=' "$qdv"; then
+    ok "Qt 6 D-Bus Viewer is hidden with NoDisplay, without Hidden"
+else
+    bad "the qdbusviewer6 override needs NoDisplay=true and no Hidden= line"
+fi
 perf=$root/performance
 if grep -q '%{_sysconfdir}/sysctl.d/11-atropos-performance.conf' "$perf/atropos-performance.spec" \
     && grep -q '^ExecStart=/usr/bin/ssh-agent -D -a %t/ssh-agent.socket$' "$perf/atropos-ssh-agent.service" \
