@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Say how to add the missing root mount options instead of waiting
+  for the next install.
+- Release 8. The repository already has 0.1.0-7.1.
+
+-------------------------------------------------------------------
 Wed Nov 04 05:36:33 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Report Easy Anti-Cheat Linux v2 readiness with atropos-check eac.

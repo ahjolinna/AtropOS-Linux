@@ -253,11 +253,11 @@ case ",${opts}," in
 esac
 case ",${opts}," in
     *,compress=zstd:-4,*) ok "compress=zstd:-4" ;;
-    *) bad "compress=zstd:-4 is not on / (next install, fstab is not rewritten)" ;;
+    *) bad "compress=zstd:-4 is not on / (add it to the / line in /etc/fstab; the installer now writes it)" ;;
 esac
 case ",${opts}," in
     *,lazytime,*) ok "lazytime" ;;
-    *) bad "lazytime is not on / (next install, fstab is not rewritten)" ;;
+    *) bad "lazytime is not on / (add it to the / line in /etc/fstab; the installer now writes it)" ;;
 esac
 if findmnt -n /var >/dev/null 2>&1; then
     ok "/var is mounted"
