@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Start thermald only on Intel CPUs. On AMD it logged "Unsupported cpu
+  model or platform" and exited on every boot.
+- Release 19. The repository already has 0.4.0-18.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Ship atropos-ssh-agent.service, a user ssh-agent on the socket that

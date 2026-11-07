@@ -9,7 +9,7 @@
 
 Name:           atropos-performance
 Version:        0.4.0
-Release:        18
+Release:        19
 Summary:        AtropOS desktop performance defaults
 License:        (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND Apache-2.0 AND ISC AND CC0-1.0 AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later
 Group:          System/Base
@@ -93,6 +93,7 @@ Source66:       atropos-bootloader-show.service
 Source67:       atropos-bootloader-hide.service
 Source68:       10-atropos-tuned-ppd.conf
 Source69:       atropos-ssh-agent.service
+Source70:       10-atropos-thermald-intel.conf
 Requires:       zram-generator
 Requires:       flatpak
 Requires:       systemd-experimental
@@ -216,6 +217,7 @@ install -D -m 0644 %{SOURCE55} %{buildroot}%{_sysconfdir}/plasmalogin.conf
 install -D -m 0644 %{SOURCE56} %{buildroot}%{_datadir}/plasma/plasma-welcome/extra-pages/01-flatpaks.qml
 install -D -m 0644 %{SOURCE57} %{buildroot}%{_prefix}/lib/tmpfiles.d/atropos-tuned-log.conf
 install -D -m 0644 %{SOURCE68} %{buildroot}%{_unitdir}/tuned-ppd.service.d/10-atropos-tuned-ppd.conf
+install -D -m 0644 %{SOURCE70} %{buildroot}%{_unitdir}/thermald.service.d/10-atropos-thermald-intel.conf
 install -D -m 0644 %{SOURCE58} %{buildroot}%{_prefix}/lib/udev/rules.d/90-atropos-hide-system-disk.rules
 install -D -m 0755 %{SOURCE59} %{buildroot}%{_libexecdir}/atropos-hide-system-disk
 install -D -m 0644 %{SOURCE60} %{buildroot}%{_unitdir}/atropos-hide-system-disk.service
@@ -403,6 +405,8 @@ fi
 %{_prefix}/lib/tmpfiles.d/atropos-tuned-log.conf
 %dir %{_unitdir}/tuned-ppd.service.d
 %{_unitdir}/tuned-ppd.service.d/10-atropos-tuned-ppd.conf
+%dir %{_unitdir}/thermald.service.d
+%{_unitdir}/thermald.service.d/10-atropos-thermald-intel.conf
 %{_prefix}/lib/udev/rules.d/90-atropos-hide-system-disk.rules
 %{_libexecdir}/atropos-hide-system-disk
 %{_unitdir}/atropos-hide-system-disk.service
