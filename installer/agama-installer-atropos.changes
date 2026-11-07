@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Install atropos-agama-post through the kiwi file list. KIWI does not
+  copy other package files to /image, so config.sh failed and the
+  online ISO did not build.
+
+-------------------------------------------------------------------
 Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Add atropos-agama-post as an Agama post-installation script. It adds

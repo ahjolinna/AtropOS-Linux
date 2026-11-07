@@ -162,6 +162,9 @@
         <!-- Public repomd key for download.nvidia.com. Agama imports gpg-*
              from this directory into the installed system. -->
         <file name="gpg-pubkey-nvidia-tumbleweed.asc" target="/usr/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc" permissions="644"/>
+        <!-- Agama post-installation script; config.sh puts it into the
+             installer defaults. -->
+        <file name="atropos-agama-post" target="/usr/libexec/atropos-agama-post" permissions="755"/>
     </packages>
 
     <!-- Offline embeds the image repository. patterns-atropos-base is solved

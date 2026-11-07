@@ -338,8 +338,12 @@ fi
 # It adds the root mount options Agama does not write to fstab, and drops
 # the live ISO options Agama copies into /etc/kernel/cmdline. jq embeds the
 # file so the script needs no JSON escaping. "agama config load" sends a
-# PATCH, so this merges with the rest of the configuration.
-install -D -m 0755 /image/atropos-agama-post /usr/libexec/atropos-agama-post
+# PATCH, so this merges with the rest of the configuration. The kiwi file
+# list installs the script; KIWI does not copy other files to /image.
+if [ ! -f /usr/libexec/atropos-agama-post ]; then
+    echo "atropos-agama-post is missing from the image" >&2
+    exit 1
+fi
 if [[ "$kiwi_profiles" == *"Offline"* ]]; then
     extra_repos='[]'
 else
