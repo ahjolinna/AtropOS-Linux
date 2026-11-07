@@ -6,7 +6,7 @@
 
 Name:           atropos-check
 Version:        0.1.0
-Release:        9
+Release:        10
 Summary:        Check and repair an installed AtropOS system
 License:        MIT AND Apache-2.0
 Group:          System/Base
@@ -17,11 +17,16 @@ Source0:        atropos-check
 Source1:        atropos-check.service
 Source2:        81-atropos-check.preset
 Source3:        atropos-check-eac
+Source4:        atropos-collect-logs
 Requires:       systemd
 Requires:       mokutil
 Requires:       openssl
 Requires:       sbsigntools
 Requires:       tpm2.0-tools
+# atropos-collect-logs
+Requires:       sudo
+Requires:       tar
+Requires:       zstd
 
 %description
 Reports whether an installed AtropOS system still matches the Kalpa and
@@ -30,6 +35,8 @@ backend, Discover, Baloo, and the systemd policy. The boot service repairs
 only writable /etc drift. It does not remount disks, rewrite fstab, rewrite
 boot entries, or change the display manager. atropos-check eac reports
 Easy Anti-Cheat Linux v2 readiness and changes nothing.
+atropos-collect-logs saves the logs and system information a bug report
+needs into one archive in the home folder.
 
 %prep
 
@@ -38,6 +45,7 @@ Easy Anti-Cheat Linux v2 readiness and changes nothing.
 %install
 install -D -m 0755 %{SOURCE0} %{buildroot}%{_sbindir}/atropos-check
 install -D -m 0755 %{SOURCE3} %{buildroot}%{_sbindir}/atropos-check-eac
+install -D -m 0755 %{SOURCE4} %{buildroot}%{_bindir}/atropos-collect-logs
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/atropos-check.service
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system-preset/81-atropos-check.preset
 
@@ -56,6 +64,7 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system-preset/8
 %files
 %{_sbindir}/atropos-check
 %{_sbindir}/atropos-check-eac
+%{_bindir}/atropos-collect-logs
 %{_unitdir}/atropos-check.service
 %{_prefix}/lib/systemd/system-preset/81-atropos-check.preset
 

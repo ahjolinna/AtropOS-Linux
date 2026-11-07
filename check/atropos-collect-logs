@@ -1,0 +1,103 @@
+#!/bin/bash
+# Collect the logs and system information a bug report needs into one
+# archive in your home folder. Read-only: it changes nothing.
+# Adapted from KDE Linux's collect-logs.
+#
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 ahjolinna <ahjolinna@yahoo.com>
+
+set -u
+
+if [[ ${1:-} == -h || ${1:-} == --help ]]; then
+    echo "Usage: atropos-collect-logs"
+    echo "Writes ~/atropos-logs-DATE.tar.zst for a bug report. Asks for your password once."
+    exit 0
+fi
+
+# The full journal, the ESP and snapper need root. Re-run through sudo,
+# remembering who asked so the archive lands in their home folder.
+if [[ $(id -u) -ne 0 ]]; then
+    exec sudo --preserve-env=DBUS_SESSION_BUS_ADDRESS,XDG_RUNTIME_DIR "$0" "$@"
+fi
+
+user=${SUDO_USER:-root}
+home=$(getent passwd "$user" | cut -d: -f6)
+[[ -d $home ]] || home=/root
+name=atropos-logs-$(date +%Y%m%d-%H%M%S)
+work=$(mktemp -d)
+dir=$work/$name
+mkdir -p "$dir"
+trap 'rm -rf "$work"' EXIT
+
+# run FILE COMMAND... : save stdout and stderr; a missing tool is noted.
+run() {
+    local file=$1
+    shift
+    if command -v "$1" >/dev/null 2>&1; then
+        timeout 60 "$@" > "$dir/$file" 2>&1 || true
+    else
+        echo "$1 is not installed" > "$dir/$file"
+    fi
+}
+
+# as_user FILE COMMAND... : the same in the desktop session of $user.
+as_user() {
+    local file=$1 uid
+    shift
+    uid=$(id -u "$user" 2>/dev/null) || return 0
+    [[ -S /run/user/$uid/bus ]] || return 0
+    timeout 30 runuser -u "$user" -- env \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+        XDG_RUNTIME_DIR="/run/user/$uid" "$@" > "$dir/$file" 2>&1 || true
+}
+
+echo "Collecting logs for $user. This takes a few seconds."
+
+cp /etc/os-release "$dir/os-release" 2>/dev/null
+{ uname -a; echo; cat /proc/cmdline; echo; uptime; } > "$dir/system.txt"
+run packages.txt rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE}.%{ARCH}\n'
+sort -o "$dir/packages.txt" "$dir/packages.txt"
+run repositories.txt zypper --no-refresh lr -d
+run flatpaks.txt flatpak list --columns=application,version,origin,installation
+run atropos-check.txt atropos-check
+
+# Logs: this boot and the one before it, which is where a crash or a
+# freeze that ended in a reboot shows up.
+run journal-this-boot.txt journalctl -b 0 --no-pager -o short-iso
+run journal-previous-boot.txt journalctl -b -1 --no-pager -o short-iso
+run journal-boots.txt journalctl --list-boots --no-pager
+run dmesg.txt dmesg -T
+run failed-units.txt systemctl --failed --no-pager
+as_user failed-user-units.txt systemctl --user --failed --no-pager
+run coredumps.txt coredumpctl list --no-pager
+tail -n 3000 /var/log/transactional-update.log > "$dir/transactional-update.log" 2>/dev/null
+
+# Boot, snapshots and disks.
+run bootctl-status.txt bootctl status
+run boot-entries.txt bootctl list
+run snapshots.txt snapper --no-dbus list
+run disks.txt lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS,MODEL
+run mounts.txt findmnt
+run disk-space.txt df -h
+cp /etc/fstab "$dir/fstab" 2>/dev/null
+cp /etc/kernel/cmdline "$dir/kernel-cmdline" 2>/dev/null
+
+# Hardware and graphics. inxi -z hides serial numbers and addresses.
+run inxi.txt inxi -Fxxz
+run pci.txt lspci -nnk
+run usb.txt lsusb
+run modules.txt lsmod
+command -v nvidia-smi >/dev/null 2>&1 && run nvidia-smi.txt nvidia-smi -q
+as_user kwin-support.txt qdbus6 org.kde.KWin /KWin supportInformation
+run network.txt nmcli general status
+run audio.txt aplay -l
+
+# Never collected: passwords, Wi-Fi keys, SSH keys and files in $home.
+tar -C "$work" --zstd -cf "$home/$name.tar.zst" "$name"
+chown "$user": "$home/$name.tar.zst" 2>/dev/null
+chmod 0600 "$home/$name.tar.zst"
+
+echo
+echo "Saved $home/$name.tar.zst"
+echo "Logs can contain names of your files, networks and devices. Check the"
+echo "archive before you attach it to a public bug report."

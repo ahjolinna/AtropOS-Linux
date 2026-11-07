@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Nov 07 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add atropos-collect-logs, adapted from KDE Linux's collect-logs. It
+  saves the journal of this boot and the one before, boot entries,
+  snapshots, the update log, hardware, KWin and atropos-check output
+  into one archive in the home folder for a bug report.
+- Release 10. The repository already has 0.1.0-9.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Check the boot partition. Warn when the ESP has less free space than
