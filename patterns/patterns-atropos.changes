@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sun Nov 08 01:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Drop the Obsoletes of kdenetwork-filesharing and
+  kdenetwork-filesharing-lang. This package's vendor is not openSUSE,
+  and zypper dup does not replace another vendor's package through
+  Obsoletes without asking, so Discover and transactional-update
+  cancelled the update. Conflicts fails the same way. Systems that have
+  the Share tab keep it. New installs do not get it.
+- Release 37. The repository already has 0.4.0-36.1.
+
+-------------------------------------------------------------------
 Sun Nov 08 00:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Obsolete kdenetwork-filesharing-lang as well. It requires
