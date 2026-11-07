@@ -66,12 +66,29 @@ sys.exit(1)
     return 0
 }
 
+# LoaderConfigTimeout as systemd-boot sees it, or empty. efivarfs puts a
+# 4-byte attribute header before the UTF-16LE text.
+current_timeout() {
+    local var=/sys/firmware/efi/efivars/LoaderConfigTimeout-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+    [[ -r $var ]] || return 0
+    tail -c +5 "$var" 2>/dev/null | iconv -f UTF-16LE -t UTF-8 2>/dev/null | tr -d '\0'
+}
+
+# Writes the variable only when it changes. Some firmware wears or slows
+# down on frequent NVRAM writes, and this runs on every boot and shutdown.
+set_timeout() {
+    if [[ $(current_timeout) == "$1" ]]; then
+        exit 0
+    fi
+    exec "$bootctl" set-timeout "$1"
+}
+
 case "${1:-}" in
     show)
         if loader_has_timeout; then
             exit 0
         fi
-        exec "$bootctl" set-timeout 7
+        set_timeout 7
         ;;
     hide)
         if [[ ! -f /run/atropos-bootloader-reached ]]; then
@@ -83,7 +100,7 @@ case "${1:-}" in
         if other_os; then
             exit 0
         fi
-        exec "$bootctl" set-timeout 0
+        set_timeout 0
         ;;
     *)
         echo "usage: atropos-bootloader show|hide" >&2

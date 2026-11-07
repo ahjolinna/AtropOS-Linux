@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# The agent behind SSH_AUTH_SOCK in 60-atropos-ssh-auth-sock.conf.
+# openSUSE's openssh ships no user unit, so without this the variable
+# points at a socket that does not exist and ssh-add fails.
+
+[Unit]
+Description=OpenSSH key agent
+Documentation=man:ssh-agent(1)
+
+[Service]
+Type=simple
+# A socket left by an agent that was killed would make the bind fail.
+ExecStartPre=-/usr/bin/rm -f %t/ssh-agent.socket
+ExecStart=/usr/bin/ssh-agent -D -a %t/ssh-agent.socket
+# ssh-agent exits 2 on SIGTERM.
+SuccessExitStatus=2
+
+[Install]
+WantedBy=default.target

@@ -4,10 +4,16 @@
 # Adapted from KDE Linux kde-linux-powertop.service.
 
 [Unit]
-Description=Apply powertop auto-tune and keep USB input awake
+Description=Apply powertop auto-tune and keep sensitive USB devices awake
+# auto-tune turns on runtime power management for every device. That
+# saves battery and only costs dropouts on a desktop, so only a machine
+# with a system battery runs it. tuned handles the CPU on both.
 
 [Service]
 Type=oneshot
+# A system battery, not a wireless mouse or headset (scope Device).
+# Exit 1 skips the unit; it is not a failure.
+ExecCondition=/bin/sh -c 'for p in /sys/class/power_supply/*; do [ "$$(cat "$$p/type" 2>/dev/null)" = Battery ] && [ "$$(cat "$$p/scope" 2>/dev/null)" != Device ] && exit 0; done; exit 1'
 ExecStart=/usr/sbin/powertop --auto-tune
 ExecStartPost=/usr/lib/disable-usb-autosuspend-for-input-devices
 # atropos-performance sets DefaultTimeoutStartSec=16s.

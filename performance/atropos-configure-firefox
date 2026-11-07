@@ -1,40 +1,44 @@
 #!/usr/bin/bash
 # SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 # SPDX-FileCopyrightText: 2025 Thomas Duckworth <tduck@filotimoproject.org>
+#
+# Configure the Firefox Flatpak: GTK accent colours, speech-dispatcher,
+# the Plasma Browser Integration policy, and NVIDIA hardware decoding.
+# The files go into the org.mozilla.firefox.systemconfig extension
+# directory, which Firefox reads as its system defaults.
 
 set -eu
 
-if ! flatpak info org.mozilla.firefox >/dev/null 2>&1; then
-  echo "The Firefox flatpak is not installed. Exiting." >&2
-  exit 1
+app=org.mozilla.firefox
+if ! flatpak info --system "$app" >/dev/null 2>&1; then
+    echo "The Firefox Flatpak is not installed." >&2
+    exit 1
 fi
 
-# Ensure accent colors are correctly applied to Firefox.
-# Also ensure Firefox has access to the speech-dispatcher socket.
-flatpak override --system org.mozilla.firefox \
-  --filesystem=xdg-config/gtk-3.0:ro \
-  --filesystem=xdg-run/speech-dispatcher:ro
+# --show-runtime prints the ref (org.freedesktop.Platform/x86_64/25.08).
+# The "Runtime:" label in the full output is translated, and services
+# run with the system locale.
+arch=$(flatpak info --system --show-runtime "$app" | cut -d/ -f2)
+if [[ -z $arch ]]; then
+    arch=$(flatpak --default-arch)
+fi
+config=/usr/share/atropos/firefox-config
+ext=/var/lib/flatpak/extension/$app.systemconfig/$arch/stable
+# Where an empty architecture put these files. Firefox never read them.
+rm -rf "/var/lib/flatpak/extension/$app.systemconfig/stable"
 
-# Get the architecture from the runtime.
-RUNTIME_REF="$(flatpak info org.mozilla.firefox 2>/dev/null | grep -E 'Runtime:' | awk '{print $2}')"
-RUNTIME_ARCH="$(echo "$RUNTIME_REF" | cut -d'/' -f2)"
+flatpak override --system "$app" \
+    --filesystem=xdg-config/gtk-3.0:ro \
+    --filesystem=xdg-run/speech-dispatcher:ro
 
-# Install the KDE Linux default Firefox config into the Firefox flatpak system config extension.
-# This enables hardware acceleration on NVIDIA but can break it on other cards,
-# so this should only be done conditionally.
-if nvidia-smi > /dev/null 2>&1; then
-  mkdir -p "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/"
-  cp -rf "/usr/share/atropos/firefox-config/01-atropos-nvidia-hw-decode.js" "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/01-atropos-nvidia-hw-decode.js"
+install -d "$ext/defaults/pref" "$ext/policies"
+install -m 0644 "$config/00-atropos-default.js" "$ext/defaults/pref/00-atropos-default.js"
+# Forcing hardware decoding helps NVIDIA and can break other GPUs.
+if nvidia-smi >/dev/null 2>&1; then
+    install -m 0644 "$config/01-atropos-nvidia-hw-decode.js" "$ext/defaults/pref/01-atropos-nvidia-hw-decode.js"
 else
-  rm -rf "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/01-atropos-nvidia-hw-decode.js"
+    rm -f "$ext/defaults/pref/01-atropos-nvidia-hw-decode.js"
 fi
-# This, currently, gets speech-dispatcher to work in Firefox.
-mkdir -p "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/"
-cp -rf "/usr/share/atropos/firefox-config/00-atropos-default.js" "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/defaults/pref/00-atropos-default.js"
-
-# Install the KDE Linux default Firefox policy into the Firefox flatpak system config extension.
-# This installs the Plasma Browser Integration extension.
-# This, however, has the unfortunate side effect of causing Firefox to show a "Your browser is being managed by your organization" message in the settings.
-# See https://support.mozilla.org/en-US/kb/customizing-firefox-using-policiesjson
-mkdir -p "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/policies/"
-cp -rf "/usr/share/atropos/firefox-config/policies.json" "/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/${RUNTIME_ARCH}/stable/policies/policies.json"
+# Installs Plasma Browser Integration. Firefox then says it is managed
+# by an organization; that is the cost of a policy file.
+install -m 0644 "$config/policies.json" "$ext/policies/policies.json"

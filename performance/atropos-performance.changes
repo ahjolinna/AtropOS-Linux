@@ -1,4 +1,34 @@
 -------------------------------------------------------------------
+Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship atropos-ssh-agent.service, a user ssh-agent on the socket that
+  SSH_AUTH_SOCK names. openSUSE's openssh has no user unit, so the
+  socket did not exist and ssh-add failed.
+- Install 11-atropos-performance.conf in /etc/sysctl.d. tuned reapplies
+  only /run and /etc/sysctl.d after a profile, so the Performance power
+  profile left vm.swappiness at 10 and vm.dirty_ratio at 40. Pin the
+  writeback ratios to the kernel defaults there as well.
+- Configure the Firefox Flatpak from "flatpak info --show-runtime". The
+  "Runtime:" label is translated, so in German and other locales the
+  files went to a directory Firefox does not read. Remove that
+  directory.
+- Mount the Discover About page overlay only over the exact
+  kirigami-addons6 1.14.0 files it was made from. Every host KDE
+  application loads that module. Copy to Clipboard uses KDeclarative's
+  Clipboard type instead of a D-Bus call to Klipper.
+- Retry the first-boot Flatpak download every few minutes until it
+  works. An offline first boot left the desktop without Firefox until
+  the next boot. Welcome Center says it is waiting for a connection.
+- Run powertop --auto-tune only on a machine with a system battery,
+  and keep USB audio, Bluetooth and USB network adapters awake too.
+- Write the systemd-boot timeout variable only when it changes.
+- Find the LUKS mapping's device instead of assuming dm-0, and do
+  nothing without encryption.
+- Do not reload udev on the running system from inside
+  transactional-update.
+- Release 18. The repository already has 0.4.0-17.1.
+
+-------------------------------------------------------------------
 Wed Nov 04 00:29:06 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Turn IOMMU passthrough off and disable kexec on the kernel command

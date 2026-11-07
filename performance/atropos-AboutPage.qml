@@ -10,7 +10,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.components as KirigamiComponents
 import org.kde.kirigamiaddons.formcard as FormCardModule
 import org.kde.coreaddons as Core
-import org.kde.plasma.workspace.dbus as DBus
+import org.kde.kquickcontrolsaddons as KQuickControlsAddons
 
 import "private" as Private
 
@@ -444,6 +444,10 @@ FormCardPage {
         visible: page.showLibraries
 
         actions: QQC2.Action {
+            // Upstream copies "Unknown/Default" from C++. The clipboard
+            // type works without Klipper, unlike a D-Bus call to it.
+            property KQuickControlsAddons.Clipboard clipboard: KQuickControlsAddons.Clipboard {}
+
             text: i18ndc("kirigami-addons6", "@action:button", "Copy to Clipboard")
             icon.name: 'edit-copy-symbolic'
             onTriggered: {
@@ -459,14 +463,7 @@ FormCardPage {
                     }
                     info += "\n";
                 }
-                DBus.SessionBus.asyncCall({
-                    service: "org.kde.klipper",
-                    path: "/klipper",
-                    iface: "org.kde.klipper.klipper",
-                    member: "setClipboardContents",
-                    arguments: [info],
-                    signature: "(s)"
-                });
+                clipboard.content = info;
                 page.QQC2.ApplicationWindow.window.showPassiveNotification(i18ndc("kirigami-addons6", "@info", "System information copied to clipboard."), 'short');
             }
         }

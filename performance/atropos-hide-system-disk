@@ -1,11 +1,14 @@
 #!/bin/bash
 # Re-apply the system-disk hide after the LUKS mapping exists.
 # The partition's udev event often runs before cr_root has a holder.
+# Without encryption there is no cr_root and nothing to hide.
+set -u
+[[ -e /dev/mapper/cr_root ]] || exit 0
 udevadm control --reload-rules
-if [[ -e /dev/mapper/cr_root ]]; then
-    udevadm trigger --action=change /dev/mapper/cr_root
-fi
-for slave in /sys/class/block/dm-0/slaves/*; do
+udevadm trigger --action=change /dev/mapper/cr_root
+dm=$(basename "$(readlink -f /dev/mapper/cr_root)")
+for slave in /sys/class/block/"$dm"/slaves/*; do
     [[ -e $slave ]] || continue
     udevadm trigger --action=change "$slave"
 done
+exit 0

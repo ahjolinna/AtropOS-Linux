@@ -9,7 +9,7 @@
 
 Name:           atropos-performance
 Version:        0.4.0
-Release:        17
+Release:        18
 Summary:        AtropOS desktop performance defaults
 License:        (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND Apache-2.0 AND ISC AND CC0-1.0 AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later
 Group:          System/Base
@@ -92,6 +92,7 @@ Source65:       atropos-bootloader
 Source66:       atropos-bootloader-show.service
 Source67:       atropos-bootloader-hide.service
 Source68:       10-atropos-tuned-ppd.conf
+Source69:       atropos-ssh-agent.service
 Requires:       zram-generator
 Requires:       flatpak
 Requires:       systemd-experimental
@@ -112,6 +113,9 @@ Requires:       tuned
 Requires:       tuned-ppd
 Requires:       python3
 Requires:       udev
+Requires:       openssh-clients
+# The About page overlay copies through KDeclarative's Clipboard type.
+Requires:       kf6-kdeclarative-imports
 
 %description
 Sysctl, zram, systemd-oomd, and powertop defaults taken from KDE Linux,
@@ -126,7 +130,7 @@ together. Also the remaining KDE Linux desktop drop-ins: ntsync,
 BFQ for spinning disks, USB writeback cap, HDA power save, watchdog
 module blacklist, PAM memlock, logout process cleanup, no shutdown wall,
 Baloo snapshot skip, quieter Qt logging, the AMD texture workaround,
-ksshaskpass, the ssh-agent socket, Wi-Fi country from the timezone,
+ksshaskpass, an ssh-agent user service behind SSH_AUTH_SOCK, Wi-Fi country from the timezone,
 network hardening, thermald, BeaconDB location, and Firefox Flatpak setup.
 Also the OpenRGB udev rules, so the OpenRGB Flatpak can open USB and I2C
 RGB devices. The openrgb group is created for the I2C lines. USB devices
@@ -142,7 +146,9 @@ Hold Space to open it. Ark is an RPM, not a seeded Flatpak.
 %build
 
 %install
-install -D -m 0644 %{SOURCE0} %{buildroot}%{_prefix}/lib/sysctl.d/11-atropos-performance.conf
+# /etc, not /usr/lib: tuned reapplies only /run and /etc/sysctl.d after a
+# profile, so from /usr/lib the Performance profile overrode swappiness.
+install -D -m 0644 %{SOURCE0} %{buildroot}%{_sysconfdir}/sysctl.d/11-atropos-performance.conf
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_prefix}/lib/systemd/zram-generator.conf.d/00-atropos.conf
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_prefix}/lib/systemd/system.conf.d/00-atropos.conf
 install -D -m 0644 %{SOURCE3} %{buildroot}%{_prefix}/lib/systemd/user.conf.d/00-atropos.conf
@@ -204,6 +210,8 @@ install -D -m 0755 %{SOURCE53} %{buildroot}%{_libexecdir}/atropos-cover-switch
 install -D -m 0644 %{SOURCE54} %{buildroot}%{_userunitdir}/atropos-cover-switch.service
 mkdir -p %{buildroot}%{_userunitdir}/default.target.wants
 ln -s ../atropos-cover-switch.service %{buildroot}%{_userunitdir}/default.target.wants/atropos-cover-switch.service
+install -D -m 0644 %{SOURCE69} %{buildroot}%{_userunitdir}/atropos-ssh-agent.service
+ln -s ../atropos-ssh-agent.service %{buildroot}%{_userunitdir}/default.target.wants/atropos-ssh-agent.service
 install -D -m 0644 %{SOURCE55} %{buildroot}%{_sysconfdir}/plasmalogin.conf
 install -D -m 0644 %{SOURCE56} %{buildroot}%{_datadir}/plasma/plasma-welcome/extra-pages/01-flatpaks.qml
 install -D -m 0644 %{SOURCE57} %{buildroot}%{_prefix}/lib/tmpfiles.d/atropos-tuned-log.conf
@@ -260,7 +268,10 @@ if [ ! -e /.kconfig ] && [ ! -e /.profile ]; then
     if [ -x /usr/bin/systemd-sysusers ]; then
         systemd-sysusers %{_prefix}/lib/sysusers.d/openrgb-udev.conf || :
     fi
-    if [ -x /usr/bin/udevadm ]; then
+    # Inside transactional-update, udevadm reaches the running system's
+    # udev, which still has the old rules. The new snapshot loads them
+    # when it boots.
+    if [ -z "${TRANSACTIONAL_UPDATE:-}" ] && [ -x /usr/bin/udevadm ]; then
         udevadm control --reload-rules || :
         udevadm trigger --subsystem-match=usb --subsystem-match=hidraw --subsystem-match=i2c || :
     fi
@@ -280,7 +291,8 @@ if [ "$1" -eq 0 ] && [ -x /usr/bin/systemctl ]; then
 fi
 
 %files
-%{_prefix}/lib/sysctl.d/11-atropos-performance.conf
+%dir %{_sysconfdir}/sysctl.d
+%config(noreplace) %{_sysconfdir}/sysctl.d/11-atropos-performance.conf
 # These drop-in directories are not in the OBS build root. zram-generator
 # does not ship its conf.d directory, and systemd-default-settings is not
 # installed while the package is built.
@@ -380,6 +392,8 @@ fi
 %{_userunitdir}/atropos-cover-switch.service
 %dir %{_userunitdir}/default.target.wants
 %{_userunitdir}/default.target.wants/atropos-cover-switch.service
+%{_userunitdir}/atropos-ssh-agent.service
+%{_userunitdir}/default.target.wants/atropos-ssh-agent.service
 %config(noreplace) %{_sysconfdir}/plasmalogin.conf
 %dir %{_datadir}/plasma
 %dir %{_datadir}/plasma/plasma-welcome

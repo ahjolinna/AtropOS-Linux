@@ -3,12 +3,21 @@ Description=Install the default AtropOS Flatpak applications
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=!/var/lib/atropos/flatpaks-seeded
+# Restart below retries for as long as it takes.
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
 ExecStart=/usr/libexec/atropos-seed-flatpaks
 # The manager default start timeout is 16s. This download is allowed to finish.
 TimeoutStartSec=infinity
+# Firefox is one of these applications. Without a retry, a first boot
+# before Wi-Fi is set up left the desktop without a browser until the
+# next boot. Retry every two minutes, then every 30, until it works.
+Restart=on-failure
+RestartSec=2min
+RestartSteps=4
+RestartMaxDelaySec=30min
 
 [Install]
 WantedBy=multi-user.target

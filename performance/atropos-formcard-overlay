@@ -1,13 +1,28 @@
 #!/bin/bash
-# Kirigami Addons 1.14 loads AboutPage from the plugin resource when qmldir
-# contains "prefer :/qt/qml/...". Bind a qmldir without that line, and a
-# page that labels the RPM row, over the installed files. This does not
-# touch the PackageKit binds.
+# Bind a FormCard AboutPage that labels the native package "RPM" instead
+# of "Unknown/Default", and a qmldir without the "prefer" line so that
+# page is loaded from disk instead of the plugin resource.
+#
+# Every host KDE application loads this module, so the copies replace the
+# installed files only when those are the exact 1.14.0 files they were
+# made from. After a kirigami-addons6 update the hashes differ, nothing is
+# mounted, and applications keep the upstream page.
 # SPDX-License-Identifier: LGPL-2.0-or-later
 
 set -u
 src=/usr/share/atropos/formcard
 action=${1:-start}
+
+# sha256 of kirigami-addons6 1.14.0's qmldir and AboutPage.qml.
+expected_qmldir=b32f408ebf24bf14183dbf76722158dab12e92d6750458ebd582f6c39de4af92
+expected_page=1c8b46cc6cf4a8e73d972782201adc1a9b26c697833230c193a562cfd98489e9
+
+unchanged() {
+    local file=$1 want=$2 have
+    have=$(sha256sum "$file" 2>/dev/null) || return 1
+    [[ ${have%% *} == "$want" ]]
+}
+
 found=0
 for lib in /usr/lib64 /usr/lib; do
     dest=$lib/qt6/qml/org/kde/kirigamiaddons/formcard
@@ -18,12 +33,15 @@ for lib in /usr/lib64 /usr/lib; do
         umount "$dest/qmldir" 2>/dev/null || true
         continue
     fi
-    if ! findmnt -n "$dest/AboutPage.qml" >/dev/null; then
-        mount --bind "$src/AboutPage.qml" "$dest/AboutPage.qml"
+    if findmnt -n "$dest/AboutPage.qml" >/dev/null || findmnt -n "$dest/qmldir" >/dev/null; then
+        continue
     fi
-    if ! findmnt -n "$dest/qmldir" >/dev/null; then
-        mount --bind "$src/qmldir" "$dest/qmldir"
+    if ! unchanged "$dest/qmldir" "$expected_qmldir" || ! unchanged "$dest/AboutPage.qml" "$expected_page"; then
+        echo "atropos-formcard-overlay: kirigami-addons6 is not 1.14.0, leaving the upstream About page" >&2
+        continue
     fi
+    mount --bind "$src/AboutPage.qml" "$dest/AboutPage.qml"
+    mount --bind "$src/qmldir" "$dest/qmldir"
 done
 if [[ $found -eq 0 && $action != stop ]]; then
     echo "atropos-formcard-overlay: formcard is not installed" >&2

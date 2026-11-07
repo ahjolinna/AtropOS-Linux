@@ -2,14 +2,23 @@
 # SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 # SPDX-FileCopyrightText: 2025 Nate Graham <nate@kde.org>
 
-# Turn off USB auto-suspend for USB input devices, because
-# this can make them borderline unusable.
+# Turn USB auto-suspend back off after powertop --auto-tune for devices
+# that misbehave when they sleep: input devices (KDE Linux's list), and on
+# AtropOS also USB audio interfaces, Bluetooth adapters and USB network
+# adapters, which drop out or crackle.
 
 set -e
 
-INPUT_DEVICE_IDS=$(find /sys/bus/usb/drivers/usbhid -regex '.*\/[0-9:.-]+' -printf '%f\n' | cut --delimiter ":" --fields 1 | sort --unique)
+DRIVERS="usbhid snd-usb-audio btusb r8152 cdc_ether cdc_ncm ax88179_178a asix"
 
-for DEVICE_ID in $INPUT_DEVICE_IDS; do
+DEVICE_IDS=$(
+    for driver in $DRIVERS; do
+        [ -d "/sys/bus/usb/drivers/$driver" ] || continue
+        find "/sys/bus/usb/drivers/$driver" -regex '.*\/[0-9:.-]+' -printf '%f\n'
+    done | cut --delimiter ":" --fields 1 | sort --unique
+)
+
+for DEVICE_ID in $DEVICE_IDS; do
     if ! { DEVICE_PRETTY_NAME=$(cat "/sys/bus/usb/devices/${DEVICE_ID}/product"); } 2> /dev/null; then
         DEVICE_PRETTY_NAME="Unknown"
     fi

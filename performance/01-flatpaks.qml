@@ -35,9 +35,15 @@ Welcome.Page {
     // still inactive while it waits for the network, and the old page
     // stopped polling once it had said "installed".
     readonly property bool conditionChecked: Number(conditionStamp) > 0
+    // Between retries systemd reports activating/auto-restart. That is a
+    // download that failed and waits for the network, not one in progress.
+    readonly property bool waitingToRetry: subState === "auto-restart"
     readonly property bool serviceRunning: {
         const state = activeState
         const sub = subState
+        if (sub === "auto-restart") {
+            return false
+        }
         return state === "activating" || state === "active" || state === "reloading" || state === "deactivating"
             || sub === "start-pre" || sub === "start" || sub === "running" || sub === "start-post"
     }
@@ -49,6 +55,9 @@ Welcome.Page {
         && Number(exitStamp) === 0
         && openedAt > 0 && tick - openedAt >= 20000
     readonly property string phase: {
+        if (statusKnown && waitingToRetry) {
+            return "waiting"
+        }
         if (!statusKnown || serviceRunning) {
             return "downloading"
         }
@@ -74,7 +83,9 @@ Welcome.Page {
         return Math.round(base * 1.35)
     }
 
-    heading: phase === "failed"
+    heading: phase === "waiting"
+        ? i18nc("@info:window", "Waiting for an internet connection")
+        : phase === "failed"
         ? i18nc("@info:window", "Applications could not be installed")
         : downloading
             ? i18nc("@info:window", "Applications are still installing")
@@ -193,7 +204,7 @@ Welcome.Page {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: Kirigami.Units.iconSizes.huge
                 height: Kirigami.Units.iconSizes.huge
-                source: page.phase === "failed" ? "dialog-warning" : page.downloading ? "download" : "checkmark"
+                source: page.phase === "failed" ? "dialog-warning" : page.phase === "waiting" ? "network-disconnect" : page.downloading ? "download" : "checkmark"
                 transform: Translate {
                     id: downloadShift
                     y: 0
@@ -272,7 +283,9 @@ Welcome.Page {
             wrapMode: Text.WordWrap
             font.pixelSize: page.bodyPx
             font.weight: Font.Medium
-            text: page.phase === "failed"
+            text: page.phase === "waiting"
+                ? i18nc("@info", "Firefox and the other Flatpak applications could not be downloaded yet. Connect to the internet and they install on their own within a few minutes.")
+                : page.phase === "failed"
                 ? i18nc("@info", "The download did not finish. It will try again the next time the computer starts.")
                 : page.downloading
                     ? i18nc("@info", "Firefox and the other Flatpak applications are downloading in the background. They appear in the menu when the download finishes. You can keep using the desktop.")
