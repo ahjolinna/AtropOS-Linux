@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Nov  7 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Ship solid/widgets/panel-background, solid/widgets/background,
+  solid/widgets/tooltip, and solid/dialogs/background. Plasma 6 asks
+  for these when a panel turns opaque and for every tooltip. Without
+  them, KSvg drew Breeze art in those places. The copies are the
+  Aether frames with the body at opacity 1.
+
+-------------------------------------------------------------------
 Tue Oct 27 23:55:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Ship plasma6-theme-aether-dark-0.0.3a.tar.xz. The unpacked source

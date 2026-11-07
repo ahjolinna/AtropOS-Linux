@@ -6,11 +6,12 @@
 # cgit.kde.org did not resolve. The source is the KDE Store snapshot
 # aether-dark-0-0-3a.zip, product 1245521. The Plasma 6 port is local:
 # metadata.json, the AetherDark color scheme id, adaptive transparency,
-# selected+hover aliases, and a focus frame that reuses the hover art.
+# selected+hover aliases, a focus frame that reuses the hover art, and
+# opaque solid/ copies of the panel, widget, tooltip, and dialog frames.
 
 Name:           plasma6-theme-aether-dark
 Version:        0.0.3a
-Release:        10
+Release:        11
 Summary:        Aether Dark Plasma 6 theme
 License:        LGPL-2.1-only
 Group:          System/GUI/KDE
@@ -46,6 +47,9 @@ install -m 0644 icons/* "$theme/icons/"
 install -m 0644 widgets/*.svg "$theme/widgets/"
 install -m 0644 widgets/dark/* "$theme/widgets/dark/"
 install -m 0644 widgets/light/* "$theme/widgets/light/"
+install -d "$theme/solid/widgets" "$theme/solid/dialogs"
+install -m 0644 solid/widgets/* "$theme/solid/widgets/"
+install -m 0644 solid/dialogs/* "$theme/solid/dialogs/"
 lnf=%{buildroot}%{_datadir}/plasma/look-and-feel/org.atropos.aether.desktop
 install -D -m 0644 look-and-feel/org.atropos.aether.desktop/metadata.json \
     "$lnf/metadata.json"
