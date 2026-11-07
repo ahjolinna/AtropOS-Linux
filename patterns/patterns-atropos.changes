@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Sat Nov 07 19:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Hide Qt 6 D-Bus Viewer with NoDisplay only. KService treats a desktop
+  file with Hidden=true as deleted and registers the next file with the
+  same id, which is the original, so the viewer stayed in the launcher.
+- Release 35. The repository already has 0.4.0-34.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Leave out kdenetwork-filesharing, and remove it from systems that have

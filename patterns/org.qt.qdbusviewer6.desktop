@@ -10,5 +10,6 @@ Categories=Qt;Development;Debugger;
 X-KDE-StartupNotify=true
 # Shadow qt6-tools-qdbus. qdbus stays on disk; plasma-workspace calls it.
 # Kickoff reads KService, which keeps the first desktop file of this id.
+# NoDisplay only. KService skips a file with Hidden=true as deleted and
+# then registers the next one of the same id, the visible original.
 NoDisplay=true
-Hidden=true

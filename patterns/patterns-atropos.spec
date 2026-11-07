@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        34
+Release:        35
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
