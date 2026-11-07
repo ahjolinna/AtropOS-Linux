@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Sat Nov 07 16:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Leave nouveau out of the initrd. It is blacklisted, and it pulled
+  about 100 MB of nouveau GSP firmware into every initrd. With three
+  kernels and two snapshots the 1 GB ESP filled up, sdbootutil gave
+  the new snapshot only an entry for an old kernel, and that kernel
+  has no NVIDIA module, so the desktop started without the driver.
+- Release 7. The repository already has 0.1.0-6.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Set autoAgreeWithLicenses = yes in /etc/zypp/zypper.conf. Every

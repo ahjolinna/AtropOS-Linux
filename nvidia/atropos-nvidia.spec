@@ -10,7 +10,7 @@
 
 Name:           atropos-nvidia
 Version:        0.1.0
-Release:        6
+Release:        7
 Summary:        AtropOS open NVIDIA G07 driver setup
 License:        GPL-2.0-or-later AND (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND CC0-1.0
 Group:          System/Base
@@ -27,6 +27,7 @@ Source6:        10-nvidia-no-freeze-session.conf
 Source7:        00-nvidia.conf
 Source8:        atropos-nvidia.repo
 Source9:        gpg-pubkey-nvidia-tumbleweed.asc
+Source10:       50-atropos-omit-nouveau.conf
 Requires:       transactional-update
 # Not openSUSE-repos-Slowroll-NVIDIA. That service enables this URL at
 # the default priority and would replace Slowroll's libOpenCL1.
@@ -56,6 +57,7 @@ install -D -m 0644 %{SOURCE4} %{buildroot}%{_prefix}/lib/udev/rules.d/80-nvidia-
 install -D -m 0644 %{SOURCE5} %{buildroot}%{_prefix}/lib/udev/rules.d/99-nvidia-no-freeze-session.rules
 install -D -m 0644 %{SOURCE6} %{buildroot}%{_unitdir}/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf
 install -D -m 0644 %{SOURCE7} %{buildroot}%{_prefix}/lib/modprobe.d/00-nvidia.conf
+install -D -m 0644 %{SOURCE10} %{buildroot}%{_prefix}/lib/dracut/dracut.conf.d/50-atropos-omit-nouveau.conf
 install -D -m 0644 %{SOURCE8} %{buildroot}%{_sysconfdir}/zypp/repos.d/atropos-nvidia.repo
 install -D -m 0644 %{SOURCE9} %{buildroot}%{_prefix}/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc
 
@@ -104,6 +106,10 @@ fi
 %{_unitdir}/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf
 %dir %{_prefix}/lib/modprobe.d
 %{_prefix}/lib/modprobe.d/00-nvidia.conf
+# dracut owns these when it is installed. The OBS build root may not.
+%dir %{_prefix}/lib/dracut
+%dir %{_prefix}/lib/dracut/dracut.conf.d
+%{_prefix}/lib/dracut/dracut.conf.d/50-atropos-omit-nouveau.conf
 # rpm and AtropOS-release own these directories when they are installed.
 # The OBS build root for this package does not, so own them here too.
 %dir %{_prefix}/lib/rpm
