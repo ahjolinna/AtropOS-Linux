@@ -1,0 +1,79 @@
+#!/bin/bash
+# Agama post-installation script for AtropOS. Agama runs it after the
+# bootloader and /etc/fstab are written and before the target at /mnt is
+# unmounted (scripts.post with chroot false). It only edits two files on
+# the target and always exits 0: a failure here must not fail the install.
+#
+# 1. The product's mount options for "/" (compress=zstd:-4, lazytime) do
+#    not reach /etc/fstab. Add them to the root line.
+# 2. Agama copies the live ISO's kernel command line into
+#    /etc/kernel/cmdline: live.* installer options, an empty security=,
+#    a root= that names the LUKS partition, and the silent-boot options
+#    that atropos-performance already adds from /usr/kernel/cmdline.d.
+#    Drop those. sdbootutil adds the right root= itself. The entry made
+#    during install keeps the old line; entries made by the first update
+#    use this file.
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+set -u
+target=${ATROPOS_TARGET:-/mnt}
+log() { echo "atropos-agama-post: $*"; }
+
+fix_fstab() {
+    local fstab=$target/etc/fstab tmp
+    [[ -f $fstab ]] || { log "no $fstab"; return 0; }
+    tmp=$(mktemp) || return 0
+    awk '
+        $0 !~ /^[[:space:]]*#/ && $2 == "/" && $3 == "btrfs" {
+            n = split($4, opt, ",")
+            compress = 0; lazy = 0
+            for (i = 1; i <= n; i++) {
+                if (opt[i] ~ /^compress(-force)?=/) compress = 1
+                if (opt[i] == "lazytime") lazy = 1
+            }
+            if (!compress) $4 = $4 ",compress=zstd:-4"
+            if (!lazy) $4 = $4 ",lazytime"
+        }
+        { print }
+    ' "$fstab" > "$tmp" && cat "$tmp" > "$fstab" && log "root mount options: $(awk '$2 == "/" { print $4 }' "$fstab")"
+    rm -f "$tmp"
+}
+
+fix_cmdline() {
+    local file=$target/etc/kernel/cmdline token dev type kept=()
+    local -A dropin=()
+    [[ -f $file ]] || { log "no $file"; return 0; }
+    local f line words=()
+    for f in "$target"/usr/kernel/cmdline.d/*.conf; do
+        [[ -f $f ]] || continue
+        while read -r line; do
+            [[ $line == '#'* ]] && continue
+            read -r -a words <<< "$line"
+            for token in "${words[@]}"; do
+                dropin[$token]=1
+            done
+        done < "$f"
+    done
+    local tokens=()
+    read -r -a tokens < "$file" || true
+    for token in "${tokens[@]}"; do
+        case $token in
+            live.*|security=)
+                continue
+                ;;
+            root=/dev/*)
+                dev=${token#root=}
+                type=$(blkid -o value -s TYPE "$dev" 2>/dev/null || true)
+                [[ $type == crypto_LUKS ]] && continue
+                ;;
+        esac
+        [[ -n ${dropin[$token]:-} ]] && continue
+        kept+=("$token")
+    done
+    printf '%s\n' "${kept[*]}" > "$file"
+    log "kernel command line: ${kept[*]}"
+}
+
+fix_fstab
+fix_cmdline
+exit 0

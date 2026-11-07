@@ -333,28 +333,26 @@ fi
 # exist only here, so selecting atropos_nvidia installs them during the
 # solve. atropos-nvidia then keeps the same URL at priority 200. Offline
 # media already carries that closure and must not refresh this URL.
+#
+# Both flavors also add atropos-agama-post as a post-installation script.
+# It adds the root mount options Agama does not write to fstab, and drops
+# the live ISO options Agama copies into /etc/kernel/cmdline. jq embeds the
+# file so the script needs no JSON escaping. "agama config load" sends a
+# PATCH, so this merges with the rest of the configuration.
+install -D -m 0755 /image/atropos-agama-post /usr/libexec/atropos-agama-post
 if [[ "$kiwi_profiles" == *"Offline"* ]]; then
-cat > /etc/agama-online-defaults.json << 'DEFAULTS_EOF'
-{"software": {"onlyRequired": true}}
-DEFAULTS_EOF
+    extra_repos='[]'
 else
-cat > /etc/agama-online-defaults.json << 'DEFAULTS_EOF'
-{
-  "software": {
-    "onlyRequired": true,
-    "extraRepositories": [
-      {
-        "alias": "agama-nvidia",
-        "name": "NVIDIA open driver (Tumbleweed)",
-        "url": "https://download.nvidia.com/opensuse/tumbleweed",
-        "priority": 200,
-        "gpgFingerprints": ["2FB03195DECD49492BD1C17AB1D0D788DB27FD5A"]
-      }
-    ]
-  }
-}
-DEFAULTS_EOF
+    extra_repos='[{"alias": "agama-nvidia",
+                   "name": "NVIDIA open driver (Tumbleweed)",
+                   "url": "https://download.nvidia.com/opensuse/tumbleweed",
+                   "priority": 200,
+                   "gpgFingerprints": ["2FB03195DECD49492BD1C17AB1D0D788DB27FD5A"]}]'
 fi
+jq -n --argjson repos "$extra_repos" --rawfile post /usr/libexec/atropos-agama-post '
+    {software: ({onlyRequired: true} + (if ($repos | length) > 0 then {extraRepositories: $repos} else {} end)),
+     scripts: {post: [{name: "atropos-agama-post", chroot: false, content: $post}]}}
+' > /etc/agama-online-defaults.json
 cat > /etc/systemd/system/agama-atropos-online-config.service << 'SERVICE_EOF'
 [Unit]
 Description=Apply AtropOS installer solver configuration

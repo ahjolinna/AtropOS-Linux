@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Add atropos-agama-post as an Agama post-installation script. It adds
+  compress=zstd:-4 and lazytime to the root line in /etc/fstab, which
+  Agama did not write from the product file, and removes the live
+  ISO options Agama copies into /etc/kernel/cmdline: live.*, an empty
+  security=, a root= naming the LUKS partition, and the silent-boot
+  options that atropos-performance already adds.
+- Build the installer defaults with jq for both flavors.
+
+-------------------------------------------------------------------
 Tue Nov 03 23:20:59 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - On the online ISO, add the NVIDIA Tumbleweed repository for the
