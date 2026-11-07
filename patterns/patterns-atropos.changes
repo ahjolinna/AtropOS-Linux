@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require Mesa-libva and, on x86_64, intel-media-driver. Recommends are
+  off, so AMD and Intel systems had no VA-API driver, and the video
+  wallpaper, Spectacle recording and other host applications decoded
+  and encoded video on the CPU.
+- Release 33. The repository already has 0.4.0-32.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require shadow once.

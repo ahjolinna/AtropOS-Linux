@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        32
+Release:        33
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -273,6 +273,14 @@ Requires:       switcheroo-control
 # Support Vulkan (boo#1223443)
 Requires:       libvulkan_radeon
 Requires:       libvulkan_intel
+# VA-API video decode and encode for AMD (radeonsi) and Intel (iHD,
+# Broadwell and newer). Recommends are off, so without these the video
+# wallpaper, Spectacle recording and other host apps fall back to the CPU.
+# Flatpak applications bring their own drivers. NVIDIA uses its own.
+Requires:       Mesa-libva
+%ifarch x86_64
+Requires:       intel-media-driver
+%endif
 # Fingerprint readers, FIDO security keys, and smartcard readers.
 # Installed only. No PAM factor is added, so a missing finger or key
 # cannot block login. Fingerprint enrollment is System Settings, and
