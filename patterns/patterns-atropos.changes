@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Sun Nov 08 00:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Obsolete kdenetwork-filesharing-lang as well. It requires
+  kdenetwork-filesharing, so the update from 0.4.0-32 stopped at a
+  solver question and Discover and transactional-update cancelled it.
+- Release 36. The repository already has 0.4.0-35.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 19:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Hide Qt 6 D-Bus Viewer with NoDisplay only. KService treats a desktop
