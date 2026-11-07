@@ -6,7 +6,7 @@
 
 Name:           atropos-check
 Version:        0.1.0
-Release:        8
+Release:        9
 Summary:        Check and repair an installed AtropOS system
 License:        MIT AND Apache-2.0
 Group:          System/Base

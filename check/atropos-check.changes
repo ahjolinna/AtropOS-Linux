@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Check the boot partition. Warn when the ESP has less free space than
+  one new initrd per installed kernel, which the next update needs.
+  sdbootutil skips a kernel that does not fit, without an error.
+- With the NVIDIA driver installed, warn when the running kernel or the
+  default boot entry's kernel has no NVIDIA module.
+- Release 9. The repository already has 0.1.0-8.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 15:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Say how to add the missing root mount options instead of waiting

@@ -279,6 +279,101 @@ else
     bad "ESP is not mounted and not in fstab"
 fi
 
+section "boot partition"
+# Every update builds one initrd per installed kernel on the ESP. When
+# they do not fit, sdbootutil skips that kernel without an error, and the
+# new snapshot can boot an old kernel. With NVIDIA that kernel may have no
+# driver module, and Plasma starts on software rendering.
+esp_dir() {
+    local dir
+    for dir in /boot/efi /efi /boot; do
+        if [[ $(findmnt -n -o FSTYPE --mountpoint "$dir" 2>/dev/null) == vfat ]]; then
+            echo "$dir"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# The kernel and snapshot of a boot entry id: <token>-<kernel>-<snapshot>.conf
+entry_kernel() {
+    local id=${1%.conf} token
+    token=$(cat /etc/kernel/entry-token 2>/dev/null || true)
+    id=${id#"${token:-atropos}"-}
+    echo "${id%-*}"
+}
+entry_snapshot() {
+    local id=${1%.conf}
+    echo "${id##*-}"
+}
+
+# The kernel has an NVIDIA module in the given root ("" = running system).
+has_nvidia_module() {
+    local root=$1 kver=$2
+    compgen -G "$root/usr/lib/modules/$kver/updates/nvidia.ko*" >/dev/null \
+        || compgen -G "$root/usr/lib/modules/$kver/extra/nvidia.ko*" >/dev/null
+}
+
+esp=$(esp_dir || true)
+if [[ -z $esp ]]; then
+    skipped "ESP free space (no vfat ESP is mounted)"
+elif ! [[ -r $esp && -x $esp ]] || ! ls "$esp" >/dev/null 2>&1; then
+    skipped "ESP free space (run as root, $esp is not readable)"
+else
+    avail=$(df -B1 --output=avail "$esp" 2>/dev/null | tail -n 1 | tr -d ' ')
+    largest=$(find "$esp" -type f -name 'initrd-*' -printf '%s\n' 2>/dev/null | sort -n | tail -n 1)
+    kernels=0
+    for vmlinuz in /usr/lib/modules/*/vmlinuz; do
+        [[ -f $vmlinuz ]] && kernels=$((kernels + 1))
+    done
+    if [[ -z $avail || -z $largest || $kernels -eq 0 ]]; then
+        skipped "ESP free space (no initrd found on $esp)"
+    else
+        need=$((kernels * largest))
+        mib() { echo $(( $1 / 1024 / 1024 )); }
+        if (( avail < need )); then
+            bad "$esp has $(mib "$avail") MiB free; the next update needs about $(mib "$need") MiB ($kernels kernels x $(mib "$largest") MiB). Remove old kernels: sudo transactional-update run zypper purge-kernels"
+        else
+            ok "$esp has $(mib "$avail") MiB free, enough for $kernels new initrds of $(mib "$largest") MiB"
+        fi
+    fi
+fi
+
+if ! compgen -G '/usr/lib/modules/*/updates/nvidia.ko*' >/dev/null \
+    && ! compgen -G '/usr/lib/modules/*/extra/nvidia.ko*' >/dev/null; then
+    skipped "NVIDIA module checks (the NVIDIA driver is not installed)"
+else
+    running=$(uname -r)
+    if has_nvidia_module "" "$running"; then
+        ok "the running kernel $running has the NVIDIA module"
+    else
+        bad "the running kernel $running has no NVIDIA module, so the desktop has no NVIDIA driver; pick the newest kernel in the boot menu (hold Space at power-on)"
+    fi
+    default_id=""
+    for bin in /usr/bin/bootctl /usr/sbin/bootctl; do
+        [[ -x $bin ]] || continue
+        default_id=$("$bin" status 2>/dev/null | sed -n 's/^ *Default Entry: *//p' | head -n 1)
+        break
+    done
+    if [[ -z $default_id || $default_id == n/a ]]; then
+        skipped "default boot entry kernel (bootctl does not report a default entry)"
+    else
+        kver=$(entry_kernel "$default_id")
+        snap=$(entry_snapshot "$default_id")
+        root=""
+        if [[ $snap =~ ^[0-9]+$ ]] && [[ $(findmnt -n -o FSROOT / 2>/dev/null) != */.snapshots/$snap/snapshot ]]; then
+            root=/.snapshots/$snap/snapshot
+        fi
+        if [[ -n $root && ! -d $root/usr/lib/modules ]]; then
+            skipped "default boot entry kernel (snapshot $snap is not readable)"
+        elif has_nvidia_module "$root" "$kver"; then
+            ok "the default boot entry ($kver, snapshot ${snap:-?}) has the NVIDIA module"
+        else
+            bad "the default boot entry boots kernel $kver in snapshot ${snap:-?}, which has no NVIDIA module; the next boot will have no NVIDIA driver"
+        fi
+    fi
+fi
+
 section "boot command line"
 cmdline=$(cat /proc/cmdline 2>/dev/null || true)
 for token in quiet splash=silent psi=1 security=selinux selinux=1; do
