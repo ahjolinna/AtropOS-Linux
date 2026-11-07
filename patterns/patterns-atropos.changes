@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Sat Nov 07 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Leave out kdenetwork-filesharing, and remove it from systems that have
+  it. Dolphin's Share tab offered to install Samba through PackageKit,
+  which this system refuses.
+- Require man and man-pages, nano, qrca, ratbagd and libratbag-tools for
+  Piper, and Fcitx 5 with the Chinese, Japanese, Korean and Vietnamese
+  input methods (not enabled by default).
+- Require the command-line tools KDE Linux ships: ripgrep, fd, fzf, bat,
+  tree, zip, trash-cli, tealdeer, wl-clipboard, nvtop, git-lfs, lshw,
+  alsa-utils, libva-utils and cpupower.
+- Release 34. The repository already has 0.4.0-33.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require Mesa-libva and, on x86_64, intel-media-driver. Recommends are

@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        33
+Release:        34
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -194,8 +194,11 @@ Requires:       exfatprogs
 # Add gvfs and gvfs-backends for usability with some flatpaks (boo#1216667)
 Requires:       gvfs
 Requires:       gvfs-backends
-# Add for mounting network shares in userspace (boo#1210125)
-Requires:       kdenetwork-filesharing
+# Dolphin's Share tab (kdenetwork-filesharing) is left out. It offers to
+# install Samba through PackageKit, which this system refuses, and folder
+# sharing on openSUSE also needs usershares, an SELinux boolean and smbd.
+# Obsoletes removes it from systems that already have it.
+Obsoletes:      kdenetwork-filesharing
 Requires:       kdnssd
 Requires:       kio-fuse
 Requires:       ntfs-3g
@@ -451,7 +454,24 @@ Requires:       khelpcenter
 Requires:       fastfetch
 Requires:       susepaste
 Requires:       vim-small
+# nano is the default EDITOR (atropos-performance). vi is no first editor.
+Requires:       nano
 Requires:       openssh
+# Already pulled in by plasma6-nm for Wi-Fi QR codes. Listed so the scanner
+# stays when that changes.
+Requires:       qrca
+# Chinese, Japanese, Korean and Vietnamese input. Not enabled by default:
+# choose Fcitx 5 in System Settings, Keyboard, Virtual Keyboard.
+Requires:       fcitx5
+Requires:       fcitx5-configtool
+Requires:       fcitx5-qt6
+Requires:       fcitx5-gtk3
+Requires:       fcitx5-gtk4
+Requires:       fcitx5-chinese-addons
+Requires:       fcitx5-mozc
+Requires:       fcitx5-hangul
+Requires:       fcitx5-chewing
+Requires:       fcitx5-unikey
 
 ### Tools
 # di-edid-decode is /usr/bin/di-edid-decode from libdisplay-info-tools.
@@ -480,6 +500,29 @@ Requires:       orca
 Requires:       yubikey-manager
 Requires:       flatpak-builder
 Requires:       mcfly
+# Manual pages. MicroOS leaves them out; "man ls" should work in a terminal.
+Requires:       man
+Requires:       man-pages
+# Gaming mice and keyboards: ratbagd is the service Piper talks to. It is
+# D-Bus activated, so no preset is needed.
+Requires:       ratbagd
+Requires:       libratbag-tools
+# Command-line tools KDE Linux ships.
+Requires:       ripgrep
+Requires:       fd
+Requires:       fzf
+Requires:       bat
+Requires:       tree
+Requires:       zip
+Requires:       trash-cli
+Requires:       tealdeer
+Requires:       wl-clipboard
+Requires:       nvtop
+Requires:       git-lfs
+Requires:       lshw
+Requires:       alsa-utils
+Requires:       libva-utils
+Requires:       cpupower
 
 ### Fonts
 Requires:       adobe-sourcecodepro-fonts
