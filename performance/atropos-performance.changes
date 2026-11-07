@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sat Nov 07 18:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Make nano the default EDITOR, in environment.d for the desktop and in
+  profile.d for TTY and SSH logins. An EDITOR set by the user is kept.
+- Let the person at the machine mount internal disks without the
+  administrator password, and let an administrator at the machine
+  change the time zone and automatic time without it. From KDE Linux.
+- Install KeepSecret from Flathub with the other applications.
+- Release 20. The repository already has 0.4.0-19.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Start thermald only on Intel CPUs. On AMD it logged "Unsupported cpu

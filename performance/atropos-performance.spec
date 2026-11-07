@@ -9,7 +9,7 @@
 
 Name:           atropos-performance
 Version:        0.4.0
-Release:        19
+Release:        20
 Summary:        AtropOS desktop performance defaults
 License:        (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND Apache-2.0 AND ISC AND CC0-1.0 AND GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later
 Group:          System/Base
@@ -94,6 +94,9 @@ Source67:       atropos-bootloader-hide.service
 Source68:       10-atropos-tuned-ppd.conf
 Source69:       atropos-ssh-agent.service
 Source70:       10-atropos-thermald-intel.conf
+Source71:       40-atropos-editor.conf
+Source72:       atropos-editor.sh
+Source73:       49-atropos-desktop.rules
 Requires:       zram-generator
 Requires:       flatpak
 Requires:       systemd-experimental
@@ -114,6 +117,8 @@ Requires:       tuned
 Requires:       tuned-ppd
 Requires:       python3
 Requires:       udev
+Requires:       nano
+Requires:       polkit
 Requires:       openssh-clients
 # The About page overlay copies through KDeclarative's Clipboard type.
 Requires:       kf6-kdeclarative-imports
@@ -218,6 +223,9 @@ install -D -m 0644 %{SOURCE56} %{buildroot}%{_datadir}/plasma/plasma-welcome/ext
 install -D -m 0644 %{SOURCE57} %{buildroot}%{_prefix}/lib/tmpfiles.d/atropos-tuned-log.conf
 install -D -m 0644 %{SOURCE68} %{buildroot}%{_unitdir}/tuned-ppd.service.d/10-atropos-tuned-ppd.conf
 install -D -m 0644 %{SOURCE70} %{buildroot}%{_unitdir}/thermald.service.d/10-atropos-thermald-intel.conf
+install -D -m 0644 %{SOURCE71} %{buildroot}%{_prefix}/lib/environment.d/40-atropos-editor.conf
+install -D -m 0644 %{SOURCE72} %{buildroot}%{_sysconfdir}/profile.d/atropos-editor.sh
+install -D -m 0644 %{SOURCE73} %{buildroot}%{_datadir}/polkit-1/rules.d/49-atropos-desktop.rules
 install -D -m 0644 %{SOURCE58} %{buildroot}%{_prefix}/lib/udev/rules.d/90-atropos-hide-system-disk.rules
 install -D -m 0755 %{SOURCE59} %{buildroot}%{_libexecdir}/atropos-hide-system-disk
 install -D -m 0644 %{SOURCE60} %{buildroot}%{_unitdir}/atropos-hide-system-disk.service
@@ -366,6 +374,14 @@ fi
 %{_prefix}/lib/environment.d/50-atropos-workarounds.conf
 %{_prefix}/lib/environment.d/60-atropos-ssh-askpass.conf
 %{_prefix}/lib/environment.d/60-atropos-ssh-auth-sock.conf
+%{_prefix}/lib/environment.d/40-atropos-editor.conf
+%dir %{_sysconfdir}/profile.d
+%{_sysconfdir}/profile.d/atropos-editor.sh
+# polkit owns these with these modes. A different mode is a file conflict,
+# and a conflict makes transactional-update discard the snapshot.
+%dir %attr(0755,root,root) %{_datadir}/polkit-1
+%dir %attr(0555,root,root) %{_datadir}/polkit-1/rules.d
+%{_datadir}/polkit-1/rules.d/49-atropos-desktop.rules
 %dir %{_prefix}/lib/systemd/logind.conf.d
 %{_prefix}/lib/systemd/logind.conf.d/00-atropos-killuserprocesses.conf
 %{_prefix}/lib/systemd/logind.conf.d/00-atropos-nowall.conf
