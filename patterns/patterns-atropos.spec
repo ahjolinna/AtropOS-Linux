@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        37
+Release:        38
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -197,9 +197,13 @@ Requires:       gvfs-backends
 # Dolphin's Share tab (kdenetwork-filesharing) is left out. It offers to
 # install Samba through PackageKit, which this system refuses, and folder
 # sharing on openSUSE also needs usershares, an SELinux boolean and smbd.
-# No Obsoletes or Conflicts: this package's vendor differs from openSUSE's,
-# so either one makes zypper dup stop at a solver question, and Discover
-# and transactional-update cancel it. Systems that have it keep it.
+# Obsoletes removes it from systems that already have it. The -lang
+# package requires it, and dup does not remove an installed package that
+# nothing replaces, so it is obsoleted too. This package's vendor differs
+# from openSUSE's, so dup replaces them without asking only when
+# AtropOS-release ships solver.dupAllowVendorChange (atropos-dup.conf).
+Obsoletes:      kdenetwork-filesharing
+Obsoletes:      kdenetwork-filesharing-lang
 Requires:       kdnssd
 Requires:       kio-fuse
 Requires:       ntfs-3g
