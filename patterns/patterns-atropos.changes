@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Nov 09 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require patch in patterns-atropos-base. flatpak-builder needs
+  /usr/bin/patch, which Slowroll's patch and busybox-patch both
+  provide. The Offline image was unresolvable on that choice, and
+  systems could get BusyBox's reduced patch.
+- Release 40. The repository already has 0.4.0-39.1.
+
+-------------------------------------------------------------------
 Sun Nov 08 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Obsolete kdenetwork-filesharing and kdenetwork-filesharing-lang

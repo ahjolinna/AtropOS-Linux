@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        38
+Release:        40
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -504,6 +504,10 @@ Requires:       kup-backup
 Requires:       orca
 Requires:       yubikey-manager
 Requires:       flatpak-builder
+# flatpak-builder applies source patches with /usr/bin/patch. Slowroll has
+# patch and busybox-patch for it. Without a choice the OBS image is
+# unresolvable, and installs could get BusyBox's reduced patch.
+Requires:       patch
 Requires:       mcfly
 # Manual pages. MicroOS leaves them out; "man ls" should work in a terminal.
 Requires:       man
