@@ -171,6 +171,10 @@
          into the image and then removed from the live root by config.sh. -->
     <packages type="image" profiles="Offline" patternType="onlyRequired">
         <package name="patterns-atropos-base"/>
+        <!-- flatpak-builder needs /usr/bin/patch, from patch or busybox-patch.
+             The pattern requires patch, but OBS settles the choice only
+             against packages named here. -->
+        <package name="patch"/>
         <package name="openSUSE-repos-Slowroll"/>
         <package name="createrepo_c"/>
         <package name="gpg2"/>

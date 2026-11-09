@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 10 00:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- List patch in the Offline image. flatpak-builder needs
+  /usr/bin/patch, which patch and busybox-patch both provide, and OBS
+  left the image unresolvable on that choice. The pattern's Requires
+  did not settle it; OBS only checks packages named in the kiwi file.
+
+-------------------------------------------------------------------
 Sat Nov 07 17:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Install atropos-agama-post through the kiwi file list. KIWI does not
