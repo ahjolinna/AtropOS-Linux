@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Tue Nov 10 03:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Turn off changesgenerate in obs_scm. OBS runs the service on every
+  push to the AtropOS repository, and each run wrote a new timestamp
+  into a generated changes entry. The source checksum changed with it,
+  so the package rebuilt after every push, even with no upstream change,
+  and blocked the installer images meanwhile.
+
+-------------------------------------------------------------------
 Mon Nov  9 12:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Follow the Plasma/6.8 branch. Slowroll moved to Plasma 6.8.2, and

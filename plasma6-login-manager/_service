@@ -3,7 +3,10 @@
     Stay on Slowroll's Plasma 6.8 line. Change revision to Plasma/6.9
     when Slowroll's workspace moves. obs_scm runs on the server.
     The build workers have no network.
-    Refresh with: osc service remoterun home:ahjolinna plasma6-login-manager
+    Refresh with: osc service remoterun home:ahjolinna plasma-login-manager
+    No changesgenerate: OBS runs this service on every push to the
+    AtropOS repository, and each run stamped a new time into a generated
+    changes entry. That alone changed the source and rebuilt the package.
   -->
   <service name="obs_scm">
     <param name="url">https://invent.kde.org/plasma/plasma-login-manager.git</param>
@@ -12,7 +15,6 @@
     <param name="versionformat">@PARENT_TAG@</param>
     <param name="versionrewrite-pattern">v(.*)</param>
     <param name="filename">plasma-login-manager</param>
-    <param name="changesgenerate">enable</param>
   </service>
   <service mode="buildtime" name="tar"/>
   <service mode="buildtime" name="recompress">
