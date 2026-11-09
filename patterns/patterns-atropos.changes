@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Tue Nov 10 02:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Obsolete busybox-patch. It conflicts with patch, which release 40
+  requires, and dup does not remove an installed package to settle a
+  conflict, so Discover reported "Nothing available provides
+  patch-2.8.1-2.1.x86_64". Reproduced and fixed in a Tumbleweed
+  container with dupAllowVendorChange: dup now installs patch and
+  removes busybox-patch. busybox itself stays.
+- Release 41. The repository already has 0.4.0-40.1.
+
+-------------------------------------------------------------------
 Mon Nov 09 23:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require patch in patterns-atropos-base. flatpak-builder needs

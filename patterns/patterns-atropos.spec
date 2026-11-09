@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        40
+Release:        41
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -508,6 +508,10 @@ Requires:       flatpak-builder
 # patch and busybox-patch for it. Without a choice the OBS image is
 # unresolvable, and installs could get BusyBox's reduced patch.
 Requires:       patch
+# busybox-patch conflicts with patch, and dup does not remove an installed
+# package to settle a conflict, so the update stopped at a solver question.
+# Obsoletes lets dup replace it. busybox itself stays.
+Obsoletes:      busybox-patch
 Requires:       mcfly
 # Manual pages. MicroOS leaves them out; "man ls" should work in a terminal.
 Requires:       man
