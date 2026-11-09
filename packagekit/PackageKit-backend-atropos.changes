@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Mon Nov 09 22:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Show Discover's restart page after an update. Discover sets its
+  "needs reboot" state for PackageKit only from the daemon's
+  RestartSchedule signal when offline updates are off, so it said the
+  system was up to date. Send that signal when an update is staged and
+  on every check while it waits. Discover now says the updates will be
+  installed after a restart and offers Restart.
+- Give each check command five minutes. Discover has no Cancel while it
+  checks, and on a bad connection zypper could keep retrying a stalled
+  mirror, leaving Discover on "Fetching updates". The check now stops
+  zypper and says the servers did not answer in time. The update itself
+  has no limit.
+- Allow Cancel while a check waits for the network.
+- Release 19.
+
+-------------------------------------------------------------------
 Sun Nov 08 00:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Read the check's zypper --xmlout output as text before looking for

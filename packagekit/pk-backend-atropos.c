@@ -6,7 +6,10 @@
  * Update All runs transactional-update dup, which builds a new snapshot and
  * leaves the running system alone until the next reboot. While that
  * snapshot waits, a check returns no packages and asks for a reboot, and
- * the user who started the update is notified once.
+ * the user who started the update is notified once. RestartSchedule
+ * puts Discover's update page on its Restart screen.
+ *
+ * Discover cannot cancel a check, so each check command has a time limit.
  *
  * Package installs and removals are refused; applications come from
  * Flathub. Resolve answers from the RPM database and the last check, so
@@ -34,6 +37,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <packagekit-glib2/packagekit.h>
@@ -69,6 +73,13 @@ gboolean pk_backend_is_online (PkBackend *backend);
 /* One notification per staged update. /run is cleared on reboot. */
 #define ATROPOS_NOTIFIED_FILE "/run/atropos-packagekit-notified"
 #define ATROPOS_PERCENTAGE_INVALID 101
+/*
+ * Discover has no Cancel button while it checks, so a check that never
+ * ends leaves it on "Fetching updates" until packagekitd restarts. On a
+ * bad connection zypper can retry a stalled mirror for far longer than
+ * this. Each check command gets this long; the update itself has no limit.
+ */
+#define ATROPOS_CHECK_TIMEOUT_SECS (5 * 60)
 /* openSUSE's rpm uses the ndb backend. sqlite is the upstream default. */
 static const gchar *const atropos_rpmdb_files[] = {
 	"/usr/lib/sysimage/rpm/Packages.db",
@@ -147,6 +158,7 @@ typedef struct {
 	gchar *stderr_text;	/* failure text. Not part of the XML document. */
 	gint exit_code;
 	gboolean cancelled;
+	gboolean timed_out;	/* stopped at the check time limit */
 	gchar *error;		/* spawn failure. The child never ran. */
 	GString *line;		/* output after the last newline */
 	guint percentage;	/* last value sent. It never goes down. */
@@ -265,8 +277,9 @@ read_pipe (gint fd, GString *buf, PkBackendJob *job, AtroposRun *run, gboolean *
 		*eof = TRUE;
 }
 
+/* timeout_secs 0 means no limit. A timeout stops the command like Cancel. */
 static gboolean
-run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
+run_command (PkBackendJob *job, gchar **argv, AtroposRun *run, guint timeout_secs)
 {
 	GPid pid = 0;
 	gint out_fd = -1;
@@ -281,6 +294,7 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	gint status = 0;
 	gint64 term_at = 0;
 	gint64 exited_at = 0;
+	gint64 deadline = 0;
 
 	memset (run, 0, sizeof *run);
 	run->exit_code = -1;
@@ -318,6 +332,8 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	}
 	if (setpgid (pid, pid) != 0 && errno != EACCES)
 		g_debug ("setpgid: %s", g_strerror (errno));
+	if (timeout_secs > 0)
+		deadline = g_get_monotonic_time () + (gint64) timeout_secs * G_USEC_PER_SEC;
 
 	out_buf = g_string_new (NULL);
 	err_buf = g_string_new (NULL);
@@ -333,8 +349,12 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 		 * transactional-update's snapshot cleanup and can leave a
 		 * zypp lock. Ten seconds lets the process group exit cleanly.
 		 */
-		if (!run->committed && pk_backend_job_is_cancelled (job)) {
+		if (!run->committed && !run->timed_out && pk_backend_job_is_cancelled (job))
 			run->cancelled = TRUE;
+		if (!run->cancelled && !run->timed_out && deadline != 0 &&
+		    g_get_monotonic_time () >= deadline)
+			run->timed_out = TRUE;
+		if (run->cancelled || run->timed_out) {
 			if (!termed) {
 				kill (-pid, SIGTERM);
 				termed = TRUE;
@@ -382,7 +402,7 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 			}
 		}
 
-		if (run->cancelled && exited)
+		if ((run->cancelled || run->timed_out) && exited)
 			break;
 		/*
 		 * Something the command started can keep the pipe open after
@@ -414,7 +434,7 @@ run_command (PkBackendJob *job, gchar **argv, AtroposRun *run)
 	 * codes. The command did its work. 106 (a repository was skipped)
 	 * stays a failure so Discover does not treat a partial refresh as done.
 	 */
-	return !run->cancelled &&
+	return !run->cancelled && !run->timed_out &&
 		(run->exit_code == 0 || run->exit_code == 102 || run->exit_code == 103);
 }
 
@@ -1601,6 +1621,18 @@ fail_check (PkBackendJob *job, PkBackend *backend, const AtroposRun *run)
 		fail_command (job, run);
 		return;
 	}
+	if (run->timed_out) {
+		if (!pk_backend_is_online (backend))
+			fail_job (job, PK_ERROR_ENUM_NO_NETWORK,
+				  "Could not check for updates because this computer is not "
+				  "connected to the internet. Connect to a network and check again.");
+		else
+			fail_job (job, PK_ERROR_ENUM_REPO_NOT_AVAILABLE,
+				  "Could not check for updates because the update servers did not "
+				  "answer in time. The connection may be slow or unstable. "
+				  "Try again later.");
+		return;
+	}
 	raw = command_log (run);
 	log = log_parse (raw);
 	code = log_error_code (log, run->exit_code);
@@ -1651,8 +1683,14 @@ collect_updates (PkBackendJob *job, PkBackend *backend, GPtrArray **pkgs_out)
 	GPtrArray *pkgs;
 
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_REFRESH_CACHE);
+	/* The wait can take 45 seconds. Clients other than Discover can cancel it. */
+	pk_backend_job_set_allow_cancel (job, TRUE);
 	wait_for_network (job, backend);
-	if (!run_command (job, refresh_argv, &refresh)) {
+	if (pk_backend_job_is_cancelled (job)) {
+		fail_job (job, PK_ERROR_ENUM_TRANSACTION_CANCELLED, "Cancelled");
+		return FALSE;
+	}
+	if (!run_command (job, refresh_argv, &refresh, ATROPOS_CHECK_TIMEOUT_SECS)) {
 		fail_check (job, backend, &refresh);
 		atropos_run_clear (&refresh);
 		return FALSE;
@@ -1660,8 +1698,12 @@ collect_updates (PkBackendJob *job, PkBackend *backend, GPtrArray **pkgs_out)
 	atropos_run_clear (&refresh);
 
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_QUERY);
-	if (!run_command (job, dup_argv, &dup)) {
-		fail_command (job, &dup);
+	if (!run_command (job, dup_argv, &dup, ATROPOS_CHECK_TIMEOUT_SECS)) {
+		/* The dry run refreshes the openSUSE service, so it can stall too. */
+		if (dup.timed_out)
+			fail_check (job, backend, &dup);
+		else
+			fail_command (job, &dup);
 		atropos_run_clear (&dup);
 		return FALSE;
 	}
@@ -1835,10 +1877,42 @@ out:
 	g_free (env_home);
 }
 
+/*
+ * Discover's update page shows "Updates will be installed after the
+ * system is restarted" and a Restart button only when its updater's
+ * needsReboot is set. With UseOfflineUpdates=false, the one thing that
+ * sets it is the daemon's RestartSchedule signal; it ignores a
+ * transaction's RequireRestart. packagekitd emits that signal only after
+ * upgrading itself, so send it here. packagekitd owns its bus name on
+ * GLib's shared system bus connection, which this returns, so the signal
+ * comes from org.freedesktop.PackageKit.
+ */
+static void
+announce_restart (void)
+{
+	GDBusConnection *bus;
+	GError *error = NULL;
+
+	bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+	if (bus == NULL) {
+		g_warning ("atropos: no system bus for RestartSchedule: %s", error->message);
+		g_error_free (error);
+		return;
+	}
+	if (!g_dbus_connection_emit_signal (bus, NULL, "/org/freedesktop/PackageKit",
+					    "org.freedesktop.PackageKit", "RestartSchedule",
+					    NULL, &error)) {
+		g_warning ("atropos: RestartSchedule: %s", error->message);
+		g_error_free (error);
+	}
+	g_object_unref (bus);
+}
+
 static void
 finish_reboot_required (PkBackendJob *job, const gchar *package_id)
 {
 	notify_update_installed (job);
+	announce_restart ();
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_FINISHED);
 	pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
 	pk_backend_job_finished (job);
@@ -1930,8 +2004,10 @@ get_updates_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
 		 * Discover shows its reboot page only when the check returns
 		 * no packages; a row would bring Update All back. No
 		 * notification here: the notifier runs this after Discover
-		 * has closed.
+		 * has closed. RestartSchedule brings Discover, opened after
+		 * the update, to its reboot page.
 		 */
+		announce_restart ();
 		pk_backend_job_set_status (job, PK_STATUS_ENUM_FINISHED);
 		pk_backend_job_require_restart (job, PK_RESTART_ENUM_SYSTEM, package_id);
 		pk_backend_job_finished (job);
@@ -2218,7 +2294,7 @@ cached_rpm_qa (PkBackendJob *job, gboolean *cancelled)
 	if (text != NULL)
 		return text;
 
-	if (!run_command (job, rpm_argv, &rpm)) {
+	if (!run_command (job, rpm_argv, &rpm, 0)) {
 		*cancelled = rpm.cancelled;
 		atropos_run_clear (&rpm);
 		return NULL;
@@ -2373,7 +2449,7 @@ update_thread (PkBackendJob *job, GVariant *params, gpointer user_data)
 	pk_backend_job_package (job, PK_INFO_ENUM_UPDATING, package_id,
 				"Installing the update into a new snapshot");
 	pk_backend_job_set_status (job, PK_STATUS_ENUM_UPDATE);
-	if (!run_command (job, argv, &dup)) {
+	if (!run_command (job, argv, &dup, 0)) {
 		fail_command (job, &dup);
 		atropos_run_clear (&dup);
 		g_free (owned_id);
@@ -2940,6 +3016,28 @@ main (void)
 			return 1;
 		}
 		g_free (raw);
+	}
+	{
+		/* A stalled check command stops at its limit and says why. */
+		gchar *argv[] = { "/bin/sleep", "30", NULL };
+		AtroposRun run;
+		gint64 started = g_get_monotonic_time ();
+		gboolean ok = run_command (NULL, argv, &run, 1);
+		gint64 took = g_get_monotonic_time () - started;
+
+		if (ok || !run.timed_out || run.cancelled || took > 15 * G_USEC_PER_SEC) {
+			g_printerr ("check timeout failed: ok=%d timed_out=%d took=%lldms\n",
+				    ok, run.timed_out, (long long) (took / 1000));
+			return 1;
+		}
+		test_online = TRUE;
+		fail_check (NULL, NULL, &run);
+		if (test_error_code != PK_ERROR_ENUM_REPO_NOT_AVAILABLE ||
+		    strstr (test_error_text, "did not answer in time") == NULL) {
+			g_printerr ("check timeout text failed: %s\n", test_error_text);
+			return 1;
+		}
+		atropos_run_clear (&run);
 	}
 	g_print ("parse ok\n");
 	return 0;

@@ -623,6 +623,15 @@ if grep -q 'no output' "$pk" \
 else
     bad "PackageKit backend lost its error text, its thread, Cancel, or the transactional-update options"
 fi
+# Discover shows its Restart screen only on RestartSchedule, and it has no
+# Cancel while it checks, so a check without a limit can hang it.
+if grep -q '"RestartSchedule"' "$pk" \
+    && grep -q 'refresh_argv, &refresh, ATROPOS_CHECK_TIMEOUT_SECS' "$pk" \
+    && grep -q 'dup_argv, &dup, ATROPOS_CHECK_TIMEOUT_SECS' "$pk"; then
+    ok "PackageKit sends RestartSchedule and checks have a time limit"
+else
+    bad "PackageKit backend lost RestartSchedule or the check time limit"
+fi
 qdv=$root/patterns/org.qt.qdbusviewer6.desktop
 # Hidden=true makes KService skip the override and show the original.
 if grep -qx 'NoDisplay=true' "$qdv" && ! grep -q '^Hidden=' "$qdv"; then
