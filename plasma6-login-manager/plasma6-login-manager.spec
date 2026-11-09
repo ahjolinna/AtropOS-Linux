@@ -15,23 +15,25 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
-%define kf6_version 6.27.0
+%define kf6_version 6.30.0
 %define qt6_version 6.11.2
 # CMakeLists PROJECT_DEP_VERSION. Not %{version}: set_version follows the
-# Plasma/6.7 tag, which can be newer than Slowroll's workspace and kscreen.
-%define plasma_dep_version 6.7.0
+# Plasma/6.8 tag, which can be newer than Slowroll's workspace and kscreen.
+%define plasma_dep_version 6.8.0
 %define rname plasma-login-manager
 
 Name:           plasma6-login-manager
-# set_version rewrites this line from the Plasma/6.7 tag. A macro is left
+# set_version rewrites this line from the Plasma/6.8 tag. A macro is left
 # in place, because that rewrite stops at '%'.
-Version:        6.7.5
+Version:        6.8.2
 Release:        0
 Summary:        QML based login manager for the Plasma Desktop
 License:        GPL-2.0-or-later AND GPL-3.0-or-later
 URL:            https://invent.kde.org/plasma/plasma-login-manager
 Source:         %{rname}-%{version}.tar.xz
 Source2:        noqmlcache.conf
+# PATCH-FIX-OPENSUSE disable-switch-to-greeter.patch boo#1260402 -- from KDE:Frameworks
+Patch0:         disable-switch-to-greeter.patch
 #BuildRequires:  opus-devel
 BuildRequires:  cmake >= 3.22
 BuildRequires:  desktop-file-utils
@@ -52,10 +54,10 @@ BuildRequires:  cmake(KF6Auth) >= %{kf6_version}
 BuildRequires:  cmake(KF6KIO) >= %{kf6_version}
 BuildRequires:  cmake(KF6CoreAddons) >= %{kf6_version}
 BuildRequires:  cmake(KF6Screen) >= %{plasma_dep_version}
-BuildRequires:  cmake(LayerShellQt)
+BuildRequires:  cmake(LayerShellQt) >= %{plasma_dep_version}
 BuildRequires:  cmake(LibKWorkspace) >= %{plasma_dep_version}
 BuildRequires:  cmake(LibKLookAndFeel) >= %{plasma_dep_version}
-BuildRequires:  cmake(PlasmaQuick)
+BuildRequires:  cmake(PlasmaQuick) >= %{plasma_dep_version}
 BuildRequires:  cmake(Qt6Core) >= %{qt6_version}
 BuildRequires:  cmake(Qt6DBus) >= %{qt6_version}
 BuildRequires:  cmake(Qt6Gui) >= %{qt6_version}
@@ -77,6 +79,9 @@ BuildRequires:  pkgconfig(xcb-xkb)
 Requires:       kf6-kauth
 Requires:       kf6-kimageformats
 Requires:       kwin6
+# The greeter imports org.kde.plasma.workspace.loginlockscreen, new in
+# plasma-workspace 6.8. A 6.7 workspace would leave it without a greeter.
+Requires:       plasma6-workspace >= %{plasma_dep_version}
 Requires:       (%{name}-kcm if systemsettings6)
 Provides:       plasma-login-manager = %{version}-%{release}
 Obsoletes:      plasma-login-manager

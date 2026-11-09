@@ -1,4 +1,19 @@
 -------------------------------------------------------------------
+Mon Nov  9 12:45:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Follow the Plasma/6.8 branch. Slowroll moved to Plasma 6.8.2, and
+  6.7 failed to build against libplasma 6.8 (no
+  PlasmaQuick/QuickViewSharedEngine).
+- Require KF6 6.30.0 and Plasma 6.8.0, as upstream CMakeLists does.
+- Add disable-switch-to-greeter.patch from KDE:Frameworks
+  (boo#1260402). The DisplayManager SwitchToGreeter D-Bus method needs
+  no authentication and has no known callers.
+- Require plasma6-workspace 6.8.0. The 6.8 greeter imports
+  org.kde.plasma.workspace.loginlockscreen, which 6.7 does not have.
+- Version the PlasmaQuick and LayerShellQt BuildRequires, so an older
+  Plasma shows as unresolvable instead of failing in the compile.
+
+-------------------------------------------------------------------
 Tue Nov  3 21:07:04 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Require KF6Screen, LibKWorkspace, and LibKLookAndFeel at 6.7.0.
