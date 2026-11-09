@@ -215,87 +215,18 @@ dd bs=1 count=1 seek=2G if=/dev/zero of=/var/lib/live_free_space
 rm -f /usr/bin/suseconnect
 
 # Offline: OBS bind-mounts the build repository at /repos. Copy it to
-# /packages, add the open G07 closure on x86_64, and sign it. fix_bootconfig
-# moves /packages to the ISO directory install/ before the squashfs is packed.
-# The product file is not rewritten.
+# /packages and sign it. fix_bootconfig moves /packages to the ISO
+# directory install/ before the squashfs is packed. The product file is
+# not rewritten.
+# The NVIDIA open driver is not embedded. Its userspace exists only on
+# download.nvidia.com, and OBS build workers have no network. With
+# install/ present, Agama probes the product's online repositories and
+# uses the reachable ones (agama #4189), and the configuration service
+# below adds the NVIDIA repository when it answers.
 if [[ "$kiwi_profiles" == *"Offline"* ]]; then
     mkdir -p /packages
     find /repos -name "*.rpm" 2>/dev/null \
         | xargs -r -I{} cp -n {} /packages/
-    # The image repositories do not carry download.nvidia.com or the
-    # update-slowroll kmp that matches current G07 userspace. Download
-    # that closure into the embedded repository. Leave it out of the live
-    # root: the live kernel is kernel-default.
-    if [ "$arch" = "x86_64" ]; then
-        update_url=https://download.opensuse.org/update/slowroll/repo/oss/
-        nvidia_url=https://download.nvidia.com/opensuse/tumbleweed
-        zypper --non-interactive ar -f "$update_url" atropos-offline-update
-        zypper --non-interactive ar -f "$nvidia_url" atropos-offline-nvidia
-        zypper --non-interactive --gpg-auto-import-keys refresh \
-            atropos-offline-update atropos-offline-nvidia
-        cache=/var/cache/zypp/atropos-offline-download
-        mkdir -p "$cache"
-        zypper --non-interactive --gpg-auto-import-keys \
-            --pkg-cache-dir "$cache" install \
-            --download-only --no-recommends --auto-agree-with-licenses \
-            nvidia-open-driver-G07-signed-kmp-meta \
-            nvidia-open-driver-G07-signed-kmp-longterm \
-            nvidia-userspace-meta-G07 \
-            nvidia-video-G07 \
-            nvidia-compute-utils-G07
-        if rpm -q nvidia-video-G07 >/dev/null 2>&1; then
-            echo "The open driver was installed into the live root" >&2
-            exit 1
-        fi
-        for name in \
-            nvidia-open-driver-G07-signed-kmp-meta \
-            nvidia-open-driver-G07-signed-kmp-longterm \
-            nvidia-userspace-meta-G07 \
-            nvidia-video-G07 \
-            nvidia-compute-utils-G07
-        do
-            if ! find "$cache" -name "${name}-[0-9]*.rpm" | grep -q .; then
-                echo "Offline repository download is missing ${name}" >&2
-                exit 1
-            fi
-        done
-        if ! find "$cache" -name 'kernel-longterm-[0-9]*.rpm' | grep -q .; then
-            echo "Offline repository download is missing kernel-longterm" >&2
-            exit 1
-        fi
-        userspace_rpm=$(find "$cache" -name 'nvidia-userspace-meta-G07-[0-9]*.rpm' -print -quit)
-        need=$(rpm -qp --requires "$userspace_rpm" \
-            | sed -n 's/.*nvidia-open-driver-G07-signed-kmp = \([^ )]*\).*/\1/p' \
-            | head -n 1)
-        if [ -z "$need" ]; then
-            echo "nvidia-userspace-meta-G07 does not require the open kmp" >&2
-            exit 1
-        fi
-        matched=0
-        while IFS= read -r kmp_rpm; do
-            if rpm -qp --provides "$kmp_rpm" \
-                | grep -F -q "nvidia-open-driver-G07-signed-kmp = ${need}"; then
-                matched=1
-                break
-            fi
-        done < <(find "$cache" -name 'nvidia-open-driver-G07-signed-kmp-longterm-[0-9]*.rpm')
-        if [ "$matched" != 1 ]; then
-            echo "Downloaded longterm kmp does not provide ${need}" >&2
-            exit 1
-        fi
-        # Skip the NVIDIA builds of packages Slowroll already ships.
-        # libOpenCL1 and nvidia-libXNVCtrl have a higher release there.
-        # Once this repository is the only install source, the solver
-        # keeps those builds and the first update cannot replace them.
-        find "$cache" -name '*.rpm' \
-            ! -name 'libOpenCL1-*.rpm' \
-            ! -name 'nvidia-libXNVCtrl-*.rpm' \
-            -exec cp -n -t /packages/ {} +
-        rm -rf "$cache"
-        zypper --non-interactive rr atropos-offline-update atropos-offline-nvidia
-        rm -f /etc/zypp/repos.d/atropos-offline-update.repo \
-              /etc/zypp/repos.d/atropos-offline-nvidia.repo
-    fi
     createrepo_c /packages
     echo "RPM count in packages: $(find /packages -name '*.rpm' | wc -l)"
     # patterns-atropos-base requires plymouth-theme-atropos. --clean-deps
@@ -331,8 +262,12 @@ fi
 # keep the URL. Priority 200 is below Slowroll, so libOpenCL1 and
 # nvidia-libXNVCtrl stay on the openSUSE builds. The open G07 packages
 # exist only here, so selecting atropos_nvidia installs them during the
-# solve. atropos-nvidia then keeps the same URL at priority 200. Offline
-# media already carries that closure and must not refresh this URL.
+# solve. atropos-nvidia then keeps the same URL at priority 200.
+# Offline media probes the NVIDIA URL when the installer starts and adds
+# it only when it answers. Agama probes the product's repositories on
+# offline media, but not extra repositories, and an unreachable extra
+# repository fails the solve even when NVIDIA is not selected. Without
+# it, selecting atropos_nvidia has nothing to install the driver from.
 #
 # Both flavors also add atropos-agama-post as a post-installation script.
 # It adds the root mount options Agama does not write to fstab, and drops
@@ -344,29 +279,51 @@ if [ ! -f /usr/libexec/atropos-agama-post ]; then
     echo "atropos-agama-post is missing from the image" >&2
     exit 1
 fi
+nvidia_repos='[{"alias": "agama-nvidia",
+                 "name": "NVIDIA open driver (Tumbleweed)",
+                 "url": "https://download.nvidia.com/opensuse/tumbleweed",
+                 "priority": 200,
+                 "gpgFingerprints": ["2FB03195DECD49492BD1C17AB1D0D788DB27FD5A"]}]'
+agama_config () {
+    jq -n --argjson repos "$1" --rawfile post /usr/libexec/atropos-agama-post '
+        {software: ({onlyRequired: true} + (if ($repos | length) > 0 then {extraRepositories: $repos} else {} end)),
+         scripts: {post: [{name: "atropos-agama-post", chroot: false, content: $post}]}}
+    '
+}
 if [[ "$kiwi_profiles" == *"Offline"* ]]; then
-    extra_repos='[]'
+    agama_config '[]' > /etc/agama-online-defaults.json
+    agama_config "$nvidia_repos" > /etc/agama-offline-nvidia.json
 else
-    extra_repos='[{"alias": "agama-nvidia",
-                   "name": "NVIDIA open driver (Tumbleweed)",
-                   "url": "https://download.nvidia.com/opensuse/tumbleweed",
-                   "priority": 200,
-                   "gpgFingerprints": ["2FB03195DECD49492BD1C17AB1D0D788DB27FD5A"]}]'
+    agama_config "$nvidia_repos" > /etc/agama-online-defaults.json
 fi
-jq -n --argjson repos "$extra_repos" --rawfile post /usr/libexec/atropos-agama-post '
-    {software: ({onlyRequired: true} + (if ($repos | length) > 0 then {extraRepositories: $repos} else {} end)),
-     scripts: {post: [{name: "atropos-agama-post", chroot: false, content: $post}]}}
-' > /etc/agama-online-defaults.json
+cat > /usr/libexec/atropos-agama-config << 'CONFIG_EOF'
+#!/bin/bash
+# Load the AtropOS solver configuration into Agama. On offline media the
+# NVIDIA repository is added only when it answers within ten seconds.
+config=/etc/agama-online-defaults.json
+if [ -f /etc/agama-offline-nvidia.json ] &&
+   curl -fsS --max-time 10 -o /dev/null \
+       https://download.nvidia.com/opensuse/tumbleweed/repodata/repomd.xml; then
+    config=/etc/agama-offline-nvidia.json
+fi
+echo "Loading ${config}"
+for i in $(seq 1 30); do
+    agama config load "$config" && exit 0
+    sleep 2
+done
+exit 1
+CONFIG_EOF
+chmod 0755 /usr/libexec/atropos-agama-config
 cat > /etc/systemd/system/agama-atropos-online-config.service << 'SERVICE_EOF'
 [Unit]
 Description=Apply AtropOS installer solver configuration
-After=agama-web-server.service
-Wants=agama-web-server.service
+After=agama-web-server.service network-online.target
+Wants=agama-web-server.service network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/bash -c 'for i in $(seq 1 30); do agama config load /etc/agama-online-defaults.json && exit 0; sleep 2; done; exit 1'
+ExecStart=/usr/libexec/atropos-agama-config
 
 [Install]
 WantedBy=multi-user.target

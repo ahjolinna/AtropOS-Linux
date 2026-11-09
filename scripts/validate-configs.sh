@@ -544,7 +544,11 @@ else
 fi
 if grep -q 'onlyRequired' "$root/installer/config.sh" \
     && grep -q 'download.nvidia.com/opensuse/tumbleweed' "$root/installer/config.sh" \
-    && grep -q -- '--download-only' "$root/installer/config.sh" \
+    && ! grep -q -- '--download-only' "$root/installer/config.sh" \
+    && grep -q 'repodata/repomd.xml' "$root/installer/config.sh" \
+    && grep -q 'agama-offline-nvidia.json' "$root/installer/config.sh" \
+    && grep -q '^ExecStart=/usr/libexec/atropos-agama-config$' "$root/installer/config.sh" \
+    && grep -q '<package name="curl"/>' "$root/installer/agama-installer-atropos.kiwi" \
     && grep -q 'mv packages "\$dst/install"' "$root/installer/fix_bootconfig" \
     && grep -q 'gpg-pubkey-nvidia-tumbleweed.asc' "$root/installer/agama-installer-atropos.kiwi" \
     && grep -q 'BEGIN PGP PUBLIC KEY BLOCK' "$root/installer/gpg-pubkey-nvidia-tumbleweed.asc" \
@@ -567,13 +571,12 @@ if grep -q 'onlyRequired' "$root/installer/config.sh" \
     && grep -q 'priority=200' "$root/nvidia/atropos-nvidia.repo" \
     && grep -q 'gpg-pubkey-nvidia-tumbleweed.asc' "$root/nvidia/atropos-nvidia.spec" \
     && ! grep -q 'Requires:[[:space:]]*openSUSE-repos-Slowroll-NVIDIA' "$root/nvidia/atropos-nvidia.spec" \
-    && grep -q 'libOpenCL1-' "$root/installer/config.sh" \
     && grep -q 'rpm -q' "$root/nvidia/atropos-nvidia-setup" \
     && bash -n "$root/installer/config.sh" \
     && bash -n "$root/installer/fix_bootconfig" \
     && bash -n "$root/nvidia/atropos-nvidia-setup" \
     && bash -n "$root/nvidia/atropos-nvidia-apply"; then
-    ok "Agama installs the open G07 driver, and the NVIDIA repository stays below Slowroll"
+    ok "Agama installs the open G07 driver from a probed repository below Slowroll, and the build downloads nothing"
 else
     bad "open G07 install path is incomplete"
 fi

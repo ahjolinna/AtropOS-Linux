@@ -98,6 +98,8 @@
         <package name="checkmedia"/>
         <package name="libtss2-tcti-device0"/>
         <package name="jq"/>
+        <!-- atropos-agama-config probes the NVIDIA repository on offline media. -->
+        <package name="curl"/>
         <package name="yast2-schema"/>
         <package name="qrencode"/>
         <package name="qemu-guest-agent" />

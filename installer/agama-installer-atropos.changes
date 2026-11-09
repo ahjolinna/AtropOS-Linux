@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Tue Nov 10 01:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Stop downloading the NVIDIA open driver into the Offline image during
+  the build. OBS build workers have no network, so config.sh failed and
+  the Offline ISO never built. NVIDIA's userspace is not on OBS.
+- Offline media relies on Agama probing the product's online
+  repositories (agama #4189, in the agama snapshot this image uses).
+  atropos-agama-config adds the NVIDIA repository at priority 200 only
+  when it answers within ten seconds; Agama does not probe extra
+  repositories, and an unreachable one fails the solve.
+- The configuration service waits for network-online.target.
+- List curl in the image for that probe.
+
+-------------------------------------------------------------------
 Tue Nov 10 00:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - List patch in the Offline image. flatpak-builder needs
