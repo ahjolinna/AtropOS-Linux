@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 10 01:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Correct the repository comment. Agama now probes these repositories
+  from offline media and uses the reachable ones (agama #4189). The
+  offline image adds the NVIDIA repository only when it answers.
+- Release 12.
+
+-------------------------------------------------------------------
 Tue Nov 03 23:01:47 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Do not install from the NVIDIA Tumbleweed repository. Its libOpenCL1

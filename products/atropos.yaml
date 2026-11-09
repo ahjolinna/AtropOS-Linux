@@ -29,8 +29,9 @@ software:
     # alias. Slowroll wins libOpenCL1 and nvidia-libXNVCtrl. Selecting
     # atropos_nvidia installs the open G07 driver during this solve.
     # atropos-nvidia keeps the same URL at priority 200 only when that
-    # pattern is selected. An ISO with an install/ repository skips this
-    # whole list and carries the driver closure itself.
+    # pattern is selected. An ISO with an install/ repository probes this
+    # list and uses the reachable repositories (agama #4189). The offline
+    # image adds the NVIDIA repository only when it answers.
   installation_labels:
     - label: AtropOS-desktop-x86_64
       archs: x86_64
