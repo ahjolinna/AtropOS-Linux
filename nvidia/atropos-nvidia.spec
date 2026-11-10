@@ -5,22 +5,17 @@
 # atropos_nvidia pattern is selected. The install-time repository alias
 # is agama-nvidia at priority 200, and Agama removes that alias after
 # the solve. This package keeps the same URL at priority 200, so
-# Slowroll's libOpenCL1 and nvidia-libXNVCtrl stay installed. First boot
-# installs the driver only when those packages are missing.
+# Slowroll's libOpenCL1 and nvidia-libXNVCtrl stay installed.
 
 Name:           atropos-nvidia
 Version:        0.1.0
-Release:        7
+Release:        8
 Summary:        AtropOS open NVIDIA G07 driver setup
 License:        GPL-2.0-or-later AND (GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL) AND CC0-1.0
 Group:          System/Base
 URL:            https://github.com/ahjolinna/AtropOS-Linux
 ExclusiveArch:  x86_64
 BuildRequires:  systemd-rpm-macros
-Source0:        atropos-nvidia-setup
-Source1:        atropos-nvidia-apply
-Source2:        atropos-nvidia-setup.service
-Source3:        80-atropos-nvidia.preset
 Source4:        80-nvidia-power-management.rules
 Source5:        99-nvidia-no-freeze-session.rules
 Source6:        10-nvidia-no-freeze-session.conf
@@ -28,7 +23,6 @@ Source7:        00-nvidia.conf
 Source8:        atropos-nvidia.repo
 Source9:        gpg-pubkey-nvidia-tumbleweed.asc
 Source10:       50-atropos-omit-nouveau.conf
-Requires:       transactional-update
 # Not openSUSE-repos-Slowroll-NVIDIA. That service enables this URL at
 # the default priority and would replace Slowroll's libOpenCL1.
 
@@ -38,9 +32,7 @@ The package set follows the openSUSE NVIDIA SDB for Leap and
 Tumbleweed. Agama installs that set when the NVIDIA pattern is
 selected, so the first Plasma session is not software rendering.
 This package keeps the NVIDIA repository at priority 200 afterwards.
-Slowroll keeps libOpenCL1 and nvidia-libXNVCtrl. If the driver
-packages are missing, first boot installs them and reboots before
-the login screen. The GPU can sleep, suspend does not freeze the
+Slowroll keeps libOpenCL1 and nvidia-libXNVCtrl. The GPU can sleep, suspend does not freeze the
 session while the nvidia module is loaded, and GPU memory allocation
 skips the security wipe.
 
@@ -49,10 +41,6 @@ skips the security wipe.
 %build
 
 %install
-install -D -m 0755 %{SOURCE0} %{buildroot}%{_libexecdir}/atropos-nvidia-setup
-install -D -m 0755 %{SOURCE1} %{buildroot}%{_libexecdir}/atropos-nvidia-apply
-install -D -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/atropos-nvidia-setup.service
-install -D -m 0644 %{SOURCE3} %{buildroot}%{_prefix}/lib/systemd/system-preset/80-atropos-nvidia.preset
 install -D -m 0644 %{SOURCE4} %{buildroot}%{_prefix}/lib/udev/rules.d/80-nvidia-power-management.rules
 install -D -m 0644 %{SOURCE5} %{buildroot}%{_prefix}/lib/udev/rules.d/99-nvidia-no-freeze-session.rules
 install -D -m 0644 %{SOURCE6} %{buildroot}%{_unitdir}/systemd-suspend.service.d/10-nvidia-no-freeze-session.conf
@@ -61,11 +49,12 @@ install -D -m 0644 %{SOURCE10} %{buildroot}%{_prefix}/lib/dracut/dracut.conf.d/5
 install -D -m 0644 %{SOURCE8} %{buildroot}%{_sysconfdir}/zypp/repos.d/atropos-nvidia.repo
 install -D -m 0644 %{SOURCE9} %{buildroot}%{_prefix}/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc
 
-%pre
-%service_add_pre atropos-nvidia-setup.service
-
 %post
-%service_add_post atropos-nvidia-setup.service
+# Release 7 and older enabled atropos-nvidia-setup.service, which
+# installed the driver on first boot. patterns-atropos-nvidia requires
+# the driver, so Agama installs it and the unit only delayed the login
+# screen. Its unit file is gone; remove the enablement link it left.
+rm -f %{_sysconfdir}/systemd/system/multi-user.target.wants/atropos-nvidia-setup.service || :
 # Agama drops the agama-nvidia alias before it copies repos.d.
 # This package is what keeps the URL on the installed system.
 rpm --import %{_prefix}/lib/rpm/gnupg/keys/gpg-pubkey-nvidia-tumbleweed.asc || :
@@ -87,17 +76,7 @@ if [ -f "$conf" ] && ! grep -Eq '^[[:space:]]*autoAgreeWithLicenses[[:space:]]*=
     fi
 fi
 
-%preun
-%service_del_preun atropos-nvidia-setup.service
-
-%postun
-%service_del_postun atropos-nvidia-setup.service
-
 %files
-%{_libexecdir}/atropos-nvidia-setup
-%{_libexecdir}/atropos-nvidia-apply
-%{_unitdir}/atropos-nvidia-setup.service
-%{_prefix}/lib/systemd/system-preset/80-atropos-nvidia.preset
 %dir %{_prefix}/lib/udev
 %dir %{_prefix}/lib/udev/rules.d
 %{_prefix}/lib/udev/rules.d/80-nvidia-power-management.rules

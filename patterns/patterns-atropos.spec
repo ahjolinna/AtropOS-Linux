@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        41
+Release:        42
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -571,8 +571,8 @@ Provides:       pattern-visible()
 ExclusiveArch:  x86_64
 Requires:       atropos-nvidia
 # Installed during the Agama solve, from the priority 200 NVIDIA
-# repository on the online ISO or from the offline media. First boot
-# installs them only when these packages are absent.
+# repository. Agama adds that repository on the online ISO, and on
+# offline media when it answers.
 Requires:       nvidia-open-driver-G07-signed-kmp-meta
 Requires:       nvidia-open-driver-G07-signed-kmp-longterm
 Requires:       nvidia-userspace-meta-G07
@@ -591,8 +591,7 @@ installs the open G07 driver during the Agama solve, so the first
 Plasma session is not software rendering. The repository priority stays
 below Slowroll, so libOpenCL1 and nvidia-libXNVCtrl stay on the
 openSUSE builds. The proprietary driver and the CUDA kernel module are
-left out. If the driver packages are missing, atropos-nvidia installs
-them on first boot and reboots before the login screen.
+left out.
 %endif
 
 %package debug

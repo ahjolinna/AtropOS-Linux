@@ -571,11 +571,11 @@ if grep -q 'onlyRequired' "$root/installer/config.sh" \
     && grep -q 'priority=200' "$root/nvidia/atropos-nvidia.repo" \
     && grep -q 'gpg-pubkey-nvidia-tumbleweed.asc' "$root/nvidia/atropos-nvidia.spec" \
     && ! grep -q 'Requires:[[:space:]]*openSUSE-repos-Slowroll-NVIDIA' "$root/nvidia/atropos-nvidia.spec" \
-    && grep -q 'rpm -q' "$root/nvidia/atropos-nvidia-setup" \
+    && [ ! -e "$root/nvidia/atropos-nvidia-setup.service" ] \
+    && ! grep -q '%{_unitdir}/atropos-nvidia-setup.service' "$root/nvidia/atropos-nvidia.spec" \
     && bash -n "$root/installer/config.sh" \
     && bash -n "$root/installer/fix_bootconfig" \
-    && bash -n "$root/nvidia/atropos-nvidia-setup" \
-    && bash -n "$root/nvidia/atropos-nvidia-apply"; then
+    && grep -q 'multi-user.target.wants/atropos-nvidia-setup.service' "$root/nvidia/atropos-nvidia.spec"; then
     ok "Agama installs the open G07 driver from a probed repository below Slowroll, and the build downloads nothing"
 else
     bad "open G07 install path is incomplete"

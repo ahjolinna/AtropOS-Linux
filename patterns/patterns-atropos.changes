@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Nov 10 03:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Correct the patterns-atropos-nvidia comment and description.
+  atropos-nvidia no longer installs the driver on first boot; the
+  pattern requires it, so Agama installs it.
+- Release 42. The repository already has 0.4.0-41.1.
+
+-------------------------------------------------------------------
 Tue Nov 10 02:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Obsolete busybox-patch. It conflicts with patch, which release 40

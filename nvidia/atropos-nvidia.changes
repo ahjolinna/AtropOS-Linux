@@ -1,4 +1,20 @@
 -------------------------------------------------------------------
+Tue Nov 10 03:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Drop atropos-nvidia-setup.service, atropos-nvidia-setup and
+  atropos-nvidia-apply. They installed the driver on first boot, from
+  before Agama installed it. patterns-atropos-nvidia requires the
+  driver packages, so they are always present with this package, and
+  the unit was always skipped. It was ordered after
+  network-online.target and before the login screen, and systemd keeps
+  that ordering for a skipped unit, so every boot showed a black screen
+  between Plymouth and the login screen until the network was up
+  (9 s on the test host). %post removes the old enablement link.
+- No longer require transactional-update. Only the first-boot install
+  used it.
+- Release 8. The repository already has 0.1.0-7.1.
+
+-------------------------------------------------------------------
 Sat Nov 07 16:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Leave nouveau out of the initrd. It is blacklisted, and it pulled
