@@ -1,0 +1,50 @@
+identifier: 2026-11-10-baseline
+date: 2026-11-10T03:04:03+02:00
+kernel: 6.18.60-1-longterm
+cmdline: initrd=\atropos\6.18.60-1-longterm\initrd-ee6e65a618c1cdd1ed21cfb41d6488ea56f30201 rd.driver.blacklist=nouveau mitigations=auto quiet splash=silent plymouth.ignore-serial-consoles loglevel=3 vt.global_cursor_default=0 nowatchdog systemd.show_status=auto rd.udev.log_level=1 psi=1 security=selinux selinux=1 iommu.passthrough=0 kexec_load_disabled=1 quiet splash=silent plymouth.ignore-serial-consoles loglevel=3 vt.global_cursor_default=0 nowatchdog systemd.show_status=auto rd.udev.log_level=1 psi=1 security=selinux selinux=1 iommu.passthrough=0 kexec_load_disabled=1 root=/dev/mapper/cr_root rootflags=subvol=@/.snapshots/13/snapshot
+governor: performance
+epp: performance
+boost: 0 cpb-flag: no
+cppc-nominal-mhz: 4301
+selinux-enforcing: 1
+tuned-profile: throughput-performance
+sysctl vm.swappiness: 180
+sysctl vm.dirty_ratio: 20
+sysctl vm.watermark_scale_factor: 125
+sysctl kernel.split_lock_mitigate: 0
+sysctl net.ipv4.tcp_congestion_control: bbr
+mitigations:
+  gather_data_sampling:Not affected
+  ghostwrite:Not affected
+  indirect_target_selection:Not affected
+  itlb_multihit:Not affected
+  l1tf:Not affected
+  mds:Not affected
+  meltdown:Not affected
+  mmio_stale_data:Not affected
+  old_microcode:Not affected
+  reg_file_data_sampling:Not affected
+  retbleed:Not affected
+  spec_rstack_overflow:Mitigation: Safe RET
+  spec_store_bypass:Mitigation: Speculative Store Bypass disabled via prctl
+  swapgs barriers and __user pointer sanitization
+  spectre_v2:Mitigation: Retpolines; IBPB: conditional; IBRS_FW; STIBP: always-on; RSB filling; PBRSB-eIBRS: Not affected; BHI: Not affected
+  srbds:Not affected
+  tsa:Mitigation: Clear CPU buffers
+  tsx_async_abort:Not affected
+  vmscape:Mitigation: IBPB before exit to userspace
+packages:
+  kernel-longterm-6.18.54-1.1
+  kernel-longterm-6.18.60-1.1
+  atropos-performance-0.4.0-21.1
+  patterns-atropos-base-0.4.0-42.1
+  AtropOS-release-20261020-7.2
+  plasma6-workspace-6.8.2-1.1
+  kwin6-6.8.2-1.1
+  nvidia-video-G07-620.70.06-14.1
+  glibc-2.44-3.1
+  systemd-261.4-1.1
+container:
+  openSUSE Tumbleweed-Slowroll 20261101
+  gcc (SUSE Linux) 16.2.1 20261106
+  

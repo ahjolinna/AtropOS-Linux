@@ -1,0 +1,121 @@
+
+7-Zip Compression 26.01
+Test: Compression Rating
+COMPARISON HASH:056b87080920579f1e0b2f364cf8191f205d4f52
+SYSTEM TYPE: V
+
+    Comparison of 2,140 OpenBenchmarking.org samples since 29 April; median result: 98902 MIPS. Box plot of samples:
+    [-*#!######-----------------------------------*--------*---*----*-|     *  ]
+      ^ This Result (25th Percentile): 57240
+                               EPYC 9755: 1126489 ^ 2 x  EPYC 9745: 1767613 ^
+                                           2 x  Xeon 6980P: 1551041 ^
+                                       2 x  EPYC 9645: 1433932 ^
+                                   2 x  EPYC 9565: 1345982 ^
+
+
+7-Zip Compression 26.01
+Test: Decompression Rating
+COMPARISON HASH:c492dfa3fd4ab77f88e146cd61863fe368407a56
+SYSTEM TYPE: V
+
+    Comparison of 2,139 OpenBenchmarking.org samples since 29 April; median result: 59029 MIPS. Box plot of samples:
+    [##*######--------------------------*-----------*---*----*-|   *           ]
+       ^ This Result (56th Percentile): 66797
+                      EPYC 9825: 747822 ^  2 x  EPYC 9745: 1318721 ^
+                                    2 x  Xeon 6980P: 1197124 ^
+                                2 x  EPYC 9655: 1085235 ^
+                                 EPYC 9965: 1002756 ^
+
+
+Timed Linux Kernel Compilation 7.0
+Build: defconfig
+COMPARISON HASH:4d7b365c6432dfbebc8c90edbf4cf6e787e51715
+SYSTEM TYPE: V
+
+    Comparison of 1,290 OpenBenchmarking.org samples since 20 April; median result: 84.63 Seconds. Box plot of samples:
+    [                                               |----------------*-*-*#*#!*]
+                                        This Result (20th Percentile): 196 ^
+                                                Core Ultra 7 270K Plus: 53.85 ^
+                                                       Core i7-9700: 234 ^
+                                                    Core i3-1215U: 310 ^
+                                                 Core i7-1185G7: 401 ^
+
+
+x265 4.2
+Video Input: Bosphorus 4K
+COMPARISON HASH:a71eb2c4517281e2e105b39034c28fb442f5e302
+SYSTEM TYPE: V
+
+    Comparison of 363 OpenBenchmarking.org samples since 15 July; median result: 24.07 Frames Per Second. Box plot of samples:
+    [  |-----------------*###########*#####!#####################*--*-*----*|  ]
+                         ^ This Result (22nd Percentile): 12.78
+             Ryzen AI 9 HX 370: 20.7 ^             Ryzen 9 9950X3D2: 44.23 ^
+                                            Threadripper 7980X: 40.94 ^
+                                                  EPYC 9455P: 39.79 ^
+                                           2 x  EPYC 9355: 37.56 ^
+
+
+Stream 2013-01-17
+Type: Triad
+COMPARISON HASH:d4d018e082a62d26d548128121d15121dc6ac83e
+SYSTEM TYPE: V
+
+    Comparison of 4,573 OpenBenchmarking.org samples since 26 February 2011; median result: 44801 MB/s. Box plot of samples:
+    [|*###*!####------------------------------------*-*---*-|              *   ]
+      ^ This Result (12th Percentile): 14845
+          ^ 2 x 64 GB DDR5-5200MT: 42051     12 x 64GB DDR5-8800MT: 462183 ^
+                            24 x 64GB DDR5-6000MT: 353277 ^
+                        1 x 480GB DRAM-6400MT: 328574 ^
+                     16 x 64 GB DDR4-3200MT: 310979 ^
+
+
+Flexible IO Tester 3.40
+Type: Random Read - Engine: IO_uring - Direct: Yes - Block Size: 4KB - Job Count: 2 - Disk Target: Default Test Directory
+COMPARISON HASH:1f56491c16288bdbc33b40726213e4d216b6687b
+SYSTEM TYPE: V
+
+    Comparison of 14 OpenBenchmarking.org samples since 14 September 2025 to 1 October; median result: 1765 MB/s. Box plot of samples:
+    [##############*##########################!#####################-----------]
+                   ^ This Result (42nd Percentile): 638
+
+
+Flexible IO Tester 3.40
+Type: Random Read - Engine: IO_uring - Direct: Yes - Block Size: 4KB - Job Count: 2 - Disk Target: Default Test Directory
+COMPARISON HASH:e54c6c37e0bf9a03e405916208d2162d2396200e
+SYSTEM TYPE: V
+
+    Comparison of 14 OpenBenchmarking.org samples since 14 September 2025 to 1 October; median result: 452000 IOPS. Box plot of samples:
+    [##############*##########################!#####################-----------]
+                   ^ This Result (42nd Percentile): 163333
+
+
+Flexible IO Tester 3.40
+Type: Sequential Write - Engine: IO_uring - Direct: Yes - Block Size: 1MB - Job Count: 2 - Disk Target: Default Test Directory
+COMPARISON HASH:cfcdd584708c4871ea60eb672a7961c84fca4b53
+SYSTEM TYPE: V
+
+
+Flexible IO Tester 3.40
+Type: Sequential Write - Engine: IO_uring - Direct: Yes - Block Size: 1MB - Job Count: 2 - Disk Target: Default Test Directory
+COMPARISON HASH:4cf1d617c0206e4a67d5a31f25e884d70929be48
+SYSTEM TYPE: V
+
+
+
+    Percentile Classification Of Current Benchmark Run
+    PROCESSOR
+        7-Zip Compression
+            Compression Rating:                    25th
+            D.R:                                   56th
+        Timed Linux Kernel Compilation
+            defconfig:                             20th
+        x265
+            Bosphorus 4K:                          22nd
+    MEMORY
+        Stream
+            Triad:                                 12th
+    DISK
+        Flexible IO Tester
+            Rand Read - IO_uring - Yes - 4KB - 2:  42nd
+                                                   OpenBenchmarking.org Percentile
+

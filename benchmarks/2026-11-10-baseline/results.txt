@@ -1,0 +1,66 @@
+
+atropos-regression
+p an testing on openSUSE 20261101 via the Phoronix Test Suite.
+
+
+2026-11-10-baseline: 
+
+	Processor: AMD Ryzen 7 5700G @ 5.29GHz (8 Cores / 16 Threads), Motherboard: ASUS TUF GAMING B550-PLUS (3607 BIOS), Memory: 48GB, Disk: Samsung SSD 970 EVO 500GB + 1024GB SAMSUNG MZVLQ1T0HALB-000H1 + 120GB 1053-3G Ext. HDD, Graphics: NVIDIA GeForce RTX 3060 Ti 8GB, Monitor: H277HK
+
+	OS: openSUSE 20261101, Kernel: 6.18.60-1-longterm (x86_64), Desktop: KDE Plasma, Display Server: Wayland, Display Driver: NVIDIA, Compiler: GCC 16.2.1 20261106, File-System: btrfs, Screen Resolution: 3840x2160, System Layer: p an
+
+
+7-Zip Compression 26.01
+Test: Compression Rating
+MIPS > Higher Is Better
+2026-11-10-baseline . 57240 |===================================================
+
+
+7-Zip Compression 26.01
+Test: Decompression Rating
+MIPS > Higher Is Better
+2026-11-10-baseline . 66797 |===================================================
+
+
+Timed Linux Kernel Compilation 7.0
+Build: defconfig
+Seconds < Lower Is Better
+2026-11-10-baseline . 195.86 |==================================================
+
+
+x265 4.2
+Video Input: Bosphorus 4K
+Frames Per Second > Higher Is Better
+2026-11-10-baseline . 12.78 |===================================================
+
+
+Stream 2013-01-17
+Type: Triad
+MB/s > Higher Is Better
+2026-11-10-baseline . 14844.8 |=================================================
+
+
+Flexible IO Tester 3.40
+Type: Random Read - Engine: IO_uring - Direct: Yes - Block Size: 4KB - Job Count: 2 - Disk Target: Default Test Directory
+MB/s > Higher Is Better
+2026-11-10-baseline . 638 |=====================================================
+
+
+Flexible IO Tester 3.40
+Type: Random Read - Engine: IO_uring - Direct: Yes - Block Size: 4KB - Job Count: 2 - Disk Target: Default Test Directory
+IOPS > Higher Is Better
+2026-11-10-baseline . 163333 |==================================================
+
+
+Flexible IO Tester 3.40
+Type: Sequential Write - Engine: IO_uring - Direct: Yes - Block Size: 1MB - Job Count: 2 - Disk Target: Default Test Directory
+MB/s > Higher Is Better
+2026-11-10-baseline . 587 |=====================================================
+
+
+Flexible IO Tester 3.40
+Type: Sequential Write - Engine: IO_uring - Direct: Yes - Block Size: 1MB - Job Count: 2 - Disk Target: Default Test Directory
+IOPS > Higher Is Better
+2026-11-10-baseline . 585 |=====================================================
+
+
