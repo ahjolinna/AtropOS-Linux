@@ -136,7 +136,7 @@
         <package name="OpenPrintingPPDs"/>
     </packages>
 
-    <!-- installer UI: Firefox/GNOME kiosk, both profiles -->
+    <!-- installer UI: Scuttler (Qt WebEngine in KWin), both profiles -->
     <packages type="image" profiles="Offline,Online">
         <package name="bluez-firmware"/>
         <!-- for openQA to run their puppeteer tests, just injecting a *.js file -->
@@ -144,11 +144,7 @@
         <package name="fontconfig"/>
         <package name="fonts-config"/>
         <package name="xauth"/>
-        <package name="MozillaFirefox"/>
-        <package name="gdm-systemd"/>
-        <package name="gnome-shell"/>
-        <package name="gnome-session-wayland"/>
-        <package name="gnome-kiosk"/>
+        <package name="scuttler-kiosk"/>
         <package name="spice-vdagent"/>
     </packages>
 
@@ -156,7 +152,6 @@
         <package name="agama-products-atropos"/>
         <package name="chrony"/>
         <package name="grub2-branding-atropos" arch="aarch64,x86_64"/>
-        <package name="MozillaFirefox-branding-openSUSE"/>
         <package name="openSUSE-build-key"/>
         <package name="staging-build-key"/>
         <package name="plymouth-branding-openSUSE" arch="aarch64,x86_64" />

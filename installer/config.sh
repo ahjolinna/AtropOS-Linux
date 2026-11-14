@@ -95,7 +95,7 @@ systemctl enable live-self-update.service
 systemctl enable checkmedia.service
 systemctl enable qemu-guest-agent.service
 systemctl enable setup-systemd-proxy-env.path
-test -f /usr/lib/systemd/system/gdm.service && systemctl enable --force gdm.service
+systemctl enable --force scuttler.service
 test -f /usr/lib/systemd/system/spice-vdagentd.service && systemctl enable spice-vdagentd.service
 systemctl enable zramswap
 
@@ -409,15 +409,12 @@ fi
 rm -f /usr/lib/zypper/commands/zypper-migration
 rm -f /usr/lib/zypper/commands/zypper-search-packages
 
-# delete some FireFox audio codec support
-rm -f /usr/lib64/firefox/libmozavcodec.so
-
-# uninstall libyui-qt and libqt (pulled in by the YaST dependencies),
+# uninstall libyui-qt and Qt 5 (pulled in by the YaST dependencies),
 # not present in SLES, do not fail if not installed
 if rpm -q --whatprovides libyui-qt libyui-qt-pkg > /dev/null; then
   rpm -q --whatprovides libyui-qt libyui-qt-pkg | xargs rpm -e --nodeps
 fi
-rpm -qa | grep ^libQt | xargs --no-run-if-empty rpm -e --nodeps
+rpm -qa | grep ^libQt5 | xargs --no-run-if-empty rpm -e --nodeps
 
 ## removing drivers and firmware makes the Live ISO about 370MiB smaller
 #
@@ -495,40 +492,6 @@ rm -f /lib/modules/*/vmlinux*.[gx]z
 
 # Remove generated files (boo#1098535)
 rm -rf /var/cache/zypp/* /var/lib/zypp/AnonymousUniqueId /var/lib/systemd/random-seed
-
-# gnome-kiosk startup script, executable rights not preserved during copying
-chmod +x /root/.local/bin/gnome-kiosk-script
-
-# Agama keeps both appearance axes on "system" until the user picks one.
-# Dark follows Firefox's prefers-color-scheme. High contrast follows
-# prefers-contrast, which comes from the GNOME high-contrast setting.
-# The kiosk rewrites user.js from this template on every start.
-prefs=/root/.mozilla/firefox/profile/user.js.template
-if [ -f "$prefs" ] && ! grep -q 'ui.systemUsesDarkTheme' "$prefs"; then
-  cat >> "$prefs" << 'EOF'
-
-// AtropOS live installer. Agama follows prefers-color-scheme.
-user_pref("ui.systemUsesDarkTheme", 1);
-EOF
-fi
-
-mkdir -p /etc/dconf/db/local.d /etc/dconf/profile
-if [ -f /etc/dconf/profile/user ]; then
-  grep -q '^system-db:local$' /etc/dconf/profile/user \
-    || echo 'system-db:local' >> /etc/dconf/profile/user
-else
-  printf '%s\n' 'user-db:user' 'system-db:local' > /etc/dconf/profile/user
-fi
-cat > /etc/dconf/db/local.d/00-atropos-agama << 'EOF'
-[org/gnome/desktop/interface]
-color-scheme='prefer-dark'
-
-[org/gnome/desktop/a11y/interface]
-high-contrast=true
-EOF
-if [ -x /usr/bin/dconf ]; then
-  dconf update || echo "warning: dconf update failed; Agama may not start in high contrast" >&2
-fi
 
 # plymouth-branding-openSUSE leaves Theme=bgrt in plymouthd.defaults.
 # plymouth-set-default-theme reads /etc/plymouth/plymouthd.conf and is what

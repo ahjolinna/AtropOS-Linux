@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Sat Nov 14 12:00:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Testing branch: show the Agama web UI in Scuttler, a Qt WebEngine
+  shell, instead of Firefox in GNOME Kiosk. scuttler-kiosk runs it as
+  the unprivileged scuttler user in a KWin session on tty1 and passes
+  the Agama token as a systemd credential. Based on Kalpa's
+  kalpa-installer PR 7.
+- Drop MozillaFirefox, its branding, gdm-systemd, gnome-shell,
+  gnome-session-wayland and gnome-kiosk.
+- Remove only Qt 5 libraries in config.sh; Scuttler needs Qt 6.
+- Remove the GNOME Kiosk scripts, the Firefox profile and extension,
+  the GDM autologin, the AccountsService root session, the dconf
+  appearance settings and agama-screenshot (it used GNOME Shell).
+- Keep the dark scheme with a scuttler.service drop-in that sets
+  blink's preferredColorScheme. High contrast is not carried over.
+
+-------------------------------------------------------------------
 Tue Nov 10 01:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Stop downloading the NVIDIA open driver into the Offline image during
