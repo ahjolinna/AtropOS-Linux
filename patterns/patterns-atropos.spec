@@ -24,7 +24,7 @@
 
 Name:           patterns-atropos
 Version:        0.4.0
-Release:        42
+Release:        43
 Summary:        Patterns for AtropOS
 License:        MIT
 Group:          Metapackages
@@ -578,6 +578,16 @@ Requires:       nvidia-open-driver-G07-signed-kmp-longterm
 Requires:       nvidia-userspace-meta-G07
 Requires:       nvidia-video-G07
 Requires:       nvidia-compute-utils-G07
+# nvidia-gl-G07 accepts either EGL Wayland platform, and the solver picks
+# libnvidia-egl-wayland1. Its explicit sync path leaks about four
+# sync_file descriptors per notification popup. plasmashell reaches the
+# 1024 soft limit after hours, the panel freezes, and it exits 255.
+# egl-wayland2 does not leak. Its 09_ platform file loads before the 10_
+# one, so clients use it. Requiring it satisfies nvidia-gl-G07 alone, and
+# a fresh solve would then drop egl-wayland1. Keep both, as upgraded
+# systems have them.
+Requires:       libnvidia-egl-wayland21
+Requires:       libnvidia-egl-wayland1
 # Keep a supplemented solve on the open longterm module.
 Conflicts:      nvidia-open-driver-G07-signed-kmp-default
 Conflicts:      nvidia-open-driver-G07-signed-cuda-kmp-default

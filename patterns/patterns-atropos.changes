@@ -1,4 +1,22 @@
 -------------------------------------------------------------------
+Sat Nov 21 17:23:53 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Require libnvidia-egl-wayland21 in patterns-atropos-nvidia.
+  nvidia-gl-G07 accepts either EGL Wayland platform, and the solver
+  picked libnvidia-egl-wayland1 1.1.22. It leaks about four sync_file
+  descriptors per notification popup, so plasmashell reached the 1024
+  soft limit after 8 to 15 hours, the panel froze on "Could not create
+  EGL surface", and plasmashell exited 255. egl-wayland2 does not leak,
+  and its 09_ platform file loads first.
+- Also require libnvidia-egl-wayland1. Otherwise a fresh solve drops it,
+  because egl-wayland2 alone satisfies nvidia-gl-G07. Upgraded systems
+  keep both, and fresh installs now match them.
+- Tested in a Slowroll container with dupAllowVendorChange from
+  release 42.1: dup installs libnvidia-egl-wayland21 without a solver
+  question, and a fresh install gets both libraries.
+- Release 43. The repository already has 0.4.0-42.1.
+
+-------------------------------------------------------------------
 Tue Nov 10 03:30:00 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 
 - Correct the patterns-atropos-nvidia comment and description.

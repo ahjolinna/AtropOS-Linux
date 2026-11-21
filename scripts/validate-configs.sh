@@ -580,6 +580,12 @@ if grep -q 'onlyRequired' "$root/installer/config.sh" \
 else
     bad "open G07 install path is incomplete"
 fi
+if grep -q '^Requires:[[:space:]]*libnvidia-egl-wayland21$' "$root/patterns/patterns-atropos.spec" \
+    && grep -q '^Requires:[[:space:]]*libnvidia-egl-wayland1$' "$root/patterns/patterns-atropos.spec"; then
+    ok "NVIDIA installs egl-wayland2 beside egl-wayland1, so plasmashell does not leak sync_file descriptors"
+else
+    bad "patterns-atropos-nvidia does not require both libnvidia-egl-wayland21 and libnvidia-egl-wayland1"
+fi
 if grep -q '^enable tuned.service$' "$root/performance/80-atropos.preset" \
     && grep -q 'multi-user.target.wants/tuned.service' "$root/performance/atropos-performance.spec" \
     && grep -q 'graphical.target.wants/tuned-ppd.service' "$root/performance/atropos-performance.spec" \
