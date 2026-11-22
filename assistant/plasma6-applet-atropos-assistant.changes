@@ -11,6 +11,11 @@ Sat Nov 21 21:14:45 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
 - The model can look up facts about the computer (read-only, fixed
   commands) and propose shell commands, which run only after the user
   presses Run, as the user, with a one-minute limit.
+- A weather tool from Open-Meteo, for the place asked about, the
+  settings' place, or the time zone's city.
+- KRunner answers search the web when that is on, and use the lookups
+  and the weather. The widget reloads its chat list when the service
+  reports a change, so KRunner chats show up at once.
 - Optional web search: DuckDuckGo's top 3 to 5 results go to the model,
   which cites them. When DuckDuckGo asks for a robot check, it falls
   back to the Instant Answer API for ten minutes.
