@@ -35,3 +35,7 @@ Sat Nov 21 21:14:45 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
   op offload, llama.cpp stages the MoE experts on the GPU and needs a
   7 GiB compute buffer for this model, so it failed to load on 8 GB
   cards. A load error no longer restarts the service.
+- llama-server leaves 2.5 GiB of graphics memory free (--fit-target,
+  GPU_HEADROOM_MIB) and unloads after 15 idle minutes. With 0.7 GiB
+  left on an 8 GB card, Spectacle failed with EGL_BAD_ALLOC and
+  crashed.
