@@ -27,6 +27,7 @@ https://github.com/ahjolinna/AtropOS-Linux
 | zsh-syntax-highlighting | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-syntax-highlighting#main` |
 | zsh-history-substring-search | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-history-substring-search#main` |
 | zsh-completions | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=zsh-completions#main` |
+| plasma6-applet-atropos-assistant | `https://github.com/ahjolinna/AtropOS-Linux.git?subdir=assistant#main` |
 
 Every package archive in this repository is in git, except
 `plasma6-login-manager`, which fetches its archive from the `_service`.
@@ -36,7 +37,7 @@ Every package archive in this repository is in git, except
 OBS does not poll git. One OBS token, bound to one package in
 `home:ahjolinna`, needs one webhook on
 https://github.com/ahjolinna/AtropOS-Linux
-(Settings, Webhooks, Add webhook). The 19 packages above need 19 webhooks.
+(Settings, Webhooks, Add webhook). The 20 packages above need 20 webhooks.
 A push updates only the package whose token is in that webhook.
 
 The numeric id and the secret come from `osc token`. Do not put the

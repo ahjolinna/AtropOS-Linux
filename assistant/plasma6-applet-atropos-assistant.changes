@@ -1,0 +1,37 @@
+-------------------------------------------------------------------
+Sat Nov 21 21:14:45 UTC 2026 - ahjolinna <ahjolinna@yahoo.com>
+
+- Initial package, 0.1. Chat with Inkling 2 Mini from a Plasma 6
+  panel widget, from the Assistant window (the widget in
+  plasmawindowed), or from KRunner with "ai <question>", which answers
+  in a notification with Copy and Continue in Assistant.
+- Answers stream as Markdown with copyable code blocks. The model's
+  thinking is shown, and a thinking effort setting goes to the chat
+  template as reasoning_effort. Images and text files can be attached.
+- The model can look up facts about the computer (read-only, fixed
+  commands) and propose shell commands, which run only after the user
+  presses Run, as the user, with a one-minute limit.
+- Optional web search: DuckDuckGo's top 3 to 5 results go to the model,
+  which cites them. When DuckDuckGo asks for a robot check, it falls
+  back to the Instant Answer API for ten minutes.
+- Saved chats with search, favorites, rename, duplicate, fork from an
+  answer, delete, and export to Markdown, text or JSON. JSON imports.
+- atropos-assistant-service, a D-Bus-activated Python service on the
+  session bus, keeps the chats, runs the download, starts and stops the
+  model, and serves KRunner.
+- The widget sits on a panel or in the system tray.
+- The widget downloads the model with progress, and starts it when the
+  download finishes or the first message is sent. Setups from Light
+  (UD-IQ1_S, 7.8 GB, the default) to Best (UD-Q8_K_XL, 22.9 GB) say
+  whether they fit the computer's memory; Model Size… switches later.
+  atropos-assistant-setup fetches llama.cpp b12613 (Vulkan) and
+  Unsloth's Mainline_Support GGUF and checks their SHA-256 sums.
+  b12613 includes PR #32704; builds without it print gibberish.
+- The settings choose between Inkling 2 Mini on this computer and
+  another OpenAI-compatible server. There is no Ollama setting:
+  Ollama 0.40.17 runs inkling-2-mini on Apple silicon only.
+- atropos-assistant.service runs llama-server on 127.0.0.1:18080 with
+  --no-op-offload and a micro-batch sized to the free GPU memory. With
+  op offload, llama.cpp stages the MoE experts on the GPU and needs a
+  7 GiB compute buffer for this model, so it failed to load on 8 GB
+  cards. A load error no longer restarts the service.

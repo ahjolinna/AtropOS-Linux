@@ -10,5 +10,6 @@
 !aether/plasma6-theme-aether-dark-0.0.3a.tar.xz
 !plymouth/plymouth-theme-atropos-0.1.0.tar.xz
 !wallpapers/atropos-wallpapers-0.1.0.tar.xz
+!assistant/plasma6-applet-atropos-assistant-0.1.tar.xz
 *.tar.zst
 os-release
